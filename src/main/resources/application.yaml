@@ -3,8 +3,8 @@ spring:
     name: quespot-backend
 
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
+    url: jdbc:mysql://quespot-db.chgiecc0ipyi.ap-northeast-2.rds.amazonaws.com:3306/quespot?useSSL=false&serverTimezone=Asia/Seoul
+    username: quespot
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
