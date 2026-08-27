@@ -30,7 +30,7 @@ JWT, Redis, S3, Docker, 배포 및 모니터링 설정은 도입 시 별도 이�
 - 의존성 주입은 생성자 주입을 우선합니다.
 - Entity를 API 응답으로 직접 반환하지 않고 DTO와 Converter를 사용합니다.
 - API 응답은 공통 응답 구조를 따릅니다.
-- 예외 처리는 공통 ErrorCode와 전역 예외 처리 패턴을 따릅니다.
+- 예외 처리는 `GeneralErrorCode`와 `GeneralExceptionAdvice` 기반 전역 예외 처리 패턴을 따릅니다.
 - 인증이 필요한 API와 공개 API를 추가할 때 Security 설정을 함께 확인합니다.
 - 트랜잭션 변경 시 실패와 롤백 경로를 함께 고려합니다.
 - 불필요한 전체 리팩터링이나 포맷 변경을 기능 수정과 섞지 않습니다.
