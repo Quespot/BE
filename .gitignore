@@ -1,5 +1,15 @@
 HELP.md
 .DS_Store
+
+### Environment ###
+.env
+.env.*
+!.env.example
+
+### Logs ###
+logs/
+*.log
+
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
