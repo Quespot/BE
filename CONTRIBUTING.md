@@ -100,7 +100,6 @@ PR을 올리기 전에는 다음 항목을 확인합니다.
 - Entity를 API 응답으로 직접 반환하지 않고 DTO를 사용합니다.
 - API 응답 변환 로직이 반복되면 Converter를 둡니다.
 - 불필요한 전체 포맷 변경과 기능 변경을 한 PR에 섞지 않습니다.
-- Request DTO는 `*Request`, Response DTO는 `*Response` 형태로 이름을 맞춥니다.
 - 입력값 검증은 Bean Validation을 우선 사용합니다.
 - 비즈니스 로직은 Controller가 아니라 Service에 둡니다.
 - Repository는 데이터 접근 책임만 갖도록 유지합니다.
@@ -111,8 +110,8 @@ PR을 올리기 전에는 다음 항목을 확인합니다.
 API 응답은 공통 응답 형태로 통일합니다.
 
 - 공통 응답 클래스는 `ApiResponse`를 사용합니다.
-- 성공 코드는 `GeneralSuccessCode`에 정의합니다.
-- 실패 코드는 `GeneralErrorCode`에 정의합니다.
+- 공통 성공 코드는 `GeneralSuccessCode`, 도메인별 성공 코드는 `*SuccessCode`에 정의합니다.
+- 공통 실패 코드는 `GeneralErrorCode`, 도메인별 실패 코드는 `*ErrorCode`에 정의합니다.
 - 성공 코드는 `BaseCode`와 `SuccessReasonDTO`를 사용합니다.
 - 실패 코드는 `BaseErrorCode`와 `ErrorReasonDTO`를 사용합니다.
 
@@ -137,7 +136,7 @@ API 응답은 공통 응답 형태로 통일합니다.
 }
 ```
 
-성공 코드는 `COMMON_200`처럼 `COMMON_HTTP상태` 형식을 사용합니다. 실패 코드는 `AUTH_401_001`처럼 `도메인_HTTP상태_세부번호` 형식을 사용합니다.
+공통 성공 코드는 `COMMON_200`처럼 `COMMON_HTTP상태` 형식을 사용합니다. 도메인별 성공/실패 코드는 `AUTH_200_001`, `AUTH_401_001`처럼 `도메인_HTTP상태_세부번호` 형식을 사용합니다.
 
 ## 8. 예외 처리
 

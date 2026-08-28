@@ -9,13 +9,15 @@
 - Gradle Wrapper
 - Spring Web, Validation
 - Spring Data JPA, MySQL
+- Spring Data Redis
 - Spring Security, OAuth2 Client
+- Gmail SMTP
 - Spring Boot Actuator
 - Lombok
 
 ## 로컬 실행 준비
 
-MySQL에 사용할 데이터베이스와 계정을 준비합니다.
+MySQL에 사용할 데이터베이스와 계정을 준비하고, Redis를 실행합니다.
 
 ```sql
 CREATE DATABASE IF NOT EXISTS quespot
@@ -24,12 +26,6 @@ CREATE DATABASE IF NOT EXISTS quespot
 ```
 
 환경변수는 `.env.example`을 참고해 로컬 환경이나 IDE 실행 설정에 등록합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 터미널에서 실행할 때는 직접 export가 필요합니다.
-
-```bash
-export DB_URL="jdbc:mysql://localhost:3306/quespot?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true"
-export DB_USERNAME="quespot"
-export DB_PASSWORD="your-password"
-```
 
 ## 실행
 
