@@ -20,8 +20,28 @@ spring:
         format_sql: true
         use_sql_comments: true
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          starttls:
+            enable: true
+
 server:
   port: 8080
+
+app:
+  mail:
+    verification-code-expiration-minutes: ${MAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
+    verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
 
 springdoc:
   api-docs:
