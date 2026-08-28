@@ -22,27 +22,7 @@ public enum GeneralErrorCode implements BaseErrorCode {
 
     COMMON_500_001(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON_500_001",
-            "서버 내부 오류가 발생했습니다."),
-
-    AUTH_401_001(HttpStatus.UNAUTHORIZED,
-            "AUTH_401_001",
-            "인증이 필요합니다."),
-
-    AUTH_403_001(HttpStatus.FORBIDDEN,
-            "AUTH_403_001",
-            "접근 권한이 없습니다."),
-
-    AUTH_400_001(HttpStatus.BAD_REQUEST,
-            "AUTH_400_001",
-            "이메일 인증이 완료되지 않았습니다."),
-
-    AUTH_400_002(HttpStatus.BAD_REQUEST,
-            "AUTH_400_002",
-            "이메일 인증 코드가 올바르지 않거나 만료되었습니다."),
-
-    AUTH_409_001(HttpStatus.CONFLICT,
-            "AUTH_409_001",
-            "이미 가입된 이메일입니다.");
+            "서버 내부 오류가 발생했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

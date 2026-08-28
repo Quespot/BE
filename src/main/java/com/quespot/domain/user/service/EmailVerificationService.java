@@ -1,15 +1,16 @@
 package com.quespot.domain.user.service;
 
+import com.quespot.domain.user.converter.AuthConverter;
 import com.quespot.domain.user.dto.req.SendEmailVerificationCodeRequestDTO;
 import com.quespot.domain.user.dto.req.VerifyEmailCodeRequestDTO;
 import com.quespot.domain.user.dto.res.SendEmailVerificationCodeResponseDTO;
 import com.quespot.domain.user.dto.res.VerifyEmailCodeResponseDTO;
 import com.quespot.domain.user.entity.EmailVerification;
-import com.quespot.domain.user.entity.EmailVerificationPurpose;
+import com.quespot.domain.user.enums.EmailVerificationPurpose;
+import com.quespot.domain.user.exception.AuthException;
+import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.EmailVerificationRepository;
 import com.quespot.domain.user.repository.UserRepository;
-import com.quespot.global.apiPayload.code.GeneralErrorCode;
-import com.quespot.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -38,21 +39,34 @@ public class EmailVerificationService {
     @Value("${app.mail.verification-code-expiration-minutes}")
     private Integer verificationCodeExpirationMinutes;
 
+    @Value("${app.mail.verification-code-request-window-minutes}")
+    private Integer verificationCodeRequestWindowMinutes;
+
+    @Value("${app.mail.verification-code-request-limit}")
+    private Integer verificationCodeRequestLimit;
+
+    @Value("${app.mail.verification-code-failed-attempt-limit}")
+    private Integer verificationCodeFailedAttemptLimit;
+
     @Value("${spring.mail.username:}")
     private String fromEmail;
 
     @Value("${app.mail.verification-code-secret}")
     private String verificationCodeSecret;
 
+    // 이메일 인증 코드 발송 로직
     @Transactional
     public SendEmailVerificationCodeResponseDTO sendVerificationCode(
-            SendEmailVerificationCodeRequestDTO request
+            SendEmailVerificationCodeRequestDTO request,
+            String clientKey
     ) {
         String email = normalizeEmail(request.email());
 
         if (userRepository.existsByEmail(email)) {
-            throw new GeneralException(GeneralErrorCode.AUTH_409_001);
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
+
+        validateVerificationCodeRequestLimit(email, clientKey);
 
         String code = generateVerificationCode();
         String codeHash = hashVerificationCode(email, code);
@@ -61,32 +75,59 @@ public class EmailVerificationService {
         emailVerificationRepository.save(EmailVerification.create(
                 email,
                 codeHash,
+                clientKey,
                 EmailVerificationPurpose.SIGN_UP,
                 expiresAt
         ));
 
         sendMail(email, code);
 
-        return new SendEmailVerificationCodeResponseDTO(email, verificationCodeExpirationMinutes);
+        return AuthConverter.toSendEmailVerificationCodeResponseDTO(email, verificationCodeExpirationMinutes);
     }
 
+    // 이메일 인증 코드 검증 로직
     @Transactional
-    public VerifyEmailCodeResponseDTO verifyEmailCode(VerifyEmailCodeRequestDTO request) {
+    public VerifyEmailCodeResponseDTO verifyEmailCode(VerifyEmailCodeRequestDTO request, String clientKey) {
         String email = normalizeEmail(request.email());
         String codeHash = hashVerificationCode(email, request.code());
         LocalDateTime now = LocalDateTime.now();
 
         EmailVerification emailVerification = emailVerificationRepository
-                .findTopByEmailAndPurposeOrderByCreatedAtDesc(email, EmailVerificationPurpose.SIGN_UP)
-                .orElseThrow(() -> new GeneralException(GeneralErrorCode.AUTH_400_002));
+                .findTopByEmailAndClientKeyAndPurposeOrderByCreatedAtDesc(
+                        email,
+                        clientKey,
+                        EmailVerificationPurpose.SIGN_UP
+                )
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_EMAIL_VERIFICATION_CODE));
+
+        if (emailVerification.isAttemptLimitExceeded(verificationCodeFailedAttemptLimit)) {
+            throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_ATTEMPT_LIMIT_EXCEEDED);
+        }
 
         if (!emailVerification.canVerify(codeHash, now)) {
-            throw new GeneralException(GeneralErrorCode.AUTH_400_002);
+            if (emailVerification.recordFailedAttempt(verificationCodeFailedAttemptLimit)) {
+                throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_ATTEMPT_LIMIT_EXCEEDED);
+            }
+            throw new AuthException(AuthErrorCode.INVALID_EMAIL_VERIFICATION_CODE);
         }
 
         emailVerification.verify(now);
 
-        return new VerifyEmailCodeResponseDTO(email, true);
+        return AuthConverter.toVerifyEmailCodeResponseDTO(email);
+    }
+
+    private void validateVerificationCodeRequestLimit(String email, String clientKey) {
+        LocalDateTime threshold = LocalDateTime.now().minusMinutes(verificationCodeRequestWindowMinutes);
+        long requestCount = emailVerificationRepository.countByEmailAndClientKeyAndPurposeAndCreatedAtAfter(
+                email,
+                clientKey,
+                EmailVerificationPurpose.SIGN_UP,
+                threshold
+        );
+
+        if (requestCount >= verificationCodeRequestLimit) {
+            throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_REQUEST_LIMIT_EXCEEDED);
+        }
     }
 
     private void sendMail(String email, String code) {

@@ -1,14 +1,16 @@
 package com.quespot.domain.user.service;
 
+import com.quespot.domain.user.converter.AuthConverter;
 import com.quespot.domain.user.dto.req.SignUpRequestDTO;
 import com.quespot.domain.user.dto.res.SignUpResponseDTO;
-import com.quespot.domain.user.entity.EmailVerificationPurpose;
 import com.quespot.domain.user.entity.User;
+import com.quespot.domain.user.enums.EmailVerificationPurpose;
+import com.quespot.domain.user.exception.AuthException;
+import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.EmailVerificationRepository;
 import com.quespot.domain.user.repository.UserRepository;
-import com.quespot.global.apiPayload.code.GeneralErrorCode;
-import com.quespot.global.apiPayload.exception.GeneralException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +26,14 @@ public class AuthService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final PasswordEncoder passwordEncoder;
 
+    // 회원가입 로직
     @Transactional
     public SignUpResponseDTO signUp(SignUpRequestDTO request) {
         String email = normalizeEmail(request.email());
         String nickname = request.nickname().trim();
 
         if (userRepository.existsByEmail(email)) {
-            throw new GeneralException(GeneralErrorCode.AUTH_409_001);
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
         boolean emailVerified = emailVerificationRepository
@@ -41,7 +44,7 @@ public class AuthService {
                 );
 
         if (!emailVerified) {
-            throw new GeneralException(GeneralErrorCode.AUTH_400_001);
+            throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_REQUIRED);
         }
 
         User user = User.createEmailUser(
@@ -50,7 +53,11 @@ public class AuthService {
                 nickname
         );
 
-        return SignUpResponseDTO.from(userRepository.save(user));
+        try {
+            return AuthConverter.toSignUpResponseDTO(userRepository.saveAndFlush(user));
+        } catch (DataIntegrityViolationException exception) {
+            throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
+        }
     }
 
     private String normalizeEmail(String email) {

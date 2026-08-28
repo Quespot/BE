@@ -41,6 +41,9 @@ server:
 app:
   mail:
     verification-code-expiration-minutes: ${MAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
+    verification-code-request-window-minutes: ${MAIL_VERIFICATION_CODE_REQUEST_WINDOW_MINUTES:10}
+    verification-code-request-limit: ${MAIL_VERIFICATION_CODE_REQUEST_LIMIT:5}
+    verification-code-failed-attempt-limit: ${MAIL_VERIFICATION_CODE_FAILED_ATTEMPT_LIMIT:3}
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
 
 springdoc:

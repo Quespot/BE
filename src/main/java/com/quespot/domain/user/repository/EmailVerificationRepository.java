@@ -1,7 +1,7 @@
 package com.quespot.domain.user.repository;
 
 import com.quespot.domain.user.entity.EmailVerification;
-import com.quespot.domain.user.entity.EmailVerificationPurpose;
+import com.quespot.domain.user.enums.EmailVerificationPurpose;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
@@ -15,8 +15,16 @@ public interface EmailVerificationRepository extends JpaRepository<EmailVerifica
             LocalDateTime now
     );
 
-    Optional<EmailVerification> findTopByEmailAndPurposeOrderByCreatedAtDesc(
+    long countByEmailAndClientKeyAndPurposeAndCreatedAtAfter(
             String email,
+            String clientKey,
+            EmailVerificationPurpose purpose,
+            LocalDateTime createdAt
+    );
+
+    Optional<EmailVerification> findTopByEmailAndClientKeyAndPurposeOrderByCreatedAtDesc(
+            String email,
+            String clientKey,
             EmailVerificationPurpose purpose
     );
 }

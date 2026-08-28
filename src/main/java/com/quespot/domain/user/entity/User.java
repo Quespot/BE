@@ -1,5 +1,8 @@
 package com.quespot.domain.user.entity;
 
+import com.quespot.domain.user.enums.LoginProvider;
+import com.quespot.domain.user.enums.UserRole;
+import com.quespot.domain.user.enums.UserStatus;
 import com.quespot.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -16,7 +19,6 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-@Getter
 @Entity
 @Table(
         name = "users",
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
                 @UniqueConstraint(name = "uk_users_email", columnNames = "email")
         }
 )
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
 
