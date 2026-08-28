@@ -7,7 +7,6 @@ import com.quespot.domain.user.entity.User;
 import com.quespot.domain.user.enums.EmailVerificationPurpose;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
-import com.quespot.domain.user.repository.EmailVerificationRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,7 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.Locale;
 
 @Service
@@ -23,7 +21,7 @@ import java.util.Locale;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final EmailVerificationRepository emailVerificationRepository;
+    private final EmailVerificationService emailVerificationService;
     private final PasswordEncoder passwordEncoder;
 
     // 회원가입 로직
@@ -36,14 +34,7 @@ public class AuthService {
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }
 
-        boolean emailVerified = emailVerificationRepository
-                .existsByEmailAndPurposeAndVerifiedIsTrueAndExpiresAtAfter(
-                        email,
-                        EmailVerificationPurpose.SIGN_UP,
-                        LocalDateTime.now()
-                );
-
-        if (!emailVerified) {
+        if (!emailVerificationService.isEmailVerified(email, EmailVerificationPurpose.SIGN_UP)) {
             throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_REQUIRED);
         }
 

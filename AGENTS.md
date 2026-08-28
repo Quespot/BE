@@ -18,11 +18,13 @@
 - Gradle Wrapper
 - Spring Web, Validation
 - Spring Data JPA, MySQL
+- Spring Data Redis
 - Spring Security, OAuth2 Client
+- Gmail SMTP
 - Spring Boot Actuator
 - Lombok
 
-JWT, Redis, S3, Docker, 배포 및 모니터링 설정은 도입 시 별도 이슈와 PR에서 관리합니다.
+JWT, S3, Docker, 배포 및 모니터링 설정은 도입 시 별도 이슈와 PR에서 관리합니다.
 
 ## 3. Java 및 Spring 규칙
 

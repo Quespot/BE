@@ -35,6 +35,12 @@ spring:
           starttls:
             enable: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+
 server:
   port: 8080
 
@@ -44,6 +50,7 @@ app:
     verification-code-request-window-minutes: ${MAIL_VERIFICATION_CODE_REQUEST_WINDOW_MINUTES:10}
     verification-code-request-limit: ${MAIL_VERIFICATION_CODE_REQUEST_LIMIT:5}
     verification-code-failed-attempt-limit: ${MAIL_VERIFICATION_CODE_FAILED_ATTEMPT_LIMIT:3}
+    verification-completion-expiration-minutes: ${MAIL_VERIFICATION_COMPLETION_EXPIRATION_MINUTES:30}
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
 
 springdoc:
