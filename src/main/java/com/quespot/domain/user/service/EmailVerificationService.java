@@ -35,15 +35,28 @@ public class EmailVerificationService {
     private static final Long VERIFICATION_FAILED = 0L;
     private static final Long VERIFICATION_SUCCEEDED = 1L;
     private static final Long VERIFICATION_ATTEMPT_LIMIT_EXCEEDED = 2L;
+    private static final Long REQUEST_LIMIT_EXCEEDED = 1L;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final DefaultRedisScript<Long> INCREMENT_REQUEST_COUNT_SCRIPT = new DefaultRedisScript<>("""
-            local requestCount = redis.call('INCR', KEYS[1])
+    private static final DefaultRedisScript<Long> VALIDATE_REQUEST_LIMIT_SCRIPT = new DefaultRedisScript<>("""
+            local function incrementWithExpiration(key, expirationSeconds)
+                local requestCount = redis.call('INCR', key)
 
-            if requestCount == 1 then
-                redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+                if requestCount == 1 then
+                    redis.call('EXPIRE', key, expirationSeconds)
+                end
+
+                return requestCount
             end
 
-            return requestCount
+            local expirationSeconds = tonumber(ARGV[1])
+            local emailRequestCount = incrementWithExpiration(KEYS[1], expirationSeconds)
+            local clientRequestCount = incrementWithExpiration(KEYS[2], expirationSeconds)
+
+            if emailRequestCount > tonumber(ARGV[2]) or clientRequestCount > tonumber(ARGV[3]) then
+                return 1
+            end
+
+            return 0
             """, Long.class);
     private static final DefaultRedisScript<Long> VERIFY_EMAIL_CODE_SCRIPT = new DefaultRedisScript<>("""
             local savedCode = redis.call('GET', KEYS[1])
@@ -91,6 +104,9 @@ public class EmailVerificationService {
 
     @Value("${app.mail.verification-code-request-limit}")
     private Integer verificationCodeRequestLimit;
+
+    @Value("${app.mail.verification-code-client-request-limit}")
+    private Integer verificationCodeClientRequestLimit;
 
     @Value("${app.mail.verification-code-failed-attempt-limit}")
     private Integer verificationCodeFailedAttemptLimit;
@@ -169,14 +185,17 @@ public class EmailVerificationService {
             String clientKey,
             EmailVerificationPurpose purpose
     ) {
-        String requestLimitKey = verificationRequestLimitKey(email, clientKey, purpose);
-        Long requestCount = stringRedisTemplate.execute(
-                INCREMENT_REQUEST_COUNT_SCRIPT,
-                List.of(requestLimitKey),
-                String.valueOf(Duration.ofMinutes(verificationCodeRequestWindowMinutes).toSeconds())
+        String emailRequestLimitKey = verificationEmailRequestLimitKey(email, purpose);
+        String clientRequestLimitKey = verificationClientRequestLimitKey(clientKey, purpose);
+        Long requestLimitResult = stringRedisTemplate.execute(
+                VALIDATE_REQUEST_LIMIT_SCRIPT,
+                List.of(emailRequestLimitKey, clientRequestLimitKey),
+                String.valueOf(Duration.ofMinutes(verificationCodeRequestWindowMinutes).toSeconds()),
+                String.valueOf(verificationCodeRequestLimit),
+                String.valueOf(verificationCodeClientRequestLimit)
         );
 
-        if (requestCount != null && requestCount > verificationCodeRequestLimit) {
+        if (REQUEST_LIMIT_EXCEEDED.equals(requestLimitResult)) {
             throw new AuthException(AuthErrorCode.EMAIL_VERIFICATION_REQUEST_LIMIT_EXCEEDED);
         }
     }
@@ -193,7 +212,6 @@ public class EmailVerificationService {
                 Duration.ofMinutes(verificationCodeExpirationMinutes)
         );
         stringRedisTemplate.delete(verificationFailedAttemptKey(email, clientKey, purpose));
-        stringRedisTemplate.delete(verificationCompletedKey(email, purpose));
     }
 
     private void sendMail(String email, String code) {
@@ -238,8 +256,12 @@ public class EmailVerificationService {
         return "%s:code:%s:%s:%s".formatted(KEY_PREFIX, purpose, email, clientKey);
     }
 
-    private String verificationRequestLimitKey(String email, String clientKey, EmailVerificationPurpose purpose) {
-        return "%s:request:%s:%s:%s".formatted(KEY_PREFIX, purpose, email, clientKey);
+    private String verificationEmailRequestLimitKey(String email, EmailVerificationPurpose purpose) {
+        return "%s:request:email:%s:%s".formatted(KEY_PREFIX, purpose, email);
+    }
+
+    private String verificationClientRequestLimitKey(String clientKey, EmailVerificationPurpose purpose) {
+        return "%s:request:client:%s:%s".formatted(KEY_PREFIX, purpose, clientKey);
     }
 
     private String verificationFailedAttemptKey(String email, String clientKey, EmailVerificationPurpose purpose) {

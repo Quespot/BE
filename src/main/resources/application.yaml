@@ -46,10 +46,11 @@ server:
 
 app:
   mail:
-    verification-code-expiration-minutes: ${MAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:5}
+    verification-code-expiration-minutes: ${MAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:10}
     verification-code-request-window-minutes: ${MAIL_VERIFICATION_CODE_REQUEST_WINDOW_MINUTES:10}
     verification-code-request-limit: ${MAIL_VERIFICATION_CODE_REQUEST_LIMIT:5}
-    verification-code-failed-attempt-limit: ${MAIL_VERIFICATION_CODE_FAILED_ATTEMPT_LIMIT:3}
+    verification-code-client-request-limit: ${MAIL_VERIFICATION_CODE_CLIENT_REQUEST_LIMIT:20}
+    verification-code-failed-attempt-limit: ${MAIL_VERIFICATION_CODE_FAILED_ATTEMPT_LIMIT:5}
     verification-completion-expiration-minutes: ${MAIL_VERIFICATION_COMPLETION_EXPIRATION_MINUTES:30}
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
 
