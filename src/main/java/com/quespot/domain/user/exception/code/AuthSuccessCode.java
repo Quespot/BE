@@ -16,7 +16,15 @@ public enum AuthSuccessCode implements BaseCode {
 
     SIGN_UP_SUCCESS(HttpStatus.CREATED,
             "AUTH_201_001",
-            "회원가입이 완료되었습니다.");
+            "회원가입이 완료되었습니다."),
+
+    LOGIN_SUCCESS(HttpStatus.OK,
+            "AUTH_200_003",
+            "로그인에 성공했습니다."),
+
+    TOKEN_REISSUE_SUCCESS(HttpStatus.OK,
+            "AUTH_200_004",
+            "토큰이 재발급되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

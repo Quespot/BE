@@ -10,7 +10,7 @@
 - Spring Web, Validation
 - Spring Data JPA, MySQL
 - Spring Data Redis
-- Spring Security, OAuth2 Client
+- Spring Security, JWT, OAuth2 Client
 - Gmail SMTP
 - Spring Boot Actuator
 - Lombok
