@@ -50,11 +50,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            filterChain.doFilter(request, response);
         } catch (AuthException exception) {
             SecurityContextHolder.clearContext();
             responseWriter.write(response, exception.getErrorCode());
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     private String resolveAccessToken(HttpServletRequest request) {
