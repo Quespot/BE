@@ -32,7 +32,19 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     DUPLICATE_EMAIL(HttpStatus.CONFLICT,
             "AUTH_409_001",
-            "이미 가입된 이메일입니다.");
+            "이미 가입된 이메일입니다."),
+
+    INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_002",
+            "이메일 또는 비밀번호가 올바르지 않습니다."),
+
+    INVALID_ACCESS_TOKEN(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_003",
+            "Access Token이 올바르지 않거나 만료되었습니다."),
+
+    INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_004",
+            "Refresh Token이 올바르지 않거나 만료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

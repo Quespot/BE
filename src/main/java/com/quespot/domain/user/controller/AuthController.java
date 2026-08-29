@@ -1,22 +1,32 @@
 package com.quespot.domain.user.controller;
 
+import com.quespot.domain.user.dto.req.LoginRequestDTO;
 import com.quespot.domain.user.dto.req.SendEmailVerificationCodeRequestDTO;
 import com.quespot.domain.user.dto.req.SignUpRequestDTO;
 import com.quespot.domain.user.dto.req.VerifyEmailCodeRequestDTO;
+import com.quespot.domain.user.dto.res.LoginResponseDTO;
 import com.quespot.domain.user.dto.res.SendEmailVerificationCodeResponseDTO;
 import com.quespot.domain.user.dto.res.SignUpResponseDTO;
+import com.quespot.domain.user.dto.res.TokenReissueResponseDTO;
 import com.quespot.domain.user.dto.res.VerifyEmailCodeResponseDTO;
+import com.quespot.domain.user.dto.token.LoginResultDTO;
+import com.quespot.domain.user.dto.token.TokenReissueResultDTO;
 import com.quespot.domain.user.exception.code.AuthSuccessCode;
 import com.quespot.domain.user.service.AuthService;
 import com.quespot.domain.user.service.EmailVerificationService;
 import com.quespot.global.apiPayload.ApiResponse;
+import com.quespot.global.security.provider.RefreshTokenCookieProvider;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,8 +40,10 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final RefreshTokenCookieProvider refreshTokenCookieProvider;
 
     @PostMapping("/sign-up")
+    @SecurityRequirements
     @Operation(
             summary = "회원가입",
             description = "이메일 인증이 완료된 사용자 계정을 생성합니다."
@@ -46,11 +58,58 @@ public class AuthController {
                 .body(ApiResponse.of(AuthSuccessCode.SIGN_UP_SUCCESS, response));
     }
 
+    @PostMapping("/login")
+    @SecurityRequirements
+    @Operation(
+            summary = "일반 로그인",
+            description = "이메일과 비밀번호를 검증하고 Access Token을 응답하며, Refresh Token은 쿠키로 발급합니다."
+    )
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> login(
+            @Valid @RequestBody LoginRequestDTO request
+    ) {
+        LoginResultDTO result = authService.login(request);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.create(
+                                result.refreshToken(),
+                                result.refreshTokenExpiresInSeconds()
+                        ).toString()
+                )
+                .body(ApiResponse.of(AuthSuccessCode.LOGIN_SUCCESS, result.response()));
+    }
+
+    @PostMapping("/reissue")
+    @SecurityRequirements
+    @Operation(
+            summary = "토큰 재발급",
+            description = "쿠키의 Refresh Token을 검증하고 새로운 Access Token을 응답하며, Refresh Token 쿠키를 갱신합니다."
+    )
+    public ResponseEntity<ApiResponse<TokenReissueResponseDTO>> reissueToken(
+            @Parameter(hidden = true)
+            @CookieValue(name = RefreshTokenCookieProvider.COOKIE_NAME, required = false)
+            String refreshToken
+    ) {
+        TokenReissueResultDTO result = authService.reissueToken(refreshToken);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.create(
+                                result.refreshToken(),
+                                result.refreshTokenExpiresInSeconds()
+                        ).toString()
+                )
+                .body(ApiResponse.of(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, result.response()));
+    }
+
     private String resolveClientKey(HttpServletRequest request) {
         return request.getRemoteAddr();
     }
 
     @PostMapping("/email/verification-code")
+    @SecurityRequirements
     @Operation(
             summary = "이메일 인증 코드 발송",
             description = "회원가입에 사용할 이메일 인증 코드를 발송합니다."
@@ -68,6 +127,7 @@ public class AuthController {
     }
 
     @PostMapping("/email/verification")
+    @SecurityRequirements
     @Operation(
             summary = "이메일 인증 코드 검증",
             description = "회원가입에 사용할 이메일 인증 코드를 검증합니다."

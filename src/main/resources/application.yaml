@@ -45,6 +45,14 @@ server:
   port: 8080
 
 app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:30}
+    refresh-token-expiration-days: ${JWT_REFRESH_TOKEN_EXPIRATION_DAYS:14}
+    refresh-token-cookie-secure: ${JWT_REFRESH_TOKEN_COOKIE_SECURE:true}
+    refresh-token-cookie-same-site: ${JWT_REFRESH_TOKEN_COOKIE_SAME_SITE:Lax}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   mail:
     verification-code-expiration-minutes: ${MAIL_VERIFICATION_CODE_EXPIRATION_MINUTES:10}
     verification-code-request-window-minutes: ${MAIL_VERIFICATION_CODE_REQUEST_WINDOW_MINUTES:10}
