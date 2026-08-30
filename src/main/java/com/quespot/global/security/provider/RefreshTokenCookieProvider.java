@@ -32,4 +32,14 @@ public class RefreshTokenCookieProvider {
                 .maxAge(Duration.ofSeconds(maxAgeSeconds))
                 .build();
     }
+
+    public ResponseCookie delete() {
+        return ResponseCookie.from(COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite(sameSite)
+                .path(COOKIE_PATH)
+                .maxAge(Duration.ZERO)
+                .build();
+    }
 }

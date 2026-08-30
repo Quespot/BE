@@ -85,4 +85,10 @@ public class User extends BaseEntity {
                 UserStatus.ACTIVE
         );
     }
+
+    public void withdraw() {
+        this.email = "withdrawn_%d@deleted.quespot".formatted(id);
+        this.status = UserStatus.WITHDRAWN;
+        this.deletedAt = LocalDateTime.now();
+    }
 }

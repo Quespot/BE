@@ -1,6 +1,9 @@
 package com.quespot.global.security.filter;
 
 import com.quespot.domain.user.exception.AuthException;
+import com.quespot.domain.user.exception.code.AuthErrorCode;
+import com.quespot.domain.user.service.RefreshTokenService;
+import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -9,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,6 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
     private final SecurityErrorResponseWriter responseWriter;
 
     @Override
@@ -43,6 +48,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             AuthenticatedUser principal = jwtTokenProvider.parseAccessToken(accessToken);
+            if (!refreshTokenService.isSessionActive(principal.userId(), principal.sessionId())) {
+                throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+            }
+
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
@@ -53,6 +62,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (AuthException exception) {
             SecurityContextHolder.clearContext();
             responseWriter.write(response, exception.getErrorCode());
+            return;
+        } catch (DataAccessException exception) {
+            SecurityContextHolder.clearContext();
+            responseWriter.write(response, GeneralErrorCode.COMMON_503_001);
             return;
         }
 

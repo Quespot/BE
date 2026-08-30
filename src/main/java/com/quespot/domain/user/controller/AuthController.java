@@ -15,6 +15,7 @@ import com.quespot.domain.user.exception.code.AuthSuccessCode;
 import com.quespot.domain.user.service.AuthService;
 import com.quespot.domain.user.service.EmailVerificationService;
 import com.quespot.global.apiPayload.ApiResponse;
+import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.RefreshTokenCookieProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,7 +27,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -102,6 +105,38 @@ public class AuthController {
                         ).toString()
                 )
                 .body(ApiResponse.of(AuthSuccessCode.TOKEN_REISSUE_SUCCESS, result.response()));
+    }
+
+    @PostMapping("/logout")
+    @Operation(
+            summary = "로그아웃",
+            description = "현재 Access Token의 세션을 삭제하고 Refresh Token 쿠키를 만료합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        authService.logout(authenticatedUser);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieProvider.delete().toString())
+                .body(ApiResponse.<Void>of(AuthSuccessCode.LOGOUT_SUCCESS, null));
+    }
+
+    @DeleteMapping("/withdraw")
+    @Operation(
+            summary = "회원탈퇴",
+            description = "계정을 탈퇴 상태로 변경하고 이메일을 마스킹하며 모든 로그인 세션을 삭제합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal AuthenticatedUser authenticatedUser
+    ) {
+        authService.withdraw(authenticatedUser);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookieProvider.delete().toString())
+                .body(ApiResponse.<Void>of(AuthSuccessCode.WITHDRAW_SUCCESS, null));
     }
 
     private String resolveClientKey(HttpServletRequest request) {

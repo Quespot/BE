@@ -22,7 +22,11 @@ public enum GeneralErrorCode implements BaseErrorCode {
 
     COMMON_500_001(HttpStatus.INTERNAL_SERVER_ERROR,
             "COMMON_500_001",
-            "서버 내부 오류가 발생했습니다.");
+            "서버 내부 오류가 발생했습니다."),
+
+    COMMON_503_001(HttpStatus.SERVICE_UNAVAILABLE,
+            "COMMON_503_001",
+            "서비스를 일시적으로 이용할 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

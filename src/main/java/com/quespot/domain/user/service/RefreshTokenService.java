@@ -21,6 +21,7 @@ public class RefreshTokenService {
 
     private static final String REFRESH_TOKEN_KEY_PREFIX = "quespot:auth:refresh";
     private static final String USER_SESSION_KEY_PREFIX = "quespot:auth:user-sessions";
+    private static final String USER_ID_FIELD = "userId";
     private static final Long TOKEN_ROTATION_SUCCEEDED = 1L;
     private static final DefaultRedisScript<Long> SAVE_REFRESH_TOKEN_SCRIPT = new DefaultRedisScript<>("""
             redis.call('HSET', KEYS[1], 'userId', ARGV[1], 'tokenHash', ARGV[2])
@@ -53,8 +54,36 @@ public class RefreshTokenService {
 
             return 1
             """, Long.class);
+    private static final DefaultRedisScript<Long> DELETE_SESSION_SCRIPT = new DefaultRedisScript<>("""
+            redis.call('DEL', KEYS[1])
+            redis.call('ZREM', KEYS[2], ARGV[1])
+
+            return 1
+            """, Long.class);
+    private static final DefaultRedisScript<Long> DELETE_ALL_SESSIONS_SCRIPT = new DefaultRedisScript<>("""
+            local sessionIds = redis.call('ZRANGE', KEYS[1], 0, -1)
+
+            for _, sessionId in ipairs(sessionIds) do
+                redis.call('DEL', ARGV[1] .. ':' .. sessionId)
+            end
+
+            redis.call('DEL', KEYS[1])
+
+            return #sessionIds
+            """, Long.class);
 
     private final StringRedisTemplate stringRedisTemplate;
+
+    public boolean isSessionActive(Long userId, String sessionId) {
+        if (userId == null || sessionId == null || sessionId.isBlank()) {
+            return false;
+        }
+
+        Object savedUserId = stringRedisTemplate.opsForHash()
+                .get(refreshTokenKey(sessionId), USER_ID_FIELD);
+
+        return String.valueOf(userId).equals(savedUserId);
+    }
 
     public void saveRefreshToken(Long userId, JwtTokenPair tokenPair) {
         long currentTimeMillis = Instant.now().toEpochMilli();
@@ -100,6 +129,33 @@ public class RefreshTokenService {
         if (!TOKEN_ROTATION_SUCCEEDED.equals(result)) {
             throw new AuthException(AuthErrorCode.INVALID_REFRESH_TOKEN);
         }
+    }
+
+    public void deleteSession(Long userId, String sessionId) {
+        if (userId == null || sessionId == null || sessionId.isBlank()) {
+            return;
+        }
+
+        stringRedisTemplate.execute(
+                DELETE_SESSION_SCRIPT,
+                List.of(
+                        refreshTokenKey(sessionId),
+                        userSessionKey(userId)
+                ),
+                sessionId
+        );
+    }
+
+    public void deleteAllSessions(Long userId) {
+        if (userId == null) {
+            return;
+        }
+
+        stringRedisTemplate.execute(
+                DELETE_ALL_SESSIONS_SCRIPT,
+                List.of(userSessionKey(userId)),
+                REFRESH_TOKEN_KEY_PREFIX
+        );
     }
 
     private String hashToken(String token) {
