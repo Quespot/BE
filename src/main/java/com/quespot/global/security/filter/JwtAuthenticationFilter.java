@@ -3,6 +3,7 @@ package com.quespot.global.security.filter;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.service.RefreshTokenService;
+import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -11,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -60,6 +62,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (AuthException exception) {
             SecurityContextHolder.clearContext();
             responseWriter.write(response, exception.getErrorCode());
+            return;
+        } catch (DataAccessException exception) {
+            SecurityContextHolder.clearContext();
+            responseWriter.write(response, GeneralErrorCode.COMMON_503_001);
             return;
         }
 
