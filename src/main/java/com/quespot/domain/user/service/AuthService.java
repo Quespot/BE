@@ -62,9 +62,10 @@ public class AuthService {
     }
 
     // 일반 로그인 로직
+    @Transactional
     public LoginResultDTO login(LoginRequestDTO request) {
         String email = normalizeEmail(request.email());
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailForUpdate(email)
                 .filter(this::isActiveEmailUser)
                 .filter(foundUser -> passwordEncoder.matches(request.password(), foundUser.getPassword()))
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_LOGIN_CREDENTIALS));
@@ -96,11 +97,37 @@ public class AuthService {
         return AuthConverter.toTokenReissueResultDTO(newTokenPair);
     }
 
+    // 로그아웃 로직
+    public void logout(AuthenticatedUser authenticatedUser) {
+        validateAuthenticatedUser(authenticatedUser);
+        refreshTokenService.deleteSession(authenticatedUser.userId(), authenticatedUser.sessionId());
+    }
+
+    // 회원탈퇴 로직
+    @Transactional
+    public void withdraw(AuthenticatedUser authenticatedUser) {
+        validateAuthenticatedUser(authenticatedUser);
+
+        User user = userRepository.findByIdForUpdate(authenticatedUser.userId())
+                .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN));
+
+        user.withdraw();
+        userRepository.flush();
+        refreshTokenService.deleteAllSessions(user.getId());
+    }
+
     private boolean isActiveEmailUser(User user) {
         return user.getStatus() == UserStatus.ACTIVE && user.getProvider() == LoginProvider.EMAIL;
     }
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private void validateAuthenticatedUser(AuthenticatedUser authenticatedUser) {
+        if (authenticatedUser == null) {
+            throw new AuthException(AuthErrorCode.UNAUTHORIZED);
+        }
     }
 }

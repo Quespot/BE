@@ -1,6 +1,8 @@
 package com.quespot.global.security.filter;
 
 import com.quespot.domain.user.exception.AuthException;
+import com.quespot.domain.user.exception.code.AuthErrorCode;
+import com.quespot.domain.user.service.RefreshTokenService;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -26,6 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenService refreshTokenService;
     private final SecurityErrorResponseWriter responseWriter;
 
     @Override
@@ -43,6 +46,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             AuthenticatedUser principal = jwtTokenProvider.parseAccessToken(accessToken);
+            if (!refreshTokenService.isSessionActive(principal.userId(), principal.sessionId())) {
+                throw new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN);
+            }
+
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
