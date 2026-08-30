@@ -6,6 +6,10 @@ HELP.md
 .env.*
 !.env.example
 
+### Firebase ###
+firebase-service-account*.json
+serviceAccountKey*.json
+
 ### Logs ###
 logs/
 *.log
@@ -46,3 +50,4 @@ out/
 
 ### VS Code ###
 .vscode/
+/claude.md
