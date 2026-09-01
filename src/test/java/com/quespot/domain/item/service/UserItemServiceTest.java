@@ -51,8 +51,8 @@ class UserItemServiceTest {
         when(userItemRepository.findByUserIdAndItem_Id(userId, itemId)).thenReturn(Optional.of(userItem));
         when(equipSlotLimitRepository.findById(ItemCategory.HAT))
                 .thenReturn(Optional.of(EquipSlotLimit.seed(ItemCategory.HAT, 1, 1)));
-        when(userItemRepository.findByUserIdAndItem_CategoryAndIsEquippedTrueOrderByEquippedAtAsc(userId, ItemCategory.HAT))
-                .thenReturn(List.of());
+        when(userItemRepository.lockAllByUserIdAndItem_Category(userId, ItemCategory.HAT))
+                .thenReturn(List.of(userItem));
 
         userItemService.equip(userId, itemId);
 
@@ -84,8 +84,8 @@ class UserItemServiceTest {
         when(userItemRepository.findByUserIdAndItem_Id(userId, 2L)).thenReturn(Optional.of(newItem));
         when(equipSlotLimitRepository.findById(ItemCategory.HAT))
                 .thenReturn(Optional.of(EquipSlotLimit.seed(ItemCategory.HAT, 1, 1)));
-        when(userItemRepository.findByUserIdAndItem_CategoryAndIsEquippedTrueOrderByEquippedAtAsc(userId, ItemCategory.HAT))
-                .thenReturn(List.of(currentlyEquipped));
+        when(userItemRepository.lockAllByUserIdAndItem_Category(userId, ItemCategory.HAT))
+                .thenReturn(List.of(currentlyEquipped, newItem));
 
         userItemService.equip(userId, 2L);
 
@@ -133,7 +133,7 @@ class UserItemServiceTest {
         Long userId = 1L;
         UserItem userItem = UserItem.acquire(userId, shopItem(10L, ItemCategory.HAT));
 
-        when(userItemRepository.findByUserIdOrderByPurchasedAtDesc(userId)).thenReturn(List.of(userItem));
+        when(userItemRepository.findAllByUserIdWithItem(userId)).thenReturn(List.of(userItem));
 
         List<UserItemResponseDTO> result = userItemService.getMyItems(userId);
 
