@@ -143,7 +143,7 @@ public class AuthController {
         return request.getRemoteAddr();
     }
 
-    @PostMapping("/email/verification-code")
+    @PostMapping("/email/verification-request")
     @SecurityRequirements
     @Operation(
             summary = "이메일 인증 코드 발송",
@@ -161,7 +161,7 @@ public class AuthController {
         return ApiResponse.of(AuthSuccessCode.EMAIL_VERIFICATION_CODE_SENT, response);
     }
 
-    @PostMapping("/email/verification")
+    @PostMapping("/email/verification-confirm")
     @SecurityRequirements
     @Operation(
             summary = "이메일 인증 코드 검증",

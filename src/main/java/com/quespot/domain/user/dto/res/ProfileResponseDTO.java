@@ -4,7 +4,7 @@ import com.quespot.domain.user.enums.TravelStyle;
 
 import java.util.List;
 
-public record SignUpResponseDTO(
+public record ProfileResponseDTO(
         Long userId,
         String email,
         String nickname,
