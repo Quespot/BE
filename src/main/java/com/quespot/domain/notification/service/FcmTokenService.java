@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class FcmTokenService {
 
     private final FcmTokenRepository fcmTokenRepository;
+    private final FcmTokenWriter fcmTokenWriter;
 
     // 토큰 등록: 이미 등록된 토큰이면 소유자를 갱신한다 (기기 재할당 대응)
     @Transactional
@@ -34,9 +35,7 @@ public class FcmTokenService {
 
     private FcmToken saveNewToken(Long userId, RegisterFcmTokenRequestDTO request) {
         try {
-            return fcmTokenRepository.saveAndFlush(
-                    FcmToken.register(userId, request.token(), request.deviceType())
-            );
+            return fcmTokenWriter.saveNewToken(userId, request);
         } catch (DataIntegrityViolationException exception) {
             return fcmTokenRepository.findByToken(request.token())
                     .orElseThrow(() -> exception);

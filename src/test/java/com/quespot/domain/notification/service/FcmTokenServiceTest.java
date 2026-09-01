@@ -24,12 +24,14 @@ import static org.mockito.Mockito.when;
 class FcmTokenServiceTest {
 
     private FcmTokenRepository fcmTokenRepository;
+    private FcmTokenWriter fcmTokenWriter;
     private FcmTokenService fcmTokenService;
 
     @BeforeEach
     void setUp() {
         fcmTokenRepository = mock(FcmTokenRepository.class);
-        fcmTokenService = new FcmTokenService(fcmTokenRepository);
+        fcmTokenWriter = mock(FcmTokenWriter.class);
+        fcmTokenService = new FcmTokenService(fcmTokenRepository, fcmTokenWriter);
     }
 
     @Test
@@ -40,13 +42,14 @@ class FcmTokenServiceTest {
         ReflectionTestUtils.setField(savedToken, "id", 10L);
 
         when(fcmTokenRepository.findByToken(request.token())).thenReturn(Optional.empty());
-        when(fcmTokenRepository.saveAndFlush(any(FcmToken.class))).thenReturn(savedToken);
+        when(fcmTokenWriter.saveNewToken(userId, request)).thenReturn(savedToken);
 
         RegisterFcmTokenResponseDTO response = fcmTokenService.registerToken(userId, request);
 
         assertThat(response.id()).isEqualTo(10L);
         assertThat(response.deviceType()).isEqualTo(DeviceType.ANDROID);
-        verify(fcmTokenRepository, times(1)).saveAndFlush(any(FcmToken.class));
+        verify(fcmTokenWriter, times(1)).saveNewToken(userId, request);
+        verify(fcmTokenRepository, never()).saveAndFlush(any(FcmToken.class));
     }
 
     @Test
@@ -64,7 +67,7 @@ class FcmTokenServiceTest {
         assertThat(existingToken.getUserId()).isEqualTo(newOwnerId);
         assertThat(existingToken.getDeviceType()).isEqualTo(DeviceType.IOS);
         assertThat(response.deviceType()).isEqualTo(DeviceType.IOS);
-        verify(fcmTokenRepository, never()).saveAndFlush(any(FcmToken.class));
+        verify(fcmTokenWriter, never()).saveNewToken(any(), any());
     }
 
     @Test
@@ -76,7 +79,7 @@ class FcmTokenServiceTest {
         when(fcmTokenRepository.findByToken(request.token()))
                 .thenReturn(Optional.empty())
                 .thenReturn(Optional.of(raceWinnerToken));
-        when(fcmTokenRepository.saveAndFlush(any(FcmToken.class)))
+        when(fcmTokenWriter.saveNewToken(userId, request))
                 .thenThrow(new DataIntegrityViolationException("duplicate token"));
 
         RegisterFcmTokenResponseDTO response = fcmTokenService.registerToken(userId, request);
