@@ -51,7 +51,9 @@ public class AuthService {
         User user = User.createEmailUser(
                 email,
                 passwordEncoder.encode(request.password()),
-                nickname
+                nickname,
+                request.profileImageUrl(),
+                request.travelStyles()
         );
 
         try {

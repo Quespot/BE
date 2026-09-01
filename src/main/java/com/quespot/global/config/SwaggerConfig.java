@@ -57,7 +57,6 @@ public class SwaggerConfig {
                 .pathsToMatch(
                         "/api/auth/**",
                         "/api/users/**",
-                        "/api/user-profiles/**",
                         "/api/terms/**"
                 )
                 .build();
