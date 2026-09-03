@@ -18,6 +18,10 @@ public enum AuthErrorCode implements BaseErrorCode {
             "AUTH_400_001",
             "이메일 인증이 완료되지 않았습니다."),
 
+    PASSWORD_CONFIRMATION_MISMATCH(HttpStatus.BAD_REQUEST,
+            "AUTH_400_003",
+            "비밀번호와 비밀번호 확인이 일치하지 않습니다."),
+
     INVALID_EMAIL_VERIFICATION_CODE(HttpStatus.BAD_REQUEST,
             "AUTH_400_002",
             "이메일 인증 코드가 올바르지 않거나 만료되었습니다."),

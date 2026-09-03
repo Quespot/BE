@@ -6,6 +6,10 @@ import org.springframework.http.HttpStatus;
 
 public enum ProfileSuccessCode implements BaseCode {
 
+    PROFILE_CREATED(HttpStatus.CREATED,
+            "PROFILE_201_001",
+            "프로필이 생성되었습니다."),
+
     PROFILE_FOUND(HttpStatus.OK,
             "PROFILE_200_001",
             "프로필을 조회했습니다."),

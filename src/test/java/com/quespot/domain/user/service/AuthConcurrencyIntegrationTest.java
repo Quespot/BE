@@ -101,8 +101,7 @@ class AuthConcurrencyIntegrationTest {
     void withdrawalWaitsForLoginAndDeletesTheNewSession() throws Exception {
         User user = userRepository.saveAndFlush(User.createEmailUser(
                 "member@quespot.test",
-                passwordEncoder.encode(PASSWORD),
-                "member"
+                passwordEncoder.encode(PASSWORD)
         ));
         CountDownLatch sessionSaved = new CountDownLatch(1);
         CountDownLatch releaseLogin = new CountDownLatch(1);

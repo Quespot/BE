@@ -8,10 +8,7 @@ import com.quespot.domain.user.dto.res.VerifyEmailCodeResponseDTO;
 import com.quespot.domain.user.dto.token.LoginResultDTO;
 import com.quespot.domain.user.dto.token.TokenReissueResultDTO;
 import com.quespot.domain.user.entity.User;
-import com.quespot.domain.user.enums.TravelStyle;
 import com.quespot.global.security.provider.JwtTokenPair;
-
-import java.util.Comparator;
 
 public final class AuthConverter {
 
@@ -21,12 +18,7 @@ public final class AuthConverter {
     public static SignUpResponseDTO toSignUpResponseDTO(User user) {
         return new SignUpResponseDTO(
                 user.getId(),
-                user.getEmail(),
-                user.getNickname(),
-                user.getProfileImageUrl(),
-                user.getTravelStyles().stream()
-                        .sorted(Comparator.comparingInt(TravelStyle::ordinal))
-                        .toList()
+                user.getEmail()
         );
     }
 
@@ -41,17 +33,24 @@ public final class AuthConverter {
         return new VerifyEmailCodeResponseDTO(email, true);
     }
 
-    public static LoginResultDTO toLoginResultDTO(User user, JwtTokenPair tokenPair) {
+    public static LoginResultDTO toLoginResultDTO(
+            User user,
+            JwtTokenPair tokenPair,
+            boolean profileCompleted
+    ) {
         return new LoginResultDTO(
-                new LoginResponseDTO(user.getId(), tokenPair.accessToken()),
+                new LoginResponseDTO(user.getId(), tokenPair.accessToken(), profileCompleted),
                 tokenPair.refreshToken(),
                 tokenPair.refreshTokenExpiresInSeconds()
         );
     }
 
-    public static TokenReissueResultDTO toTokenReissueResultDTO(JwtTokenPair tokenPair) {
+    public static TokenReissueResultDTO toTokenReissueResultDTO(
+            JwtTokenPair tokenPair,
+            boolean profileCompleted
+    ) {
         return new TokenReissueResultDTO(
-                new TokenReissueResponseDTO(tokenPair.accessToken()),
+                new TokenReissueResponseDTO(tokenPair.accessToken(), profileCompleted),
                 tokenPair.refreshToken(),
                 tokenPair.refreshTokenExpiresInSeconds()
         );

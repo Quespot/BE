@@ -13,6 +13,7 @@ import com.quespot.domain.user.enums.UserStatus;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.UserRepository;
+import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -29,6 +30,7 @@ import java.util.Locale;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final UserProfileRepository userProfileRepository;
     private final EmailVerificationService emailVerificationService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
@@ -38,7 +40,10 @@ public class AuthService {
     @Transactional
     public SignUpResponseDTO signUp(SignUpRequestDTO request) {
         String email = normalizeEmail(request.email());
-        String nickname = request.nickname().trim();
+
+        if (!request.password().equals(request.passwordConfirm())) {
+            throw new AuthException(AuthErrorCode.PASSWORD_CONFIRMATION_MISMATCH);
+        }
 
         if (userRepository.existsByEmail(email)) {
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
@@ -50,10 +55,7 @@ public class AuthService {
 
         User user = User.createEmailUser(
                 email,
-                passwordEncoder.encode(request.password()),
-                nickname,
-                request.profileImageUrl(),
-                request.travelStyles()
+                passwordEncoder.encode(request.password())
         );
 
         try {
@@ -75,7 +77,11 @@ public class AuthService {
         JwtTokenPair tokenPair = jwtTokenProvider.issueTokenPair(user.getId(), user.getRole());
         refreshTokenService.saveRefreshToken(user.getId(), tokenPair);
 
-        return AuthConverter.toLoginResultDTO(user, tokenPair);
+        return AuthConverter.toLoginResultDTO(
+                user,
+                tokenPair,
+                userProfileRepository.existsByUserId(user.getId())
+        );
     }
 
     // 토큰 재발급 로직
@@ -96,7 +102,10 @@ public class AuthService {
         );
         refreshTokenService.rotateRefreshToken(user.getId(), refreshToken, newTokenPair);
 
-        return AuthConverter.toTokenReissueResultDTO(newTokenPair);
+        return AuthConverter.toTokenReissueResultDTO(
+                newTokenPair,
+                userProfileRepository.existsByUserId(user.getId())
+        );
     }
 
     // 로그아웃 로직
@@ -115,6 +124,7 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN));
 
         user.withdraw();
+        userProfileRepository.deleteByUserId(user.getId());
         userRepository.flush();
         refreshTokenService.deleteAllSessions(user.getId());
     }
