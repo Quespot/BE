@@ -34,4 +34,10 @@ public record CreateProfileRequestDTO(
         @Size(max = 6, message = "여행 스타일은 최대 6개까지 선택할 수 있습니다.")
         Set<TravelStyle> travelStyles
 ) {
+
+    public CreateProfileRequestDTO {
+        if (profileImageUrl != null) {
+            profileImageUrl = profileImageUrl.trim();
+        }
+    }
 }
