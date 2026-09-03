@@ -8,7 +8,11 @@ public enum RewardSuccessCode implements BaseCode {
 
     POINTS_FOUND(HttpStatus.OK,
             "REWARD_200_001",
-            "보유 포인트를 조회했습니다.");
+            "보유 포인트를 조회했습니다."),
+
+    REWARD_ACTIVITIES_FOUND(HttpStatus.OK,
+            "REWARD_200_002",
+            "보상 활동 내역을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
