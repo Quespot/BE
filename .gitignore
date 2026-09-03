@@ -52,3 +52,6 @@ out/
 .vscode/
 /claude.md
 /docs/quespot_schema.sql
+
+### Local-only design specs ###
+/docs/superpowers/
