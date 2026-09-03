@@ -1,6 +1,7 @@
 package com.quespot.domain.item.controller;
 
 import com.quespot.domain.item.dto.res.UserItemResponseDTO;
+import com.quespot.domain.item.exception.code.ItemSuccessCode;
 import com.quespot.domain.item.service.UserItemService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
@@ -33,7 +34,7 @@ public class UserItemController {
     public ApiResponse<List<UserItemResponseDTO>> getMyItems(
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        return ApiResponse.onSuccess(userItemService.getMyItems(principal.userId()));
+        return ApiResponse.of(ItemSuccessCode.MY_ITEMS_FOUND, userItemService.getMyItems(principal.userId()));
     }
 
     @PostMapping("/{itemId}/equip")
@@ -48,7 +49,7 @@ public class UserItemController {
     ) {
         userItemService.equip(principal.userId(), itemId);
 
-        return ApiResponse.onSuccess();
+        return ApiResponse.<Void>of(ItemSuccessCode.ITEM_EQUIPPED, null);
     }
 
     @DeleteMapping("/{itemId}/equip")
@@ -62,6 +63,6 @@ public class UserItemController {
     ) {
         userItemService.unequip(principal.userId(), itemId);
 
-        return ApiResponse.onSuccess();
+        return ApiResponse.<Void>of(ItemSuccessCode.ITEM_UNEQUIPPED, null);
     }
 }

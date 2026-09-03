@@ -2,6 +2,7 @@ package com.quespot.domain.item.controller;
 
 import com.quespot.domain.item.dto.res.ShopItemResponseDTO;
 import com.quespot.domain.item.enums.ItemCategory;
+import com.quespot.domain.item.exception.code.ItemSuccessCode;
 import com.quespot.domain.item.service.ShopItemService;
 import com.quespot.global.apiPayload.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +31,6 @@ public class ShopItemController {
     public ApiResponse<List<ShopItemResponseDTO>> getShopItems(
             @RequestParam(required = false) ItemCategory category
     ) {
-        return ApiResponse.onSuccess(shopItemService.getShopItems(category));
+        return ApiResponse.of(ItemSuccessCode.SHOP_ITEMS_FOUND, shopItemService.getShopItems(category));
     }
 }
