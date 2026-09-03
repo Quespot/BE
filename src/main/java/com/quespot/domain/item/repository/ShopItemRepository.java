@@ -11,4 +11,6 @@ public interface ShopItemRepository extends JpaRepository<ShopItem, Long> {
     List<ShopItem> findByIsActiveTrueOrderBySortOrderAsc();
 
     List<ShopItem> findByCategoryAndIsActiveTrueOrderBySortOrderAsc(ItemCategory category);
+
+    boolean existsByCode(String code);
 }
