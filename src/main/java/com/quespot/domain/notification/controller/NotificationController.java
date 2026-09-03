@@ -51,6 +51,6 @@ public class NotificationController {
     ) {
         fcmTokenService.unregisterToken(principal.userId(), token);
 
-        return ApiResponse.onSuccess();
+        return ApiResponse.<Void>of(NotificationSuccessCode.FCM_TOKEN_UNREGISTERED, null);
     }
 }

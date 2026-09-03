@@ -51,3 +51,4 @@ out/
 ### VS Code ###
 .vscode/
 /claude.md
+/docs/quespot_schema.sql
