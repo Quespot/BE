@@ -45,6 +45,8 @@ server:
   port: 8080
 
 app:
+  profile:
+    default-image-url: ${DEFAULT_PROFILE_IMAGE_URL:https://example.com/images/default-profile.png}
   firebase:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
   jwt:

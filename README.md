@@ -26,6 +26,7 @@ CREATE DATABASE IF NOT EXISTS quespot
 ```
 
 환경변수는 `.env.example`을 참고해 로컬 환경이나 IDE 실행 설정에 등록합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 터미널에서 실행할 때는 직접 export가 필요합니다.
+`DEFAULT_PROFILE_IMAGE_URL`은 프로필 생성 또는 수정 요청에 이미지 URL이 없을 때 사용할 기본 이미지의 HTTPS URL입니다.
 
 ## 실행
 

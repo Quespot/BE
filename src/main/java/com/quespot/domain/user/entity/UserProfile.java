@@ -36,9 +36,6 @@ import java.util.Set;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserProfile extends BaseEntity {
 
-    public static final String DEFAULT_PROFILE_IMAGE_URL =
-            "https://example.com/images/default-profile.png";
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -86,7 +83,7 @@ public class UserProfile extends BaseEntity {
     ) {
         this.user = user;
         this.nickname = nickname;
-        this.profileImageUrl = resolveProfileImageUrl(profileImageUrl);
+        this.profileImageUrl = profileImageUrl;
         this.gender = gender;
         this.birthDate = birthDate;
         this.travelStyles.addAll(resolveTravelStyles(travelStyles));
@@ -114,7 +111,7 @@ public class UserProfile extends BaseEntity {
             this.nickname = nickname.trim();
         }
         if (profileImageUrl != null) {
-            this.profileImageUrl = resolveProfileImageUrl(profileImageUrl);
+            this.profileImageUrl = profileImageUrl;
         }
         if (gender != null) {
             this.gender = gender;
@@ -126,13 +123,6 @@ public class UserProfile extends BaseEntity {
             this.travelStyles.clear();
             this.travelStyles.addAll(travelStyles);
         }
-    }
-
-    private static String resolveProfileImageUrl(String profileImageUrl) {
-        if (profileImageUrl == null || profileImageUrl.isBlank()) {
-            return DEFAULT_PROFILE_IMAGE_URL;
-        }
-        return profileImageUrl.trim();
     }
 
     private static Set<TravelStyle> resolveTravelStyles(Set<TravelStyle> travelStyles) {

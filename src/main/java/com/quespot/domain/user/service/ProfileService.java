@@ -14,17 +14,27 @@ import com.quespot.domain.user.exception.code.ProfileErrorCode;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.global.security.principal.AuthenticatedUser;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final String defaultProfileImageUrl;
+
+    public ProfileService(
+            UserRepository userRepository,
+            UserProfileRepository userProfileRepository,
+            @Value("${app.profile.default-image-url}") String defaultProfileImageUrl
+    ) {
+        this.userRepository = userRepository;
+        this.userProfileRepository = userProfileRepository;
+        this.defaultProfileImageUrl = defaultProfileImageUrl;
+    }
 
     // 프로필 생성 로직
     @Transactional
@@ -41,7 +51,7 @@ public class ProfileService {
         UserProfile profile = UserProfile.create(
                 user,
                 request.nickname().trim(),
-                request.profileImageUrl(),
+                resolveProfileImageUrl(request.profileImageUrl()),
                 request.gender(),
                 request.birthDate(),
                 request.travelStyles()
@@ -71,7 +81,9 @@ public class ProfileService {
         UserProfile profile = findProfile(user.getId());
         profile.update(
                 request.nickname(),
-                request.profileImageUrl(),
+                request.profileImageUrl() == null
+                        ? null
+                        : resolveProfileImageUrl(request.profileImageUrl()),
                 request.gender(),
                 request.birthDate(),
                 request.travelStyles()
@@ -104,5 +116,12 @@ public class ProfileService {
         if (authenticatedUser == null) {
             throw new AuthException(AuthErrorCode.UNAUTHORIZED);
         }
+    }
+
+    private String resolveProfileImageUrl(String profileImageUrl) {
+        if (profileImageUrl == null || profileImageUrl.isBlank()) {
+            return defaultProfileImageUrl;
+        }
+        return profileImageUrl.trim();
     }
 }
