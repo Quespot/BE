@@ -12,6 +12,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -44,6 +45,16 @@ public class GeneralExceptionAdvice {
         return handleExceptionInternal(
                 GeneralErrorCode.COMMON_400_002,
                 Map.of("message", exception.getMessage())
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatchException(
+            MethodArgumentTypeMismatchException exception
+    ) {
+        return handleExceptionInternal(
+                GeneralErrorCode.COMMON_400_002,
+                Map.of(exception.getName(), "요청 파라미터 형식이 올바르지 않습니다.")
         );
     }
 

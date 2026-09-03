@@ -9,6 +9,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,7 +20,14 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reward_activities")
+@Table(
+        name = "reward_activities",
+        indexes = {
+                // 커서 페이지네이션(ORDER BY id DESC WHERE user_id = ?)이 인덱스만으로 처리되도록.
+                // 스키마의 ix_ra_user(user_id, created_at)는 이 쿼리 정렬 기준(id)과 안 맞아 filesort를 유발한다.
+                @Index(name = "ix_ra_user_id", columnList = "user_id, id")
+        }
+)
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class RewardActivity {
