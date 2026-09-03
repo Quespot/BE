@@ -1,6 +1,7 @@
 package com.quespot.domain.user.dto.res;
 
 public record TokenReissueResponseDTO(
-        String accessToken
+        String accessToken,
+        boolean profileCompleted
 ) {
 }

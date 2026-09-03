@@ -2,6 +2,8 @@ package com.quespot.domain.user.dto.req;
 
 import com.quespot.domain.user.enums.Gender;
 import com.quespot.domain.user.enums.TravelStyle;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -10,7 +12,11 @@ import org.hibernate.validator.constraints.URL;
 import java.time.LocalDate;
 import java.util.Set;
 
-public record UpdateProfileRequestDTO(
+public record CreateProfileRequestDTO(
+        @URL(protocol = "https", message = "프로필 이미지 URL은 올바른 HTTPS URL이어야 합니다.")
+        String profileImageUrl,
+
+        @NotBlank(message = "닉네임은 필수입니다.")
         @Size(min = 2, max = 10, message = "닉네임은 2자 이상 10자 이하로 입력해주세요.")
         @Pattern(
                 regexp = "^[가-힣A-Za-z0-9]+(?: [가-힣A-Za-z0-9]+)*$",
@@ -18,11 +24,10 @@ public record UpdateProfileRequestDTO(
         )
         String nickname,
 
-        @URL(protocol = "https", message = "프로필 이미지 URL은 올바른 HTTPS URL이어야 합니다.")
-        String profileImageUrl,
-
+        @NotNull(message = "성별은 필수입니다.")
         Gender gender,
 
+        @NotNull(message = "생년월일은 필수입니다.")
         @Past(message = "생년월일은 과거 날짜여야 합니다.")
         LocalDate birthDate,
 
@@ -30,7 +35,7 @@ public record UpdateProfileRequestDTO(
         Set<TravelStyle> travelStyles
 ) {
 
-    public UpdateProfileRequestDTO {
+    public CreateProfileRequestDTO {
         if (profileImageUrl != null) {
             profileImageUrl = profileImageUrl.trim();
         }

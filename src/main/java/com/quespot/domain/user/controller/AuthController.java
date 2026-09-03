@@ -49,7 +49,7 @@ public class AuthController {
     @SecurityRequirements
     @Operation(
             summary = "회원가입",
-            description = "이메일 인증이 완료된 사용자 계정을 생성합니다."
+            description = "이메일 인증과 비밀번호 확인이 완료된 사용자 계정을 생성합니다. 프로필은 로그인 후 별도로 생성합니다."
     )
     public ResponseEntity<ApiResponse<SignUpResponseDTO>> signUp(
             @Valid @RequestBody SignUpRequestDTO request

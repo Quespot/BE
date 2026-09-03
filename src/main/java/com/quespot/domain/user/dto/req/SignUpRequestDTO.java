@@ -1,13 +1,9 @@
 package com.quespot.domain.user.dto.req;
 
-import com.quespot.domain.user.enums.TravelStyle;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.URL;
-
-import java.util.Set;
 
 public record SignUpRequestDTO(
         @NotBlank(message = "이메일은 필수입니다.")
@@ -22,18 +18,12 @@ public record SignUpRequestDTO(
         )
         String password,
 
-        @NotBlank(message = "닉네임은 필수입니다.")
-        @Size(min = 2, max = 10, message = "닉네임은 2자 이상 10자 이하로 입력해주세요.")
+        @NotBlank(message = "비밀번호 확인은 필수입니다.")
+        @Size(min = 8, max = 64, message = "비밀번호 확인은 8자 이상 64자 이하로 입력해주세요.")
         @Pattern(
-                regexp = "^[가-힣A-Za-z0-9]+(?: [가-힣A-Za-z0-9]+)*$",
-                message = "닉네임은 한글, 영문, 숫자와 공백만 사용할 수 있습니다."
+                regexp = "^(?=.*[A-Za-z])(?=.*\\d).+$",
+                message = "비밀번호 확인은 영문과 숫자를 포함해야 합니다."
         )
-        String nickname,
-
-        @URL(protocol = "https", message = "프로필 이미지 URL은 올바른 HTTPS URL이어야 합니다.")
-        String profileImageUrl,
-
-        @Size(max = 6, message = "여행 스타일은 최대 6개까지 선택할 수 있습니다.")
-        Set<TravelStyle> travelStyles
+        String passwordConfirm
 ) {
 }
