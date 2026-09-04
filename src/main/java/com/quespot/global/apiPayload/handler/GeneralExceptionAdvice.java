@@ -6,6 +6,7 @@ import com.quespot.global.apiPayload.code.ErrorReasonDTO;
 import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.apiPayload.exception.GeneralException;
 import jakarta.validation.ConstraintViolationException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -61,6 +62,11 @@ public class GeneralExceptionAdvice {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     protected ResponseEntity<ApiResponse<Void>> handleHttpRequestMethodNotSupportedException() {
         return handleExceptionInternal(GeneralErrorCode.COMMON_405_001);
+    }
+
+    @ExceptionHandler(DataAccessException.class)
+    protected ResponseEntity<ApiResponse<Void>> handleDataAccessException() {
+        return handleExceptionInternal(GeneralErrorCode.COMMON_503_001);
     }
 
     @ExceptionHandler(Exception.class)

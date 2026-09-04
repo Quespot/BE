@@ -25,8 +25,9 @@ CREATE DATABASE IF NOT EXISTS quespot
   COLLATE utf8mb4_unicode_ci;
 ```
 
-환경변수는 `.env.example`을 참고해 로컬 환경이나 IDE 실행 설정에 등록합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 터미널에서 실행할 때는 직접 export가 필요합니다.
-`DEFAULT_PROFILE_IMAGE_URL`은 프로필 생성 또는 수정 요청에 이미지 URL이 없을 때 사용할 기본 이미지의 HTTPS URL입니다.
+- 환경변수는 `.env.example`을 참고해 로컬 환경이나 IDE 실행 설정에 등록합니다. Spring Boot는 `.env` 파일을 자동으로 읽지 않으므로 터미널에서 실행할 때는 직접 export가 필요합니다.
+- `DEFAULT_PROFILE_IMAGE_URL`은 프로필 생성 또는 수정 요청에 이미지 URL이 없을 때 사용할 기본 이미지의 HTTPS URL입니다.
+- Google 로그인을 사용하려면 `.env.example`의 `GOOGLE_*` 환경변수를 등록하고 `GOOGLE_OAUTH_ENABLED=true`로 설정합니다. Google Cloud Console에는 `GOOGLE_OAUTH_REDIRECT_URI`와 동일한 주소를 승인된 리디렉션 URI로 등록해야 합니다. 인증 완료 후 프론트는 `OAUTH2_FRONTEND_REDIRECT_URI`로 전달된 일회용 코드를 `/api/auth/login/oauth2/exchange`에서 Quespot 토큰으로 교환합니다.
 
 ## 실행
 

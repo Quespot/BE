@@ -13,6 +13,7 @@ import com.quespot.domain.user.enums.UserStatus;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.UserRepository;
+import com.quespot.domain.user.repository.UserSocialAccountRepository;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.JwtTokenPair;
@@ -31,6 +32,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final UserSocialAccountRepository userSocialAccountRepository;
     private final EmailVerificationService emailVerificationService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
@@ -125,6 +127,7 @@ public class AuthService {
 
         user.withdraw();
         userProfileRepository.deleteByUserId(user.getId());
+        userSocialAccountRepository.deleteByUserId(user.getId());
         userRepository.flush();
         refreshTokenService.deleteAllSessions(user.getId());
     }

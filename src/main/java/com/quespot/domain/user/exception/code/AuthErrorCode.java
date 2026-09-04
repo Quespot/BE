@@ -38,6 +38,10 @@ public enum AuthErrorCode implements BaseErrorCode {
             "AUTH_409_001",
             "이미 가입된 이메일입니다."),
 
+    SOCIAL_ACCOUNT_LINK_REQUIRED(HttpStatus.CONFLICT,
+            "AUTH_409_002",
+            "이미 다른 로그인 방식으로 가입된 이메일입니다. 기존 로그인 방식으로 로그인한 후 마이페이지에서 계정을 연결해주세요."),
+
     INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED,
             "AUTH_401_002",
             "이메일 또는 비밀번호가 올바르지 않습니다."),
@@ -48,7 +52,15 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED,
             "AUTH_401_004",
-            "Refresh Token이 올바르지 않거나 만료되었습니다.");
+            "Refresh Token이 올바르지 않거나 만료되었습니다."),
+
+    OAUTH2_LOGIN_FAILED(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_005",
+            "소셜 로그인에 실패했습니다."),
+
+    INVALID_OAUTH2_LOGIN_CODE(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_006",
+            "소셜 로그인 코드가 올바르지 않거나 만료되었습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

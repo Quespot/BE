@@ -38,7 +38,7 @@ public class User extends BaseEntity {
     @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    @Column(name = "password", nullable = false, length = 255)
+    @Column(name = "password", length = 255)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -75,6 +75,16 @@ public class User extends BaseEntity {
                 email,
                 encodedPassword,
                 LoginProvider.EMAIL,
+                UserRole.USER,
+                UserStatus.ACTIVE
+        );
+    }
+
+    public static User createSocialUser(String email, LoginProvider provider) {
+        return new User(
+                email,
+                null,
+                provider,
                 UserRole.USER,
                 UserStatus.ACTIVE
         );
