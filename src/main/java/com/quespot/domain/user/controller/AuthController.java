@@ -1,6 +1,7 @@
 package com.quespot.domain.user.controller;
 
 import com.quespot.domain.user.dto.req.LoginRequestDTO;
+import com.quespot.domain.user.dto.req.OAuth2LoginCodeExchangeRequestDTO;
 import com.quespot.domain.user.dto.req.SendEmailVerificationCodeRequestDTO;
 import com.quespot.domain.user.dto.req.SignUpRequestDTO;
 import com.quespot.domain.user.dto.req.VerifyEmailCodeRequestDTO;
@@ -14,6 +15,7 @@ import com.quespot.domain.user.dto.token.TokenReissueResultDTO;
 import com.quespot.domain.user.exception.code.AuthSuccessCode;
 import com.quespot.domain.user.service.AuthService;
 import com.quespot.domain.user.service.EmailVerificationService;
+import com.quespot.domain.user.service.OAuth2LoginService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.RefreshTokenCookieProvider;
@@ -43,6 +45,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final EmailVerificationService emailVerificationService;
+    private final OAuth2LoginService oAuth2LoginService;
     private final RefreshTokenCookieProvider refreshTokenCookieProvider;
 
     @PostMapping("/sign-up")
@@ -71,6 +74,28 @@ public class AuthController {
             @Valid @RequestBody LoginRequestDTO request
     ) {
         LoginResultDTO result = authService.login(request);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        refreshTokenCookieProvider.create(
+                                result.refreshToken(),
+                                result.refreshTokenExpiresInSeconds()
+                        ).toString()
+                )
+                .body(ApiResponse.of(AuthSuccessCode.LOGIN_SUCCESS, result.response()));
+    }
+
+    @PostMapping("/login/oauth2/exchange")
+    @SecurityRequirements
+    @Operation(
+            summary = "소셜 로그인 코드 교환",
+            description = "OAuth2 로그인 완료 후 발급된 일회용 코드를 Quespot Access Token과 Refresh Token으로 교환합니다."
+    )
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> exchangeOAuth2LoginCode(
+            @Valid @RequestBody OAuth2LoginCodeExchangeRequestDTO request
+    ) {
+        LoginResultDTO result = oAuth2LoginService.exchangeLoginCode(request.code());
 
         return ResponseEntity.ok()
                 .header(

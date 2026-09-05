@@ -47,6 +47,14 @@ server:
 app:
   profile:
     default-image-url: ${DEFAULT_PROFILE_IMAGE_URL:https://example.com/images/default-profile.png}
+  oauth2:
+    frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:5173/oauth/callback}
+    login-code-expiration-seconds: ${OAUTH2_LOGIN_CODE_EXPIRATION_SECONDS:60}
+    google:
+      enabled: ${GOOGLE_OAUTH_ENABLED:false}
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}
+      redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/login/oauth2/code/google}
   firebase:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
   jwt:

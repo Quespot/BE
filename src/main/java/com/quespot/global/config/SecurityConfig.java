@@ -3,6 +3,8 @@ package com.quespot.global.config;
 import com.quespot.global.security.filter.JwtAuthenticationFilter;
 import com.quespot.global.security.handler.JwtAccessDeniedHandler;
 import com.quespot.global.security.handler.JwtAuthenticationEntryPoint;
+import com.quespot.global.security.handler.OAuth2LoginFailureHandler;
+import com.quespot.global.security.handler.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -34,6 +36,7 @@ public class SecurityConfig {
     private static final String[] PUBLIC_API_PATHS = {
             "/api/auth/sign-up",
             "/api/auth/login",
+            "/api/auth/login/**",
             "/api/auth/reissue",
             "/api/auth/email/**"
     };
@@ -41,13 +44,18 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
 
+    @Value("${app.oauth2.google.enabled:false}")
+    private boolean googleOAuth2Enabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
+        http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -61,8 +69,17 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_PATHS).permitAll()
                         .requestMatchers(PUBLIC_API_PATHS).permitAll()
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+
+        if (googleOAuth2Enabled) {
+            http.oauth2Login(oauth2 -> oauth2
+                    .authorizationEndpoint(endpoint -> endpoint.baseUri("/api/auth/login"))
+                    .redirectionEndpoint(endpoint -> endpoint.baseUri("/api/auth/login/oauth2/code/*"))
+                    .successHandler(oAuth2LoginSuccessHandler)
+                    .failureHandler(oAuth2LoginFailureHandler));
+        }
+
+        return http.build();
     }
 
     @Bean
