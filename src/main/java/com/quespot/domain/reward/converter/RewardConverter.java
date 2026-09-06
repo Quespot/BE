@@ -3,10 +3,13 @@ package com.quespot.domain.reward.converter;
 import com.quespot.domain.reward.dto.res.BadgeResponseDTO;
 import com.quespot.domain.reward.dto.res.PointResponseDTO;
 import com.quespot.domain.reward.dto.res.RewardActivityResponseDTO;
+import com.quespot.domain.reward.dto.res.StampResponseDTO;
 import com.quespot.domain.reward.entity.Badge;
 import com.quespot.domain.reward.entity.RewardActivity;
+import com.quespot.domain.reward.entity.Stamp;
 import com.quespot.domain.reward.entity.UserBadge;
 import com.quespot.domain.reward.entity.UserPoint;
+import com.quespot.domain.reward.entity.UserStamp;
 
 public class RewardConverter {
 
@@ -46,6 +49,19 @@ public class RewardConverter {
                 badge.getName(),
                 badge.getDescription(),
                 badge.getIconUrl(),
+                acquired != null,
+                acquired != null ? acquired.getAcquiredAt() : null
+        );
+    }
+
+    public static StampResponseDTO toStampResponseDTO(Stamp stamp, UserStamp acquired) {
+        return new StampResponseDTO(
+                stamp.getId(),
+                stamp.getCode(),
+                stamp.getName(),
+                stamp.getRegionCode(),
+                stamp.getIconUrl(),
+                stamp.getIsActive(),
                 acquired != null,
                 acquired != null ? acquired.getAcquiredAt() : null
         );

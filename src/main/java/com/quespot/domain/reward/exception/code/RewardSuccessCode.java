@@ -16,7 +16,11 @@ public enum RewardSuccessCode implements BaseCode {
 
     BADGES_FOUND(HttpStatus.OK,
             "REWARD_200_003",
-            "배지 목록을 조회했습니다.");
+            "배지 목록을 조회했습니다."),
+
+    STAMPS_FOUND(HttpStatus.OK,
+            "REWARD_200_004",
+            "스탬프 목록을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
