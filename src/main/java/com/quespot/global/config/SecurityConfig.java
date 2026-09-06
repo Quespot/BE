@@ -58,6 +58,9 @@ public class SecurityConfig {
     @Value("${app.oauth2.google.enabled:false}")
     private boolean googleOAuth2Enabled;
 
+    @Value("${app.oauth2.kakao.enabled:false}")
+    private boolean kakaoOAuth2Enabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -77,7 +80,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        if (googleOAuth2Enabled) {
+        if (googleOAuth2Enabled || kakaoOAuth2Enabled) {
             http.oauth2Login(oauth2 -> oauth2
                     .authorizationEndpoint(endpoint -> endpoint.baseUri("/api/auth/login"))
                     .redirectionEndpoint(endpoint -> endpoint.baseUri("/api/auth/login/oauth2/code/*"))

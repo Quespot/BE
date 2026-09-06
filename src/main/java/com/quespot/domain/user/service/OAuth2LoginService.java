@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -102,6 +103,7 @@ public class OAuth2LoginService {
     private OAuth2UserInfo resolveUserInfo(LoginProvider provider, OAuth2User oAuth2User) {
         return switch (provider) {
             case GOOGLE -> resolveGoogleUserInfo(oAuth2User);
+            case KAKAO -> resolveKakaoUserInfo(oAuth2User);
             default -> throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
         };
     }
@@ -114,6 +116,30 @@ public class OAuth2LoginService {
         return new OAuth2UserInfo(
                 requireAttribute(oAuth2User, "sub"),
                 normalizeEmail(requireAttribute(oAuth2User, "email"))
+        );
+    }
+
+    private OAuth2UserInfo resolveKakaoUserInfo(OAuth2User oAuth2User) {
+        Object providerUserId = oAuth2User.getAttribute("id");
+        Object kakaoAccountAttribute = oAuth2User.getAttribute("kakao_account");
+
+        if (!(providerUserId instanceof Number) || !(kakaoAccountAttribute instanceof Map<?, ?> kakaoAccount)) {
+            throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
+        }
+
+        if (!Boolean.TRUE.equals(kakaoAccount.get("is_email_valid"))
+                || !Boolean.TRUE.equals(kakaoAccount.get("is_email_verified"))) {
+            throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
+        }
+
+        Object email = kakaoAccount.get("email");
+        if (!(email instanceof String emailValue) || emailValue.isBlank()) {
+            throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
+        }
+
+        return new OAuth2UserInfo(
+                providerUserId.toString(),
+                normalizeEmail(emailValue)
         );
     }
 

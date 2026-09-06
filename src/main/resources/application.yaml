@@ -71,6 +71,11 @@ app:
       client-id: ${GOOGLE_CLIENT_ID:}
       client-secret: ${GOOGLE_CLIENT_SECRET:}
       redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/login/oauth2/code/google}
+    kakao:
+      enabled: ${KAKAO_OAUTH_ENABLED:false}
+      client-id: ${KAKAO_CLIENT_ID:}
+      client-secret: ${KAKAO_CLIENT_SECRET:}
+      redirect-uri: ${KAKAO_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/login/oauth2/code/kakao}
   firebase:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
   jwt:
