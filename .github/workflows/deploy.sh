@@ -96,16 +96,19 @@ run_compose() {
 
 start_image() {
     local image="$1"
-    write_image_env "${image}"
-    run_compose pull app
-    run_compose up -d redis
-    run_compose up -d --no-deps --force-recreate app nginx
+    write_image_env "${image}" || return 1
+    run_compose pull app || return 1
+    run_compose up -d redis || return 1
+    run_compose up -d --no-deps --force-recreate app nginx || return 1
 }
 
 wait_for_health() {
     local attempt
     for ((attempt = 1; attempt <= HEALTH_RETRIES; attempt++)); do
-        if curl --fail --silent --show-error "${HEALTH_URL}" \
+        if curl --fail --silent --show-error \
+            --connect-timeout 3 \
+            --max-time 5 \
+            "${HEALTH_URL}" \
             | grep --quiet '"status":"UP"'; then
             return 0
         fi
@@ -121,13 +124,24 @@ rollback() {
     fi
 
     echo "Rolling back to ${previous_image}."
-    start_image "${previous_image}"
-    wait_for_health
+    start_image "${previous_image}" || return 1
+    wait_for_health || return 1
 }
 
 login_to_ecr
 echo "Deploying ${NEW_IMAGE}."
-start_image "${NEW_IMAGE}"
+if ! start_image "${NEW_IMAGE}"; then
+    echo "Failed to start ${NEW_IMAGE}." >&2
+    run_compose logs --tail 100 app >&2 || true
+
+    if rollback; then
+        echo "Rollback succeeded: ${previous_image}" >&2
+    else
+        echo "Rollback failed or was unavailable." >&2
+    fi
+
+    exit 1
+fi
 
 if wait_for_health; then
     printf '%s\n' "${NEW_IMAGE}" > "${LAST_IMAGE_FILE}"
@@ -137,7 +151,7 @@ if wait_for_health; then
 fi
 
 echo "Health check failed for ${NEW_IMAGE}." >&2
-run_compose logs --tail 100 app >&2
+run_compose logs --tail 100 app >&2 || true
 
 if rollback; then
     echo "Rollback succeeded: ${previous_image}" >&2

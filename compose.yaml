@@ -36,6 +36,7 @@ services:
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      SPRING_PROFILES_ACTIVE: prod
       JAVA_TOOL_OPTIONS: -XX:InitialRAMPercentage=20 -XX:MaxRAMPercentage=60 -XX:+ExitOnOutOfMemoryError
     depends_on:
       redis:
