@@ -8,17 +8,17 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
-      maximum-pool-size: 10
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:5}
 
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: ${JPA_SHOW_SQL:false}
     properties:
       hibernate:
-        format_sql: true
-        use_sql_comments: true
+        format_sql: ${JPA_FORMAT_SQL:false}
+        use_sql_comments: ${JPA_USE_SQL_COMMENTS:false}
 
   mail:
     host: smtp.gmail.com
@@ -43,8 +43,24 @@ spring:
 
 server:
   port: 8080
+  forward-headers-strategy: framework
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
 
 app:
+  swagger:
+    local-server-url: ${SWAGGER_LOCAL_SERVER_URL:http://localhost:8080}
+    production-server-url: ${SWAGGER_PRODUCTION_SERVER_URL:http://52.78.110.222}
   profile:
     default-image-url: ${DEFAULT_PROFILE_IMAGE_URL:https://example.com/images/default-profile.png}
   oauth2:
@@ -76,8 +92,10 @@ app:
 
 springdoc:
   api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /v3/api-docs
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
     path: /swagger-ui.html
     operations-sorter: method
     tags-sorter: alpha

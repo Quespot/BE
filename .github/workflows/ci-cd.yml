@@ -1,0 +1,197 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches:
+      - develop
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Gradle test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_URL: jdbc:mysql://127.0.0.1:3306/quespot_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USERNAME: quespot
+      DB_PASSWORD: quespot_test_password
+      REDIS_HOST: 127.0.0.1
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ""
+      JWT_SECRET: Y2ktand0LXNlY3JldC1rZXktbXVzdC1iZS1hdC1sZWFzdC0zMi1ieXRlcw==
+      MAIL_VERIFICATION_CODE_SECRET: ci-mail-verification-secret
+      GOOGLE_OAUTH_ENABLED: false
+      FIREBASE_CREDENTIALS_PATH: ""
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: quespot_test
+          MYSQL_USER: quespot
+          MYSQL_PASSWORD: quespot_test_password
+          MYSQL_ROOT_PASSWORD: root_test_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot_test_password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+      redis:
+        image: redis:8.0-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v5
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+
+  deploy:
+    name: Publish and deploy
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: quespot-develop-deployment
+      cancel-in-progress: false
+    env:
+      AWS_REGION: ap-northeast-2
+      ECR_REPOSITORY: quespot/backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve image
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+        run: |
+          image_uri="${ECR_REGISTRY}/${ECR_REPOSITORY}:${GITHUB_SHA}"
+          image_count="$(aws ecr batch-get-image \
+            --region "${AWS_REGION}" \
+            --repository-name "${ECR_REPOSITORY}" \
+            --image-ids imageTag="${GITHUB_SHA}" \
+            --query 'length(images)' \
+            --output text)"
+
+          echo "uri=${image_uri}" >> "${GITHUB_OUTPUT}"
+          if [[ "${image_count}" == "1" ]]; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Build and push image
+        if: steps.image.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.image.outputs.uri }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy through Systems Manager
+        env:
+          EC2_INSTANCE_ID: ${{ vars.EC2_INSTANCE_ID }}
+          IMAGE_URI: ${{ steps.image.outputs.uri }}
+        run: |
+          if [[ -z "${EC2_INSTANCE_ID}" ]]; then
+            echo "Repository variable EC2_INSTANCE_ID is not configured." >&2
+            exit 1
+          fi
+
+          compose_base64="$(base64 -w 0 compose.yaml)"
+          deploy_base64="$(base64 -w 0 .github/workflows/deploy.sh)"
+          parameters="$(jq -cn \
+            --arg compose "${compose_base64}" \
+            --arg deploy "${deploy_base64}" \
+            --arg image "${IMAGE_URI}" \
+            '{commands: [
+              "sudo install -d -m 755 /opt/quespot",
+              ("printf %s " + ($compose | @sh) + " | base64 --decode | sudo tee /opt/quespot/compose.yaml >/dev/null"),
+              ("printf %s " + ($deploy | @sh) + " | base64 --decode | sudo tee /opt/quespot/deploy.sh >/dev/null"),
+              "sudo chmod 755 /opt/quespot/deploy.sh",
+              ("sudo /opt/quespot/deploy.sh " + ($image | @sh))
+            ]}')"
+
+          command_id="$(aws ssm send-command \
+            --region "${AWS_REGION}" \
+            --instance-ids "${EC2_INSTANCE_ID}" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy Quespot ${GITHUB_SHA}" \
+            --timeout-seconds 600 \
+            --parameters "${parameters}" \
+            --query 'Command.CommandId' \
+            --output text)"
+
+          status="Pending"
+          for attempt in {1..120}; do
+            status="$(aws ssm get-command-invocation \
+              --region "${AWS_REGION}" \
+              --command-id "${command_id}" \
+              --instance-id "${EC2_INSTANCE_ID}" \
+              --query 'Status' \
+              --output text 2>/dev/null || true)"
+
+            case "${status}" in
+              Success|Cancelled|Failed|TimedOut|Cancelling)
+                break
+                ;;
+            esac
+
+            sleep 5
+          done
+
+          aws ssm get-command-invocation \
+            --region "${AWS_REGION}" \
+            --command-id "${command_id}" \
+            --instance-id "${EC2_INSTANCE_ID}" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
+
+          if [[ "${status}" != "Success" ]]; then
+            echo "Deployment did not succeed. Final status: ${status:-Unknown}" >&2
+            exit 1
+          fi

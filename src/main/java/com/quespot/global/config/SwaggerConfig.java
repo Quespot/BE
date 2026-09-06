@@ -7,6 +7,7 @@ import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.models.GroupedOpenApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,7 +15,9 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
-    public OpenAPI openAPI() {
+    public OpenAPI openAPI(
+            @Value("${app.swagger.local-server-url}") String localServerUrl,
+            @Value("${app.swagger.production-server-url}") String productionServerUrl) {
         String securitySchemeName = "bearerAuth";
 
         return new OpenAPI()
@@ -30,8 +33,11 @@ public class SwaggerConfig {
                                 .scheme("bearer")
                                 .bearerFormat("JWT")))
                 .addServersItem(new Server()
-                        .url("http://localhost:8080")
-                        .description("로컬 서버"));
+                        .url(localServerUrl)
+                        .description("로컬 서버"))
+                .addServersItem(new Server()
+                        .url(productionServerUrl)
+                        .description("운영 서버"));
     }
 
     /**

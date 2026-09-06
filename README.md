@@ -41,6 +41,13 @@ CREATE DATABASE IF NOT EXISTS quespot
 ./gradlew test
 ```
 
+## 배포
+
+- AWS의 EC2, RDS for MySQL, ECR을 사용합니다.
+- `develop` 대상 Pull Request에서 GitHub Actions CI가 실행됩니다.
+- `develop` 브랜치에 반영되면 테스트, ECR 이미지 업로드, EC2 배포가 순서대로 실행됩니다.
+- EC2에서는 Docker Compose로 Spring Boot, Redis, Nginx를 실행합니다.
+
 ## 협업 문서
 
 - 브랜치, 커밋, PR 규칙: `CONTRIBUTING.md`
