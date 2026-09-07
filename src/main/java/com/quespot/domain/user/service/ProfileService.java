@@ -54,6 +54,8 @@ public class ProfileService {
                 resolveProfileImageUrl(request.profileImageUrl()),
                 request.gender(),
                 request.birthDate(),
+                request.residenceRegion(),
+                request.travelCompanion(),
                 request.travelStyles()
         );
 
@@ -86,6 +88,8 @@ public class ProfileService {
                         : resolveProfileImageUrl(request.profileImageUrl()),
                 request.gender(),
                 request.birthDate(),
+                request.residenceRegion(),
+                request.travelCompanion(),
                 request.travelStyles()
         );
         return ProfileConverter.toProfileResponseDTO(profile);

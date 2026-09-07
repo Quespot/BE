@@ -1,6 +1,8 @@
 package com.quespot.domain.user.entity;
 
 import com.quespot.domain.user.enums.Gender;
+import com.quespot.domain.user.enums.ResidenceRegion;
+import com.quespot.domain.user.enums.TravelCompanion;
 import com.quespot.domain.user.enums.TravelStyle;
 import com.quespot.global.entity.BaseEntity;
 import jakarta.persistence.CollectionTable;
@@ -58,6 +60,14 @@ public class UserProfile extends BaseEntity {
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "residence_region", nullable = false, length = 30)
+    private ResidenceRegion residenceRegion;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "travel_companion", length = 20)
+    private TravelCompanion travelCompanion;
+
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
             name = "user_profile_travel_styles",
@@ -79,6 +89,8 @@ public class UserProfile extends BaseEntity {
             String profileImageUrl,
             Gender gender,
             LocalDate birthDate,
+            ResidenceRegion residenceRegion,
+            TravelCompanion travelCompanion,
             Set<TravelStyle> travelStyles
     ) {
         this.user = user;
@@ -86,6 +98,8 @@ public class UserProfile extends BaseEntity {
         this.profileImageUrl = profileImageUrl;
         this.gender = gender;
         this.birthDate = birthDate;
+        this.residenceRegion = residenceRegion;
+        this.travelCompanion = travelCompanion;
         this.travelStyles.addAll(resolveTravelStyles(travelStyles));
     }
 
@@ -95,9 +109,20 @@ public class UserProfile extends BaseEntity {
             String profileImageUrl,
             Gender gender,
             LocalDate birthDate,
+            ResidenceRegion residenceRegion,
+            TravelCompanion travelCompanion,
             Set<TravelStyle> travelStyles
     ) {
-        return new UserProfile(user, nickname, profileImageUrl, gender, birthDate, travelStyles);
+        return new UserProfile(
+                user,
+                nickname,
+                profileImageUrl,
+                gender,
+                birthDate,
+                residenceRegion,
+                travelCompanion,
+                travelStyles
+        );
     }
 
     public void update(
@@ -105,6 +130,8 @@ public class UserProfile extends BaseEntity {
             String profileImageUrl,
             Gender gender,
             LocalDate birthDate,
+            ResidenceRegion residenceRegion,
+            TravelCompanion travelCompanion,
             Set<TravelStyle> travelStyles
     ) {
         if (nickname != null) {
@@ -118,6 +145,12 @@ public class UserProfile extends BaseEntity {
         }
         if (birthDate != null) {
             this.birthDate = birthDate;
+        }
+        if (residenceRegion != null) {
+            this.residenceRegion = residenceRegion;
+        }
+        if (travelCompanion != null) {
+            this.travelCompanion = travelCompanion;
         }
         if (travelStyles != null) {
             this.travelStyles.clear();

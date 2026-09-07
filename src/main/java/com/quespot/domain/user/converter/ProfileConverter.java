@@ -19,6 +19,8 @@ public final class ProfileConverter {
                 profile.getProfileImageUrl(),
                 profile.getGender(),
                 profile.getBirthDate(),
+                profile.getResidenceRegion(),
+                profile.getTravelCompanion(),
                 profile.getTravelStyles().stream()
                         .sorted(Comparator.comparingInt(TravelStyle::ordinal))
                         .toList()

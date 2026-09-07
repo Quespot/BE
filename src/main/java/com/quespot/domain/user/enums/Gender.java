@@ -1,6 +1,7 @@
 package com.quespot.domain.user.enums;
 
 public enum Gender {
+    FEMALE,
     MALE,
-    FEMALE
+    NOT_SELECTED
 }

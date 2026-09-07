@@ -33,7 +33,7 @@ public class ProfileController {
     @PostMapping
     @Operation(
             summary = "프로필 생성",
-            description = "로그인 후 닉네임, 성별, 생년월일, 여행 스타일과 선택 프로필 이미지로 최초 프로필을 생성합니다."
+            description = "로그인 후 필수 닉네임, 생년월일, 거주 지역, 여행 스타일과 선택 프로필 이미지, 성별, 여행 동행 유형으로 최초 프로필을 생성합니다."
     )
     public ResponseEntity<ApiResponse<ProfileResponseDTO>> createProfile(
             @Parameter(hidden = true)
@@ -63,7 +63,7 @@ public class ProfileController {
     @PatchMapping
     @Operation(
             summary = "프로필 수정",
-            description = "닉네임, 프로필 이미지 URL, 성별, 생년월일, 여행 스타일 중 전달된 정보를 수정합니다."
+            description = "닉네임, 프로필 이미지 URL, 성별, 생년월일, 거주 지역, 여행 동행 유형, 여행 스타일 중 전달된 정보를 수정합니다."
     )
     public ApiResponse<ProfileResponseDTO> updateProfile(
             @Parameter(hidden = true)
