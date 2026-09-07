@@ -1,32 +1,8 @@
+-- 정제 배치 개발용 샘플 데이터 (tour_contents_raw, 60행).
+-- 이 테이블이 이미 존재한다고 가정한다(Hibernate ddl-auto: update로 생성됨).
+-- DROP/CREATE TABLE을 일부러 넣지 않았다 -- 로컬 DB에 이미 있는 tour_contents_raw를
+-- mysqldump 원본처럼 그대로 실행하면 통째로 날려버리기 때문이다.
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-DROP TABLE IF EXISTS `tour_contents_raw`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `tour_contents_raw` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `api_modified_time` datetime(6) NOT NULL,
-  `content_id` varchar(20) NOT NULL,
-  `fetched_at` datetime(6) NOT NULL,
-  `operation` varchar(30) NOT NULL,
-  `payload` json NOT NULL,
-  `show_flag` bit(1) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_raw_content` (`content_id`,`operation`,`api_modified_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=61 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
-LOCK TABLES `tour_contents_raw` WRITE;
-/*!40000 ALTER TABLE `tour_contents_raw` DISABLE KEYS */;
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (1,'2026-07-27 10:43:53.000000','4092567','2026-09-07 18:52:16.800528','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.9352330782\", \"mapy\": \"37.5742302252\", \"addr1\": \"서울특별시 서대문구 연희로 193-3 (연희동)\", \"addr2\": \"\", \"title\": \"코코리컬러 연희본점\", \"mlevel\": \"\", \"zipcode\": \"03697\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4092567\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/71/4092571_image2_1.jpg\", \"lclsSystm1\": \"EX\", \"lclsSystm2\": \"EX07\", \"lclsSystm3\": \"EX070200\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260727103602\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/71/4092571_image3_1.jpg\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260727104353\", \"contenttypeid\": \"12\", \"lDongSignguCd\": \"410\"}',_binary '');
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (2,'2026-07-27 14:09:51.000000','4091320','2026-09-07 18:52:16.852724','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.9232861918\", \"mapy\": \"37.5535039390\", \"addr1\": \"서울특별시 마포구 홍익로 11 (서교동)\", \"addr2\": \"타입일레븐 3층\", \"title\": \"코코리색채연구소(홍대점) (외국어사이트용)\", \"mlevel\": \"\", \"zipcode\": \"04040\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4091320\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/11/4091311_image2_1.jpg\", \"lclsSystm1\": \"EX\", \"lclsSystm2\": \"EX07\", \"lclsSystm3\": \"EX070200\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260723105309\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/11/4091311_image3_1.jpg\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260727140951\", \"contenttypeid\": \"12\", \"lDongSignguCd\": \"440\"}',_binary '');
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (3,'2026-07-27 14:10:15.000000','4091319','2026-09-07 18:52:16.855724','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.9352330782\", \"mapy\": \"37.5742302252\", \"addr1\": \"서울특별시 서대문구 연희로 193-3 (연희동)\", \"addr2\": \"코코리빌딩\", \"title\": \"코코리색채연구소(연희본점) (외국어사이트용)\", \"mlevel\": \"\", \"zipcode\": \"03697\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4091319\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/03/4091303_image2_1.jpg\", \"lclsSystm1\": \"EX\", \"lclsSystm2\": \"EX07\", \"lclsSystm3\": \"EX070200\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260723104740\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/03/4091303_image3_1.jpg\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260727141015\", \"contenttypeid\": \"12\", \"lDongSignguCd\": \"410\"}',_binary '');
@@ -87,15 +63,3 @@ INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetch
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (58,'2026-03-19 14:51:30.000000','4009975','2026-09-07 18:52:17.360407','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.985609522118\", \"mapy\": \"37.5738579749684\", \"addr1\": \"서울특별시 종로구 인사동길 34-1 (관훈동)\", \"addr2\": \"지하 1층\", \"title\": \"장수하늘소 인사점\", \"mlevel\": \"\", \"zipcode\": \"03148\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4009975\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/64/4009964_image2_1.jpg\", \"lclsSystm1\": \"FD\", \"lclsSystm2\": \"FD01\", \"lclsSystm3\": \"FD010100\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260203125351\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/64/4009964_image3_1.jpg\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260319145130\", \"contenttypeid\": \"39\", \"lDongSignguCd\": \"110\"}',_binary '');
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (59,'2026-03-19 16:44:06.000000','4004968','2026-09-07 18:52:17.361914','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.98413276904\", \"mapy\": \"37.5751289090717\", \"addr1\": \"서울특별시 종로구 인사동16길 5-1 (관훈동)\", \"addr2\": \"\", \"title\": \"인사도담\", \"mlevel\": \"\", \"zipcode\": \"03146\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4004968\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/38/4004938_image2_1.JPG\", \"lclsSystm1\": \"FD\", \"lclsSystm2\": \"FD01\", \"lclsSystm3\": \"FD010100\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260123095839\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/38/4004938_image3_1.JPG\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260319164406\", \"contenttypeid\": \"39\", \"lDongSignguCd\": \"110\"}',_binary '');
 INSERT INTO `tour_contents_raw` (`id`, `api_modified_time`, `content_id`, `fetched_at`, `operation`, `payload`, `show_flag`) VALUES (60,'2026-03-19 16:00:41.000000','4004921','2026-09-07 18:52:17.362919','areaBasedSyncList2','{\"tel\": \"\", \"cat1\": \"\", \"cat2\": \"\", \"cat3\": \"\", \"mapx\": \"126.982530999773\", \"mapy\": \"37.5729544923847\", \"addr1\": \"서울특별시 종로구 우정국로 45-5 (견지동)\", \"addr2\": \"1층\", \"title\": \"삼봉도담\", \"mlevel\": \"\", \"zipcode\": \"03150\", \"areacode\": \"\", \"showflag\": \"1\", \"contentid\": \"4004921\", \"firstimage\": \"https://tong.visitkorea.or.kr/cms/resource/92/4004892_image2_1.JPG\", \"lclsSystm1\": \"FD\", \"lclsSystm2\": \"FD01\", \"lclsSystm3\": \"FD010100\", \"cpyrhtDivCd\": \"Type3\", \"createdtime\": \"20260123093630\", \"firstimage2\": \"https://tong.visitkorea.or.kr/cms/resource/92/4004892_image3_1.JPG\", \"lDongRegnCd\": \"11\", \"sigungucode\": \"\", \"modifiedtime\": \"20260319160041\", \"contenttypeid\": \"39\", \"lDongSignguCd\": \"110\"}',_binary '');
-/*!40000 ALTER TABLE `tour_contents_raw` ENABLE KEYS */;
-UNLOCK TABLES;
-/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
-
-/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
-/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
-/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
