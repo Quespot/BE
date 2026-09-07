@@ -5,6 +5,7 @@ import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.repository.CategoryMappingRepository;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -14,9 +15,12 @@ import java.util.stream.Collectors;
 public class CategoryResolver {
 
     private final Map<String, AppCategory> mappingsByLclsCode;
+    private final int currentVersion;
 
     public CategoryResolver(CategoryMappingRepository categoryMappingRepository) {
-        this.mappingsByLclsCode = categoryMappingRepository.findAll().stream()
+        List<CategoryMapping> rows = categoryMappingRepository.findAll();
+
+        this.mappingsByLclsCode = rows.stream()
                 .collect(Collectors.toMap(
                         CategoryMapping::getLclsCode,
                         CategoryMapping::getAppCategory,
@@ -25,6 +29,11 @@ public class CategoryResolver {
                         // 그런 오버라이드가 실제로 필요해지면 이 부분부터 손봐야 한다.
                         (existing, duplicate) -> existing
                 ));
+
+        // spots.category_mapping_version에 저장할 값. 매칭된 개별 행의 version이 아니라
+        // 룰셋 전체의 최댓값(현재 룰셋 버전)이어야 "이 버전 미만인 spot" 조회로 재정제
+        // 대상을 뽑을 수 있다.
+        this.currentVersion = rows.stream().mapToInt(CategoryMapping::getVersion).max().orElse(1);
     }
 
     // lcls_systm3 -> lcls_systm2 -> lcls_systm1 순으로 조회해 먼저 매칭되는 것을
@@ -48,6 +57,10 @@ public class CategoryResolver {
         }
 
         return AppCategory.UNMAPPED;
+    }
+
+    public int getCurrentVersion() {
+        return currentVersion;
     }
 
     private AppCategory lookup(String lclsCode) {

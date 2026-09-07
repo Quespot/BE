@@ -136,4 +136,9 @@ class CategoryResolverTest {
 
         assertThat(result).isEqualTo(AppCategory.HISTORY);
     }
+
+    @Test
+    void currentVersionIsMaxVersionAcrossLoadedMappings() {
+        assertThat(categoryResolver.getCurrentVersion()).isEqualTo(1);
+    }
 }
