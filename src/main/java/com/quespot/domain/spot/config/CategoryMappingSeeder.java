@@ -3,10 +3,9 @@ package com.quespot.domain.spot.config;
 import com.quespot.domain.spot.entity.CategoryMapping;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.repository.CategoryMappingRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -14,15 +13,21 @@ import java.util.stream.Stream;
 // 앱 기동 시 분류체계 -> 앱 카테고리 매핑 마스터 데이터를 시드한다. 로우별로 존재
 // 여부를 확인해 없는 것만 추가한다. docs/seed_category_mappings.sql(로컬 전용
 // 참고 파일)과 동일한 23행 — 그쪽이 바뀌면 여기도 같이 맞춰야 한다.
+//
+// CommandLineRunner가 아니라 @PostConstruct다. CommandLineRunner는 스프링
+// 컨텍스트가 완전히 뜬 "다음"에 실행되는데, CategoryResolver는 일반 빈이라
+// 컨텍스트가 뜨는 도중(즉 이 시더보다 먼저) 생성자에서 매핑 전체를 한 번 읽어
+// 메모리에 캐시한다. CommandLineRunner로 두면 캐시가 빈 상태로 굳어버린 뒤에야
+// 데이터가 들어가는 순서 문제가 생긴다. @PostConstruct + CategoryResolver의
+// @DependsOn("categoryMappingSeeder") 조합으로 이 시더가 반드시 먼저 끝나게 한다.
 @Component
 @RequiredArgsConstructor
-public class CategoryMappingSeeder implements CommandLineRunner {
+public class CategoryMappingSeeder {
 
     private final CategoryMappingRepository categoryMappingRepository;
 
-    @Override
-    @Transactional
-    public void run(String... args) {
+    @PostConstruct
+    public void seed() {
         List<CategoryMapping> missing = Stream.of(
                         // 대분류 (priority 10)
                         CategoryMapping.seed("HS", null, AppCategory.HISTORY, 10, 1),

@@ -3,6 +3,7 @@ package com.quespot.domain.spot.service;
 import com.quespot.domain.spot.entity.CategoryMapping;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.repository.CategoryMappingRepository;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -11,7 +12,13 @@ import java.util.stream.Collectors;
 
 // 246개 분류에 대해 매핑은 23행뿐이고 거의 바뀌지 않는다. 매 건마다 DB를 조회하지
 // 않도록 기동 시 전체를 한 번 읽어 메모리에 올려둔다(재기동 전까지 고정 스냅샷).
+//
+// @DependsOn("categoryMappingSeeder")가 필수다 — 이 클래스는 일반 빈이라
+// CategoryMappingSeeder(@PostConstruct)보다 먼저 생성될 수 있는데, 그러면
+// 매핑이 비어있는 채로 캐시가 굳어버린다. 이 어노테이션으로 시더가 먼저
+// 끝난 뒤에 생성되도록 강제한다.
 @Component
+@DependsOn("categoryMappingSeeder")
 public class CategoryResolver {
 
     private final Map<String, AppCategory> mappingsByLclsCode;
