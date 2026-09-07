@@ -100,6 +100,7 @@ app:
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
   tour-api:
     service-key: ${TOUR_API_SERVICE_KEY}
+    daily-limit: 1000
 
 springdoc:
   api-docs:
