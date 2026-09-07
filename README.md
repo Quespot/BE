@@ -29,6 +29,7 @@ CREATE DATABASE IF NOT EXISTS quespot
 - `DEFAULT_PROFILE_IMAGE_URL`은 프로필 생성 또는 수정 요청에 이미지 URL이 없을 때 사용할 기본 이미지의 HTTPS URL입니다.
 - Google 로그인을 사용하려면 `.env.example`의 `GOOGLE_*` 환경변수를 등록하고 `GOOGLE_OAUTH_ENABLED=true`로 설정합니다.
 - Kakao 로그인을 사용하려면 `.env.example`의 `KAKAO_*` 환경변수를 등록하고 `KAKAO_OAUTH_ENABLED=true`로 설정합니다.
+- Naver 로그인을 사용하려면 `.env.example`의 `NAVER_*` 환경변수를 등록하고 `NAVER_OAUTH_ENABLED=true`로 설정합니다.
 - 소셜 인증 완료 후 프론트는 `OAUTH2_FRONTEND_REDIRECT_URI`로 전달된 일회용 코드를 `/api/auth/login/oauth2/exchange`에서 Quespot 토큰으로 교환합니다.
 
 ## 실행
