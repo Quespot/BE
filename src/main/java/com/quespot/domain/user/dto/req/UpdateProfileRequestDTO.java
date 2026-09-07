@@ -1,6 +1,8 @@
 package com.quespot.domain.user.dto.req;
 
 import com.quespot.domain.user.enums.Gender;
+import com.quespot.domain.user.enums.ResidenceRegion;
+import com.quespot.domain.user.enums.TravelCompanion;
 import com.quespot.domain.user.enums.TravelStyle;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
@@ -26,7 +28,11 @@ public record UpdateProfileRequestDTO(
         @Past(message = "생년월일은 과거 날짜여야 합니다.")
         LocalDate birthDate,
 
-        @Size(max = 6, message = "여행 스타일은 최대 6개까지 선택할 수 있습니다.")
+        ResidenceRegion residenceRegion,
+
+        TravelCompanion travelCompanion,
+
+        @Size(min = 1, max = 8, message = "여행 스타일은 1개 이상 8개 이하로 선택해야 합니다.")
         Set<TravelStyle> travelStyles
 ) {
 
