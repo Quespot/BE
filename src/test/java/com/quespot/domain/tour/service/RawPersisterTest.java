@@ -28,7 +28,7 @@ class RawPersisterTest {
     void setUp() {
         tourContentRawRepository = mock(TourContentRawRepository.class);
         objectMapper = new ObjectMapper();
-        rawPersister = new RawPersister(tourContentRawRepository, objectMapper);
+        rawPersister = new RawPersister(new RawContentRowWriter(tourContentRawRepository, objectMapper));
     }
 
     private JsonNode item(String contentId) throws Exception {
