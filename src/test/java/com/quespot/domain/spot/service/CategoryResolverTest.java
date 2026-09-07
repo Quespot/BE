@@ -141,4 +141,20 @@ class CategoryResolverTest {
     void currentVersionIsMaxVersionAcrossLoadedMappings() {
         assertThat(categoryResolver.getCurrentVersion()).isEqualTo(1);
     }
+
+    @Test
+    void duplicateLclsCodeWithDifferentContentTypeIdDoesNotThrowOnStartup() {
+        // content_type_id별 오버라이드로 같은 lcls_code가 두 번 나올 수 있다(스키마의
+        // UNIQUE (lcls_code, content_type_id, version)가 이걸 허용한다). Map 구성 시
+        // merge 함수가 없으면 Collectors.toMap이 IllegalStateException을 던진다.
+        CategoryMappingRepository categoryMappingRepository = mock(CategoryMappingRepository.class);
+        when(categoryMappingRepository.findAll()).thenReturn(List.of(
+                CategoryMapping.seed("HS", null, AppCategory.HISTORY, 10, 1),
+                CategoryMapping.seed("HS", 12, AppCategory.CULTURE, 10, 1)
+        ));
+
+        CategoryResolver resolver = new CategoryResolver(categoryMappingRepository);
+
+        assertThat(resolver.resolve("HS", null, null)).isIn(AppCategory.HISTORY, AppCategory.CULTURE);
+    }
 }

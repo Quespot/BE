@@ -149,7 +149,7 @@ public class SpotRefinementWriter {
     private String combineAddress(String addr1, String addr2) {
         String base = addr1 == null ? "" : addr1;
         String detail = addr2 == null ? "" : addr2;
-        String combined = detail.isBlank() ? base : (base + " " + detail).trim();
+        String combined = (detail.isBlank() ? base : base + " " + detail).trim();
         return combined.isBlank() ? null : combined;
     }
 

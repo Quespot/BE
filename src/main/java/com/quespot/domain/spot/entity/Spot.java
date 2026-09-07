@@ -107,8 +107,8 @@ public class Spot extends BaseEntity {
     @Column(name = "category_mapping_version")
     private Integer categoryMappingVersion;
 
-    // 표출 여부 · 삭제 대신 플래그. 정제 배치가 원천 비표출을 감지하면 끄는 용도라
-    // 아직 배치가 없는 지금은 생성 시 항상 true.
+    // 표출 여부 · 삭제 대신 플래그. 정제 배치(SpotRefinementWriter)가 원본 showflag
+    // 값을 그대로 반영한다 — false여도 삭제하지 않고 플래그만 내린다.
     @Column(name = "show_flag", nullable = false)
     private Boolean showFlag;
 
