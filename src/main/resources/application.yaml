@@ -101,6 +101,9 @@ app:
   tour-api:
     service-key: ${TOUR_API_SERVICE_KEY}
     daily-limit: 1000
+    scheduler:
+      enabled: ${TOUR_API_SCHEDULER_ENABLED:false}
+      cron: "${TOUR_API_SCHEDULER_CRON:0 0 4 * * *}"
 
 springdoc:
   api-docs:
