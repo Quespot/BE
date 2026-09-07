@@ -48,8 +48,10 @@ CREATE DATABASE IF NOT EXISTS quespot
 - AWS의 EC2, RDS for MySQL, ECR을 사용합니다.
 - `develop` 대상 Pull Request에서 GitHub Actions CI가 실행됩니다.
 - `develop` 브랜치에 반영되면 테스트, ECR 이미지 업로드, EC2 배포가 순서대로 실행됩니다.
-- EC2에서는 Docker Compose로 Spring Boot, Redis, Nginx를 실행합니다.
+- EC2에서는 Docker Compose로 Spring Boot, Redis, Nginx, Certbot을 실행합니다.
 - 최초 배포 전 EC2의 `/opt/quespot/.env`에 `DB_URL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_VERIFICATION_CODE_SECRET`의 실제 값을 입력해야 합니다. `.env.example`을 복사한 경우 나열한 필수 항목의 빈 값을 모두 채우고 파일 권한을 `600`으로 설정해야 배포 검증을 통과합니다.
+- 운영 API는 `https://api.quespot.site`를 사용합니다. 최초 배포 전 EC2의 `/etc/letsencrypt/live/api.quespot.site`에 인증서가 있어야 하며, Compose의 Certbot 서비스가 이후 갱신을 시도합니다.
+- 운영 배포 시 `SWAGGER_ENABLED=false`, `JWT_REFRESH_TOKEN_COOKIE_SECURE=true`로 설정하고 `CORS_ALLOWED_ORIGINS`, OAuth Redirect URI, `OAUTH2_FRONTEND_REDIRECT_URI`를 실제 프론트 및 API 도메인으로 변경합니다.
 
 ## 협업 문서
 

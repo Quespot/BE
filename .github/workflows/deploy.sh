@@ -99,7 +99,7 @@ start_image() {
     write_image_env "${image}" || return 1
     run_compose pull app || return 1
     run_compose up -d redis || return 1
-    run_compose up -d --no-deps --force-recreate app nginx || return 1
+    run_compose up -d --no-deps --force-recreate app nginx certbot || return 1
 }
 
 wait_for_health() {
