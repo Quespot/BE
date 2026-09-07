@@ -40,6 +40,12 @@ public class RawPersister {
                 log.debug("Duplicate tour content skipped: operation={}, node={}", operation, node, e);
             } catch (JsonProcessingException e) {
                 log.error("Malformed tour content item skipped: operation={}, node={}", operation, node, e);
+            } catch (RuntimeException e) {
+                // modifiedtime이 비어있거나("") 형식이 깨진 경우(DateTimeParseException) 등.
+                // 여기서 안 잡으면 REQUIRES_NEW 트랜잭션 전체가 롤백돼 이미 flush한
+                // 앞 아이템들까지 같이 사라지고, 체크포인트는 advance() 없이 fail()만
+                // 찍혀 같은 페이지에서 영원히 막힌다.
+                log.error("Unexpected error while saving tour content item, skipped: operation={}, node={}", operation, node, e);
             }
         }
     }

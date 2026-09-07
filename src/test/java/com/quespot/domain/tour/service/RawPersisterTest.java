@@ -60,6 +60,21 @@ class RawPersisterTest {
     }
 
     @Test
+    void malformedModifiedTimeDoesNotStopRemainingItems() throws Exception {
+        JsonNode badItem = objectMapper.readTree("""
+                {"contentid":"1","modifiedtime":"not-a-date","showflag":"1"}
+                """);
+        JsonNode missingModifiedTime = objectMapper.readTree("""
+                {"contentid":"2","showflag":"1"}
+                """);
+        JsonNode goodItem = item("3");
+
+        rawPersister.saveAll("areaBasedSyncList2", List.of(badItem, missingModifiedTime, goodItem));
+
+        verify(tourContentRawRepository, times(1)).saveAndFlush(any(TourContentRaw.class));
+    }
+
+    @Test
     void storesOriginalJsonNodeTextAsPayloadIncludingUndeclaredFields() throws Exception {
         JsonNode node = objectMapper.readTree("""
                 {"contentid":"1","modifiedtime":"20260906120000","showflag":"1","unknownField":"kept"}
