@@ -41,6 +41,10 @@ spring:
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
 
+  jackson:
+    deserialization:
+      accept-single-value-as-array: true
+
 server:
   port: 8080
   forward-headers-strategy: framework
@@ -94,6 +98,8 @@ app:
     verification-code-failed-attempt-limit: ${MAIL_VERIFICATION_CODE_FAILED_ATTEMPT_LIMIT:5}
     verification-completion-expiration-minutes: ${MAIL_VERIFICATION_COMPLETION_EXPIRATION_MINUTES:30}
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
+  tour-api:
+    service-key: ${TOUR_API_SERVICE_KEY}
 
 springdoc:
   api-docs:
