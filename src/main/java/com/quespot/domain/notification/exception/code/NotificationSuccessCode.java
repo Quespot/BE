@@ -12,7 +12,15 @@ public enum NotificationSuccessCode implements BaseCode {
 
     FCM_TOKEN_UNREGISTERED(HttpStatus.OK,
             "NOTIFICATION_200_002",
-            "FCM 토큰이 해제되었습니다.");
+            "FCM 토큰이 해제되었습니다."),
+
+    NOTIFICATION_SETTING_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_003",
+            "알림 설정을 조회했습니다."),
+
+    NOTIFICATION_SETTING_UPDATED(HttpStatus.OK,
+            "NOTIFICATION_200_004",
+            "알림 설정을 변경했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

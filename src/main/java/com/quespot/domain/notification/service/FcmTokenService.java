@@ -4,6 +4,8 @@ import com.quespot.domain.notification.converter.NotificationConverter;
 import com.quespot.domain.notification.dto.req.RegisterFcmTokenRequestDTO;
 import com.quespot.domain.notification.dto.res.RegisterFcmTokenResponseDTO;
 import com.quespot.domain.notification.entity.FcmToken;
+import com.quespot.domain.notification.exception.NotificationException;
+import com.quespot.domain.notification.exception.code.NotificationErrorCode;
 import com.quespot.domain.notification.repository.FcmTokenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -38,7 +40,9 @@ public class FcmTokenService {
             return fcmTokenWriter.saveNewToken(userId, request);
         } catch (DataIntegrityViolationException exception) {
             return fcmTokenRepository.findByToken(request.token())
-                    .orElseThrow(() -> exception);
+                    .orElseThrow(() -> new NotificationException(
+                            NotificationErrorCode.FCM_TOKEN_REGISTRATION_FAILED
+                    ));
         }
     }
 }
