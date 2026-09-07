@@ -99,7 +99,7 @@ app:
     verification-completion-expiration-minutes: ${MAIL_VERIFICATION_COMPLETION_EXPIRATION_MINUTES:30}
     verification-code-secret: ${MAIL_VERIFICATION_CODE_SECRET}
   tour-api:
-    service-key: ${TOUR_API_SERVICE_KEY}
+    service-key: ${TOUR_API_SERVICE_KEY:}
     daily-limit: ${TOUR_API_DAILY_LIMIT:1000}
     scheduler:
       enabled: ${TOUR_API_SCHEDULER_ENABLED:false}
