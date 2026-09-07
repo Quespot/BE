@@ -1,5 +1,6 @@
 package com.quespot.domain.spot.entity;
 
+import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
 import com.quespot.global.entity.BaseEntity;
 import jakarta.persistence.Column;
@@ -96,8 +97,11 @@ public class Spot extends BaseEntity {
     @Column(name = "cpyrht_div_cd", length = 10)
     private String cpyrhtDivCd;
 
+    // 값 집합이 고정이고 화면 필터 탭이 이걸로 그려진다. 정제 배치에서 "HISTROY" 같은
+    // 오타가 컴파일에서 잡혀야 해서 String이 아니라 enum이다.
+    @Enumerated(EnumType.STRING)
     @Column(name = "app_category", nullable = false, length = 20)
-    private String appCategory;
+    private AppCategory appCategory;
 
     // category_mappings 룰 버전이 올라가면 이 값보다 낮은 스팟을 재정제 대상으로 추적한다.
     @Column(name = "category_mapping_version")
@@ -130,7 +134,7 @@ public class Spot extends BaseEntity {
             String ldongRegnCd,
             String ldongSignguCd,
             String cpyrhtDivCd,
-            String appCategory,
+            AppCategory appCategory,
             Integer categoryMappingVersion,
             LocalDateTime sourceModifiedAt
     ) {
