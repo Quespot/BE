@@ -69,13 +69,28 @@ class SpotRefinementWriterIntegrationTest {
                 """.formatted(contentId);
     }
 
+    private String payloadMissingTitle(String contentId) {
+        return """
+                {"contentid":"%s","contenttypeid":"12",
+                "addr1":"서울특별시 종로구","addr2":"","mapx":"127.0","mapy":"37.5",
+                "firstimage":"img.jpg","firstimage2":"thumb.jpg","showflag":"1",
+                "cpyrhtDivCd":"Type3","lDongRegnCd":"11","lDongSignguCd":"110",
+                "lclsSystm1":"VE","lclsSystm2":"VE01","lclsSystm3":"VE010100"}
+                """.formatted(contentId);
+    }
+
     @Test
     void oneFailingRowDoesNotPreventOtherRowsInChunkFromCommitting() {
-        TourContentRaw malformed = rawOf("integration-bad", "not-json");
+        // "title" 필드가 아예 없는 페이로드는 JSON 파싱은 정상적으로 끝나지만
+        // Spot.name(NOT NULL)에 null이 들어가 saveAndFlush() 시점에 진짜
+        // DataIntegrityViolationException을 던진다. "not-json"처럼 파싱 단계에서
+        // 끝나버리는 실패는 saveAndFlush()까지 가지도 않아서, SpotRowWriter.refineOne의
+        // REQUIRES_NEW 격리가 실제로 작동하는지는 이 시나리오라야 검증된다.
+        TourContentRaw missingTitle = rawOf("integration-bad", payloadMissingTitle("integration-bad"));
         TourContentRaw good1 = rawOf("integration-1", payload("integration-1"));
         TourContentRaw good2 = rawOf("integration-2", payload("integration-2"));
 
-        RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(malformed, good1, good2));
+        RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(missingTitle, good1, good2));
 
         assertThat(summary).isEqualTo(new RefinementSummary(2, 0, 0, 0, 1));
         assertThat(spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, "integration-1")).isPresent();

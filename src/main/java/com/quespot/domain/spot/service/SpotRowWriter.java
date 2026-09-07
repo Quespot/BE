@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.Optional;
 
 // SpotRefinementWriter.refineChunk()의 반복문 밖으로 건별 정제를 분리한
@@ -57,7 +58,10 @@ public class SpotRowWriter {
 
         if (existingOpt.isPresent()
                 && raw.getApiModifiedTime().equals(existingOpt.get().getSourceModifiedAt())
-                && existingOpt.get().getCategoryMappingVersion().equals(categoryResolver.getCurrentVersion())) {
+                // categoryMappingVersion은 스키마상 nullable이다(docs/quespot_schema.sql) —
+                // 현재 코드는 항상 채워서 저장하지만, 과거에 이 컬럼 없이 들어간 행 등
+                // null인 경우에도 NPE 대신 "버전 불일치"로 안전하게 처리한다.
+                && Objects.equals(existingOpt.get().getCategoryMappingVersion(), categoryResolver.getCurrentVersion())) {
             return RefinementResult.SKIPPED_UNCHANGED;
         }
 
