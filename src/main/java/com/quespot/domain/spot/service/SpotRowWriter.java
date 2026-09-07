@@ -55,7 +55,9 @@ public class SpotRowWriter {
         Optional<Spot> existingOpt =
                 spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, raw.getContentId());
 
-        if (existingOpt.isPresent() && raw.getApiModifiedTime().equals(existingOpt.get().getSourceModifiedAt())) {
+        if (existingOpt.isPresent()
+                && raw.getApiModifiedTime().equals(existingOpt.get().getSourceModifiedAt())
+                && existingOpt.get().getCategoryMappingVersion().equals(categoryResolver.getCurrentVersion())) {
             return RefinementResult.SKIPPED_UNCHANGED;
         }
 

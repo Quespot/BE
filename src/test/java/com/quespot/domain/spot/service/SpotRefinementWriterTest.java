@@ -117,6 +117,29 @@ class SpotRefinementWriterTest {
     }
 
     @Test
+    void reclassifiesWhenCategoryMappingVersionIsStaleEvenIfSourceUnchanged() {
+        // 소스 데이터(sourceModifiedAt)는 그대로여도, 분류 룰셋(categoryResolver의
+        // currentVersion)이 그 스팟이 마지막으로 분류됐을 때보다 올라갔으면
+        // 재정제해야 한다 — 안 그러면 룰 추가/수정이 기존 스팟에 영영 반영 안 된다.
+        LocalDateTime sameTime = LocalDateTime.of(2026, 1, 1, 0, 0);
+        Spot existing = Spot.builder()
+                .source(SpotSource.TOUR_API).sourceContentId("1").name("이름")
+                .latitude(java.math.BigDecimal.ZERO).longitude(java.math.BigDecimal.ZERO)
+                .appCategory(AppCategory.UNMAPPED).categoryMappingVersion(1).showFlag(true)
+                .sourceModifiedAt(sameTime)
+                .build();
+        when(categoryResolver.getCurrentVersion()).thenReturn(2);
+        TourContentRaw raw = rawOf("1", sameTime, payload("1", "127.0", "37.5", "img.jpg", "1"));
+        when(spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, "1"))
+                .thenReturn(Optional.of(existing));
+
+        RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(raw));
+
+        assertThat(summary).isEqualTo(new RefinementSummary(0, 1, 0, 0, 0));
+        assertThat(existing.getCategoryMappingVersion()).isEqualTo(2);
+    }
+
+    @Test
     void skipsWhenCoordinatesAreBlank() {
         TourContentRaw raw = rawOf("1", LocalDateTime.of(2026, 1, 1, 0, 0),
                 payload("1", "", "", "img.jpg", "1"));
