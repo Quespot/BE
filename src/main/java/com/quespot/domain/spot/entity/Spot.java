@@ -136,6 +136,7 @@ public class Spot extends BaseEntity {
             String cpyrhtDivCd,
             AppCategory appCategory,
             Integer categoryMappingVersion,
+            Boolean showFlag,
             LocalDateTime sourceModifiedAt
     ) {
         this.source = source;
@@ -157,7 +158,32 @@ public class Spot extends BaseEntity {
         this.cpyrhtDivCd = cpyrhtDivCd;
         this.appCategory = appCategory;
         this.categoryMappingVersion = categoryMappingVersion;
-        this.showFlag = true;
+        this.showFlag = showFlag;
         this.sourceModifiedAt = sourceModifiedAt;
+    }
+
+    // 정제 배치가 같은 content_id를 다시 정제할 때(원천이 갱신됐을 때) 호출한다.
+    // freshData는 Spot.builder()로 새로 지은 "다음 상태"이고, 같은 클래스라 private
+    // 필드에 직접 접근할 수 있다. id/source/sourceContentId(정체성)와
+    // summary/description(areaBasedSyncList2 응답에 없어 이 배치가 안 채우는 필드)은
+    // 건드리지 않는다.
+    public void refresh(Spot freshData) {
+        this.name = freshData.name;
+        this.address = freshData.address;
+        this.latitude = freshData.latitude;
+        this.longitude = freshData.longitude;
+        this.imageUrl = freshData.imageUrl;
+        this.thumbnailUrl = freshData.thumbnailUrl;
+        this.ktoContentTypeId = freshData.ktoContentTypeId;
+        this.lclsSystm1 = freshData.lclsSystm1;
+        this.lclsSystm2 = freshData.lclsSystm2;
+        this.lclsSystm3 = freshData.lclsSystm3;
+        this.ldongRegnCd = freshData.ldongRegnCd;
+        this.ldongSignguCd = freshData.ldongSignguCd;
+        this.cpyrhtDivCd = freshData.cpyrhtDivCd;
+        this.appCategory = freshData.appCategory;
+        this.categoryMappingVersion = freshData.categoryMappingVersion;
+        this.showFlag = freshData.showFlag;
+        this.sourceModifiedAt = freshData.sourceModifiedAt;
     }
 }
