@@ -34,7 +34,9 @@ class SpotRefinementWriterTest {
         when(categoryResolver.resolve(any(), any(), any())).thenReturn(AppCategory.CULTURE);
         when(categoryResolver.getCurrentVersion()).thenReturn(1);
 
-        spotRefinementWriter = new SpotRefinementWriter(spotRepository, categoryResolver, new ObjectMapper());
+        spotRefinementWriter = new SpotRefinementWriter(
+                new SpotRowWriter(spotRepository, categoryResolver, new ObjectMapper())
+        );
 
         when(spotRepository.saveAndFlush(any(Spot.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
