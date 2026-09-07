@@ -27,14 +27,20 @@ public class CategoryResolver {
     public CategoryResolver(CategoryMappingRepository categoryMappingRepository) {
         List<CategoryMapping> rows = categoryMappingRepository.findAll();
 
-        this.mappingsByLclsCode = rows.stream()
+        Map<String, CategoryMapping> highestVersionByLclsCode = rows.stream()
                 .collect(Collectors.toMap(
                         CategoryMapping::getLclsCode,
-                        CategoryMapping::getAppCategory,
-                        // content_type_id별 오버라이드로 같은 lcls_code가 두 번 나올 수 있는데
-                        // 지금은 content_type_id를 매칭에 안 써서 먼저 읽힌 값을 그대로 쓴다.
-                        // 그런 오버라이드가 실제로 필요해지면 이 부분부터 손봐야 한다.
-                        (existing, duplicate) -> existing
+                        mapping -> mapping,
+                        // content_type_id별 오버라이드로 같은 lcls_code가 두 번 나올 수 있다.
+                        // findAll()은 순서를 보장하지 않으므로 "먼저 읽힌 값"이 아니라
+                        // version이 더 높은 쪽을 남긴다 — 룰셋이 갱신되면 새 version 행이
+                        // 이전 version 행을 이겨야 한다.
+                        (a, b) -> a.getVersion() >= b.getVersion() ? a : b
+                ));
+        this.mappingsByLclsCode = highestVersionByLclsCode.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().getAppCategory()
                 ));
 
         // spots.category_mapping_version에 저장할 값. 매칭된 개별 행의 version이 아니라
