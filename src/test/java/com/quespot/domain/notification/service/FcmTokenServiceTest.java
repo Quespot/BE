@@ -4,6 +4,8 @@ import com.quespot.domain.notification.dto.req.RegisterFcmTokenRequestDTO;
 import com.quespot.domain.notification.dto.res.RegisterFcmTokenResponseDTO;
 import com.quespot.domain.notification.entity.FcmToken;
 import com.quespot.domain.notification.enums.DeviceType;
+import com.quespot.domain.notification.exception.NotificationException;
+import com.quespot.domain.notification.exception.code.NotificationErrorCode;
 import com.quespot.domain.notification.repository.FcmTokenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -86,6 +89,21 @@ class FcmTokenServiceTest {
 
         assertThat(response.deviceType()).isEqualTo(DeviceType.WEB);
         assertThat(raceWinnerToken.getUserId()).isEqualTo(userId);
+    }
+
+    @Test
+    void throwsNotificationExceptionWhenConcurrentInsertWinnerCannotBeFound() {
+        Long userId = 1L;
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-failed", DeviceType.WEB);
+
+        when(fcmTokenRepository.findByToken(request.token())).thenReturn(Optional.empty());
+        when(fcmTokenWriter.saveNewToken(userId, request))
+                .thenThrow(new DataIntegrityViolationException("duplicate token"));
+
+        assertThatThrownBy(() -> fcmTokenService.registerToken(userId, request))
+                .isInstanceOf(NotificationException.class)
+                .satisfies(exception -> assertThat(((NotificationException) exception).getErrorCode())
+                        .isEqualTo(NotificationErrorCode.FCM_TOKEN_REGISTRATION_FAILED));
     }
 
     @Test

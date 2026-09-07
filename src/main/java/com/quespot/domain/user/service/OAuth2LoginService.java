@@ -104,6 +104,7 @@ public class OAuth2LoginService {
         return switch (provider) {
             case GOOGLE -> resolveGoogleUserInfo(oAuth2User);
             case KAKAO -> resolveKakaoUserInfo(oAuth2User);
+            case NAVER -> resolveNaverUserInfo(oAuth2User);
             default -> throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
         };
     }
@@ -139,6 +140,27 @@ public class OAuth2LoginService {
 
         return new OAuth2UserInfo(
                 providerUserId.toString(),
+                normalizeEmail(emailValue)
+        );
+    }
+
+    private OAuth2UserInfo resolveNaverUserInfo(OAuth2User oAuth2User) {
+        Object responseAttribute = oAuth2User.getAttribute("response");
+        if (!(responseAttribute instanceof Map<?, ?> response)) {
+            throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
+        }
+
+        Object providerUserId = response.get("id");
+        Object email = response.get("email");
+        if (!(providerUserId instanceof String providerUserIdValue)
+                || providerUserIdValue.isBlank()
+                || !(email instanceof String emailValue)
+                || emailValue.isBlank()) {
+            throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
+        }
+
+        return new OAuth2UserInfo(
+                providerUserIdValue,
                 normalizeEmail(emailValue)
         );
     }
