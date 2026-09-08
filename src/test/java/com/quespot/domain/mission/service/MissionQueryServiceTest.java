@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,13 +30,18 @@ import static org.mockito.Mockito.when;
 
 class MissionQueryServiceTest {
 
+    private static final String CURSOR_SECRET = "mission-cursor-test-secret";
+
     private MissionRepository missionRepository;
     private MissionQueryService missionQueryService;
 
     @BeforeEach
     void setUp() {
         missionRepository = mock(MissionRepository.class);
-        missionQueryService = new MissionQueryService(missionRepository, new MissionCursorCodec());
+        missionQueryService = new MissionQueryService(
+                missionRepository,
+                new MissionCursorCodec(CURSOR_SECRET)
+        );
     }
 
     @Test
@@ -73,12 +80,12 @@ class MissionQueryServiceTest {
     void returnsStableRandomOrderWithoutLocation() {
         MissionListProjection mission = projection(1L, MissionCategory.FOOD, 1234.0);
         when(missionRepository.findMissionListRandomly(
-                null,
-                null,
+                isNull(),
+                isNull(),
                 anyLong(),
-                null,
-                null,
-                21
+                isNull(),
+                isNull(),
+                eq(21)
         )).thenReturn(List.of(mission));
 
         MissionListResponseDTO response = missionQueryService.getMissions(
@@ -99,7 +106,7 @@ class MissionQueryServiceTest {
 
     @Test
     void rejectsCursorWhenSearchConditionChanges() {
-        MissionCursorCodec codec = new MissionCursorCodec();
+        MissionCursorCodec codec = new MissionCursorCodec(CURSOR_SECRET);
         String signature = codec.querySignature(10L, MissionCategory.HISTORY, null, null, null);
         String cursor = codec.encode(new MissionCursor(
                 MissionCursor.SortMode.RANDOM,
@@ -118,6 +125,32 @@ class MissionQueryServiceTest {
                 cursor,
                 20
         )).isInstanceOf(MissionException.class);
+    }
+
+    @Test
+    void rejectsCursorWhenPayloadIsTampered() {
+        MissionCursorCodec codec = new MissionCursorCodec(CURSOR_SECRET);
+        String signature = codec.querySignature(10L, MissionCategory.HISTORY, null, null, null);
+        String cursor = codec.encode(new MissionCursor(
+                MissionCursor.SortMode.RANDOM,
+                10L,
+                100,
+                1L,
+                signature
+        ));
+        String decoded = new String(
+                Base64.getUrlDecoder().decode(cursor),
+                StandardCharsets.UTF_8
+        );
+        String tamperedCursor = Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(
+                        decoded.replace("|100.0|", "|101.0|")
+                                .getBytes(StandardCharsets.UTF_8)
+                );
+
+        assertThatThrownBy(() -> codec.decode(tamperedCursor))
+                .isInstanceOf(MissionException.class);
     }
 
     @Test

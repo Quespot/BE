@@ -3,10 +3,14 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
@@ -15,9 +19,20 @@ import java.util.Base64;
 public class MissionCursorCodec {
 
     private static final String DELIMITER = "|";
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    private static final String HMAC_CONTEXT = "mission-cursor:v1|";
+
+    private final SecretKeySpec secretKey;
+
+    public MissionCursorCodec(@Value("${app.jwt.secret}") String secret) {
+        this.secretKey = new SecretKeySpec(
+                secret.getBytes(StandardCharsets.UTF_8),
+                HMAC_ALGORITHM
+        );
+    }
 
     public String encode(MissionCursor cursor) {
-        String value = String.join(
+        String payload = String.join(
                 DELIMITER,
                 cursor.sortMode().name(),
                 Long.toString(cursor.seed()),
@@ -25,6 +40,7 @@ public class MissionCursorCodec {
                 Long.toString(cursor.missionId()),
                 cursor.querySignature()
         );
+        String value = payload + DELIMITER + encodeMac(payload);
         return Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
@@ -37,7 +53,20 @@ public class MissionCursorCodec {
                     StandardCharsets.UTF_8
             );
             String[] parts = decoded.split("\\|", -1);
-            if (parts.length != 5) {
+            if (parts.length != 6) {
+                throw invalidCursor();
+            }
+
+            String payload = String.join(
+                    DELIMITER,
+                    parts[0],
+                    parts[1],
+                    parts[2],
+                    parts[3],
+                    parts[4]
+            );
+            byte[] providedMac = Base64.getUrlDecoder().decode(parts[5]);
+            if (!MessageDigest.isEqual(createMac(payload), providedMac)) {
                 throw invalidCursor();
             }
 
@@ -56,6 +85,24 @@ public class MissionCursorCodec {
             return cursor;
         } catch (IllegalArgumentException exception) {
             throw invalidCursor();
+        }
+    }
+
+    private String encodeMac(String payload) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(createMac(payload));
+    }
+
+    private byte[] createMac(String payload) {
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            mac.init(secretKey);
+            return mac.doFinal(
+                    (HMAC_CONTEXT + payload).getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (GeneralSecurityException exception) {
+            throw new IllegalStateException("HMAC-SHA256 algorithm is unavailable", exception);
         }
     }
 
