@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 
 class TourContentCollectorTest {
 
+    private static final int TARGET_CONTENT_TYPE_COUNT = 5;
+
     private TourApiClient tourApiClient;
     private QuotaGuard quotaGuard;
     private RawPersister rawPersister;
@@ -62,7 +64,7 @@ class TourContentCollectorTest {
         collector.collect();
 
         verify(tourApiClient, never()).fetchSyncList(anyString(), anyInt(), anyInt(), anyInt(), any());
-        verify(checkpointWriter, times(4)).suspendByQuota(anyString(), anyInt());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).suspendByQuota(anyString(), anyInt());
         verify(checkpointWriter, never()).complete(anyString(), anyInt());
     }
 
@@ -76,7 +78,7 @@ class TourContentCollectorTest {
 
         collector.collect();
 
-        verify(checkpointWriter, times(4)).suspendByQuota(anyString(), anyInt());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).suspendByQuota(anyString(), anyInt());
         verify(checkpointWriter, never()).complete(anyString(), anyInt());
     }
 
@@ -89,7 +91,7 @@ class TourContentCollectorTest {
 
         collector.collect();
 
-        verify(checkpointWriter, times(4)).fail(anyString(), anyInt());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).fail(anyString(), anyInt());
     }
 
     @Test
@@ -101,7 +103,8 @@ class TourContentCollectorTest {
         collector.collect();
 
         verify(rawPersister, never()).saveAll(anyString(), any());
-        verify(checkpointWriter, times(4)).complete(anyString(), anyInt());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).complete(anyString(), anyInt());
+        verify(tourApiClient).fetchSyncList(anyString(), eq(28), eq(1), anyInt(), any());
     }
 
     @Test
@@ -112,9 +115,9 @@ class TourContentCollectorTest {
 
         collector.collect();
 
-        verify(rawPersister, times(4)).saveAll(anyString(), any());
-        verify(checkpointWriter, times(4)).advance(anyString(), anyInt(), eq(1));
-        verify(checkpointWriter, times(4)).complete(anyString(), anyInt());
+        verify(rawPersister, times(TARGET_CONTENT_TYPE_COUNT)).saveAll(anyString(), any());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).advance(anyString(), anyInt(), eq(1));
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).complete(anyString(), anyInt());
     }
 
     @Test
@@ -127,8 +130,8 @@ class TourContentCollectorTest {
 
         collector.collect();
 
-        verify(checkpointWriter, times(4)).advance(anyString(), anyInt(), eq(1));
-        verify(checkpointWriter, times(4)).advance(anyString(), anyInt(), eq(2));
-        verify(checkpointWriter, times(4)).complete(anyString(), anyInt());
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).advance(anyString(), anyInt(), eq(1));
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).advance(anyString(), anyInt(), eq(2));
+        verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).complete(anyString(), anyInt());
     }
 }
