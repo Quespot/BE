@@ -12,15 +12,18 @@ import com.quespot.domain.spot.enums.SpotSource;
 import com.quespot.domain.spot.repository.SpotRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import java.util.List;
-import java.util.stream.StreamSupport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,13 +31,19 @@ class MissionCandidateGeneratorTest {
 
     private SpotRepository spotRepository;
     private MissionCandidateRepository missionCandidateRepository;
+    private MissionCandidateWriter missionCandidateWriter;
     private MissionCandidateGenerator generator;
 
     @BeforeEach
     void setUp() {
         spotRepository = mock(SpotRepository.class);
         missionCandidateRepository = mock(MissionCandidateRepository.class);
-        generator = new MissionCandidateGenerator(spotRepository, missionCandidateRepository);
+        missionCandidateWriter = mock(MissionCandidateWriter.class);
+        generator = new MissionCandidateGenerator(
+                spotRepository,
+                missionCandidateRepository,
+                missionCandidateWriter
+        );
     }
 
     @Test
@@ -49,7 +58,7 @@ class MissionCandidateGeneratorTest {
         assertThat(result.eligibleSpotCount()).isEqualTo(1);
         assertThat(result.createdCount()).isEqualTo(1);
         assertThat(result.skippedDuplicateCount()).isZero();
-        verify(missionCandidateRepository).saveAll(anyList());
+        verify(missionCandidateWriter).save(any(MissionCandidate.class));
     }
 
     @Test
@@ -101,18 +110,30 @@ class MissionCandidateGeneratorTest {
         MissionCandidateGenerationResponseDTO result = generator.generate(MissionCategory.ETC);
 
         assertThat(result.createdCount()).isEqualTo(2);
-        verify(missionCandidateRepository).saveAll(argThat(candidates -> {
-            List<MissionCandidate> savedCandidates = StreamSupport.stream(candidates.spliterator(), false).toList();
-            return savedCandidates.size() == 2
-                    && savedCandidates.stream().allMatch(candidate ->
-                    candidate.getSuggestedCategory() == MissionCategory.ETC
-                            && candidate.getTemplateCode() == MissionTemplate.ETC_LOCATION);
-        }));
+        verify(missionCandidateWriter, times(2)).save(argThat(candidate ->
+                candidate.getSuggestedCategory() == MissionCategory.ETC
+                        && candidate.getTemplateCode() == MissionTemplate.ETC_LOCATION
+        ));
         verify(spotRepository).findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
                 "11",
                 List.of(AppCategory.UNMAPPED, AppCategory.EXCLUDED)
         );
+    }
+
+    @Test
+    void treatsConcurrentDuplicateInsertAsSkippedDuplicate() {
+        Spot spot = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/image.jpg");
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+                .thenReturn(List.of(spot));
+        when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(missionCandidateWriter).save(any(MissionCandidate.class));
+
+        MissionCandidateGenerationResponseDTO result = generator.generate();
+
+        assertThat(result.createdCount()).isZero();
+        assertThat(result.skippedDuplicateCount()).isEqualTo(1);
     }
 
     private Spot spot(Long id, String name, AppCategory category, String imageUrl) {

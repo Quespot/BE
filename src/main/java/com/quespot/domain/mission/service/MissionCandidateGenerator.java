@@ -11,10 +11,10 @@ import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
 import com.quespot.domain.spot.repository.SpotRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +39,7 @@ public class MissionCandidateGenerator {
 
     private final SpotRepository spotRepository;
     private final MissionCandidateRepository missionCandidateRepository;
+    private final MissionCandidateWriter missionCandidateWriter;
 
     // 전체 미션 후보 생성 로직
     @Transactional
@@ -67,7 +68,7 @@ public class MissionCandidateGenerator {
                 .map(GenerationKey::from)
                 .collect(Collectors.toSet());
 
-        List<MissionCandidate> newCandidates = new ArrayList<>();
+        int createdCount = 0;
         int skippedDuplicateCount = 0;
 
         for (Spot spot : spots) {
@@ -81,14 +82,17 @@ public class MissionCandidateGenerator {
                 continue;
             }
 
-            newCandidates.add(MissionCandidate.generate(spot, template, GENERATOR_VERSION));
+            try {
+                missionCandidateWriter.save(MissionCandidate.generate(spot, template, GENERATOR_VERSION));
+                createdCount++;
+            } catch (DataIntegrityViolationException exception) {
+                skippedDuplicateCount++;
+            }
         }
-
-        missionCandidateRepository.saveAll(newCandidates);
 
         return new MissionCandidateGenerationResponseDTO(
                 spots.size(),
-                newCandidates.size(),
+                createdCount,
                 skippedDuplicateCount
         );
     }
