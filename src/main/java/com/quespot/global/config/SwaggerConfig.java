@@ -62,18 +62,100 @@ public class SwaggerConfig {
     }
 
     /**
-     * 회원, 인증 관련 API 그룹입니다.
+     * 회원, 인증 API 그룹입니다.
      */
     @Bean
     public GroupedOpenApi userApi() {
         return GroupedOpenApi.builder()
                 .group("01-user")
-                .displayName("01. 회원 API")
+                .displayName("01. 회원·인증 API")
                 .pathsToMatch(
                         "/api/auth/**",
-                        "/api/users/**",
-                        "/api/terms/**"
+                        "/api/users/me/profile/**"
                 )
+                .build();
+    }
+
+    /**
+     * 미션 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi missionApi() {
+        return GroupedOpenApi.builder()
+                .group("02-mission")
+                .displayName("02. 미션 API")
+                .pathsToMatch("/api/missions/**")
+                .build();
+    }
+
+    /**
+     * 포인트, 활동 내역, 배지, 스탬프 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi rewardApi() {
+        return GroupedOpenApi.builder()
+                .group("03-reward")
+                .displayName("03. 보상 API")
+                .pathsToMatch(
+                        "/api/users/me/points/**",
+                        "/api/users/me/reward-activities/**",
+                        "/api/users/me/badges/**",
+                        "/api/users/me/stamps/**"
+                )
+                .build();
+    }
+
+    /**
+     * 사용자 보유 아이템과 상점 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi itemApi() {
+        return GroupedOpenApi.builder()
+                .group("04-item")
+                .displayName("04. 아이템·상점 API")
+                .pathsToMatch(
+                        "/api/users/me/items/**",
+                        "/api/shop/items/**"
+                )
+                .build();
+    }
+
+    /**
+     * 알림 설정과 FCM 토큰 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi notificationApi() {
+        return GroupedOpenApi.builder()
+                .group("05-notification")
+                .displayName("05. 알림 API")
+                .pathsToMatch(
+                        "/api/users/me/notification-settings/**",
+                        "/api/notifications/**"
+                )
+                .build();
+    }
+
+    /**
+     * 관리자 미션 후보 생성, 검수, 발행 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi adminMissionCandidateApi() {
+        return GroupedOpenApi.builder()
+                .group("06-admin-mission-candidate")
+                .displayName("06. 관리자 미션 후보 API")
+                .pathsToMatch("/api/admin/mission-candidates/**")
+                .build();
+    }
+
+    /**
+     * 관리자 TourAPI 동기화 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi adminTourSyncApi() {
+        return GroupedOpenApi.builder()
+                .group("07-admin-tour-sync")
+                .displayName("07. 관리자 TourAPI 동기화 API")
+                .pathsToMatch("/api/admin/tour-sync/**")
                 .build();
     }
 }

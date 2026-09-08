@@ -30,6 +30,14 @@ public enum MissionSuccessCode implements BaseCode {
             "MISSION_200_006",
             "미션 후보를 반려했습니다."),
 
+    MISSIONS_FOUND(HttpStatus.OK,
+            "MISSION_200_007",
+            "미션 목록을 조회했습니다."),
+
+    MISSION_FOUND(HttpStatus.OK,
+            "MISSION_200_008",
+            "미션을 조회했습니다."),
+
     MISSIONS_PUBLISHED(HttpStatus.CREATED,
             "MISSION_201_001",
             "미션을 일괄 발행했습니다.");

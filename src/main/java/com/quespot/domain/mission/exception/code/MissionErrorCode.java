@@ -16,7 +16,19 @@ public enum MissionErrorCode implements BaseErrorCode {
 
     REVIEWER_NOT_FOUND(HttpStatus.NOT_FOUND,
             "MISSION_404_002",
-            "검수자 정보를 찾을 수 없습니다.");
+            "검수자 정보를 찾을 수 없습니다."),
+
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "MISSION_404_003",
+            "미션을 찾을 수 없습니다."),
+
+    INVALID_LOCATION(HttpStatus.BAD_REQUEST,
+            "MISSION_400_001",
+            "위도와 경도를 올바르게 입력해 주세요."),
+
+    INVALID_CURSOR(HttpStatus.BAD_REQUEST,
+            "MISSION_400_002",
+            "유효하지 않은 미션 조회 커서입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
