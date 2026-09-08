@@ -32,7 +32,7 @@ public record UpdateProfileRequestDTO(
 
         TravelCompanion travelCompanion,
 
-        @Size(min = 1, max = 8, message = "여행 스타일은 1개 이상 8개 이하로 선택해야 합니다.")
+        @Size(min = 1, max = 6, message = "여행 스타일은 1개 이상 6개 이하로 선택해야 합니다.")
         Set<TravelStyle> travelStyles
 ) {
 

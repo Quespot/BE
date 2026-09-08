@@ -24,12 +24,10 @@ public class TourContentCollector {
     // 서울. 확장 시 여기에 추가.
     private static final List<String> TARGET_REGIONS = List.of("11");
 
-    // 12 관광지 / 14 문화시설 / 38 쇼핑 / 39 음식점.
+    // 12 관광지 / 14 문화시설 / 28 레포츠 / 38 쇼핑 / 39 음식점.
     // 15(축제)는 기간 만료 처리가 별도로 필요해 제외.
     // 25(여행코스)·32(숙박)은 미션 대상이 아님.
-    // 28(레포츠)은 분류체계상 LS 대분류인데 매핑에서 전부 EXCLUDED라 수집해도
-    // 미션 후보가 안 나옴 — 페이징 낭비라 제외.
-    private static final List<Integer> TARGET_CONTENT_TYPES = List.of(12, 14, 38, 39);
+    private static final List<Integer> TARGET_CONTENT_TYPES = List.of(12, 14, 28, 38, 39);
 
     private static final int NUM_OF_ROWS = 100;
 

@@ -40,7 +40,7 @@ public record CreateProfileRequestDTO(
         TravelCompanion travelCompanion,
 
         @NotEmpty(message = "여행 스타일은 최소 1개 이상 선택해야 합니다.")
-        @Size(max = 8, message = "여행 스타일은 최대 8개까지 선택할 수 있습니다.")
+        @Size(max = 6, message = "여행 스타일은 최대 6개까지 선택할 수 있습니다.")
         Set<TravelStyle> travelStyles
 ) {
 

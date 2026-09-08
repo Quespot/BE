@@ -80,6 +80,7 @@ public class SecurityConfig {
                         .requestMatchers(HEALTH_PATHS).permitAll()
                         .requestMatchers(SWAGGER_PATHS).permitAll()
                         .requestMatchers(PUBLIC_API_PATHS).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
