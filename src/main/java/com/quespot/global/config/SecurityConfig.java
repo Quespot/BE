@@ -6,6 +6,7 @@ import com.quespot.global.security.handler.JwtAccessDeniedHandler;
 import com.quespot.global.security.handler.JwtAuthenticationEntryPoint;
 import com.quespot.global.security.handler.OAuth2LoginFailureHandler;
 import com.quespot.global.security.handler.OAuth2LoginSuccessHandler;
+import com.quespot.global.security.oauth2.OAuth2FrontendRedirectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -55,6 +56,7 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final OAuth2LoginFailureHandler oAuth2LoginFailureHandler;
+    private final OAuth2FrontendRedirectRepository oAuth2FrontendRedirectRepository;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -94,7 +96,9 @@ public class SecurityConfig {
 
         if (googleOAuth2Enabled || kakaoOAuth2Enabled || naverOAuth2Enabled) {
             http.oauth2Login(oauth2 -> oauth2
-                    .authorizationEndpoint(endpoint -> endpoint.baseUri("/api/auth/login"))
+                    .authorizationEndpoint(endpoint -> endpoint
+                            .baseUri("/api/auth/login")
+                            .authorizationRequestRepository(oAuth2FrontendRedirectRepository))
                     .redirectionEndpoint(endpoint -> endpoint.baseUri("/api/auth/login/oauth2/code/*"))
                     .successHandler(oAuth2LoginSuccessHandler)
                     .failureHandler(oAuth2LoginFailureHandler));

@@ -70,6 +70,10 @@ public enum AuthErrorCode implements BaseErrorCode {
             "AUTH_400_005",
             "현재 사용할 수 없는 로그인 방식입니다."),
 
+    INVALID_OAUTH2_FRONTEND_REDIRECT_URI(HttpStatus.BAD_REQUEST,
+            "AUTH_400_006",
+            "허용되지 않은 OAuth2 프론트 리다이렉트 주소입니다."),
+
     INVALID_OAUTH2_LINK_REQUEST(HttpStatus.UNAUTHORIZED,
             "AUTH_401_007",
             "소셜 계정 연결 요청이 올바르지 않거나 만료되었습니다."),
