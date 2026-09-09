@@ -90,15 +90,20 @@ public class MissionAttempt extends BaseEntity {
     @Column(name = "active_key", insertable = false, updatable = false, length = 64)
     private String activeKey;
 
-    private MissionAttempt(Long userId, Mission mission) {
+    private MissionAttempt(Long userId, Mission mission, Long courseAttemptId) {
         this.userId = userId;
         this.mission = mission;
+        this.courseAttemptId = courseAttemptId;
         this.status = MissionAttemptStatus.IN_PROGRESS;
         this.startedAt = LocalDateTime.now();
     }
 
     public static MissionAttempt start(Long userId, Mission mission) {
-        return new MissionAttempt(userId, mission);
+        return start(userId, mission, null);
+    }
+
+    public static MissionAttempt start(Long userId, Mission mission, Long courseAttemptId) {
+        return new MissionAttempt(userId, mission, courseAttemptId);
     }
 
     public void complete(BigDecimal arrivalLatitude, BigDecimal arrivalLongitude, Integer earnedPoint) {
@@ -115,5 +120,9 @@ public class MissionAttempt extends BaseEntity {
 
     public void writeReflection(String content) {
         this.reflection = content;
+    }
+
+    public void clearCourseAttempt() {
+        this.courseAttemptId = null;
     }
 }
