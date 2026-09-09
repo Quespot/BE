@@ -34,6 +34,13 @@ import java.time.LocalDateTime;
 //
 // (uk_attempt_active 유니크 인덱스 자체는 @UniqueConstraint로 Hibernate가
 // 테이블 생성 시 같이 만들어주므로 ALTER에는 ADD UNIQUE KEY가 필요 없다.)
+//
+// course_attempt_id의 FK는 #39에서 course_attempts 테이블이 생긴 뒤 아래
+// ALTER로 건다(#37 당시엔 참조할 테이블이 없어서 FK 없이 컬럼만 만들어뒀다):
+//
+//   ALTER TABLE mission_attempts
+//     ADD CONSTRAINT fk_ma_course_attempt FOREIGN KEY (course_attempt_id)
+//     REFERENCES course_attempts (id);
 @Entity
 @Table(
         name = "mission_attempts",
@@ -90,15 +97,20 @@ public class MissionAttempt extends BaseEntity {
     @Column(name = "active_key", insertable = false, updatable = false, length = 64)
     private String activeKey;
 
-    private MissionAttempt(Long userId, Mission mission) {
+    private MissionAttempt(Long userId, Mission mission, Long courseAttemptId) {
         this.userId = userId;
         this.mission = mission;
+        this.courseAttemptId = courseAttemptId;
         this.status = MissionAttemptStatus.IN_PROGRESS;
         this.startedAt = LocalDateTime.now();
     }
 
     public static MissionAttempt start(Long userId, Mission mission) {
-        return new MissionAttempt(userId, mission);
+        return start(userId, mission, null);
+    }
+
+    public static MissionAttempt start(Long userId, Mission mission, Long courseAttemptId) {
+        return new MissionAttempt(userId, mission, courseAttemptId);
     }
 
     public void complete(BigDecimal arrivalLatitude, BigDecimal arrivalLongitude, Integer earnedPoint) {
@@ -115,5 +127,13 @@ public class MissionAttempt extends BaseEntity {
 
     public void writeReflection(String content) {
         this.reflection = content;
+    }
+
+    public void clearCourseAttempt() {
+        this.courseAttemptId = null;
+    }
+
+    public void attachToCourse(Long courseAttemptId) {
+        this.courseAttemptId = courseAttemptId;
     }
 }

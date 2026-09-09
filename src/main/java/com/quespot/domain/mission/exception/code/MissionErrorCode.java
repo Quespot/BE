@@ -52,7 +52,39 @@ public enum MissionErrorCode implements BaseErrorCode {
 
     PHOTO_ALREADY_EXISTS(HttpStatus.CONFLICT,
             "MISSION_409_005",
-            "이미 사진을 기록했습니다.");
+            "이미 사진을 기록했습니다."),
+
+    COURSE_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "MISSION_404_005",
+            "미션 코스를 찾을 수 없습니다."),
+
+    COURSE_ATTEMPT_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "MISSION_404_006",
+            "코스 진행을 찾을 수 없습니다."),
+
+    COURSE_ALREADY_COMPLETED(HttpStatus.CONFLICT,
+            "MISSION_409_007",
+            "이미 완주한 코스는 다시 시작할 수 없습니다."),
+
+    COURSE_ATTEMPT_NOT_IN_PROGRESS(HttpStatus.CONFLICT,
+            "MISSION_409_008",
+            "진행 중인 코스가 아닙니다."),
+
+    MISSION_NOT_IN_COURSE(HttpStatus.BAD_REQUEST,
+            "MISSION_400_003",
+            "해당 코스에 속하지 않는 미션입니다."),
+
+    ANCHOR_NOT_AVAILABLE(HttpStatus.CONFLICT,
+            "MISSION_409_009",
+            "이미 시작했거나 완료한 미션은 코스 앵커로 선택할 수 없습니다."),
+
+    COURSE_GENERATION_FAILED(HttpStatus.CONFLICT,
+            "MISSION_409_010",
+            "주변에 이어갈 미션이 부족해 코스를 만들 수 없습니다."),
+
+    MISSION_LOCKED(HttpStatus.CONFLICT,
+            "MISSION_409_011",
+            "아직 잠금 해제되지 않은 미션입니다. 이전 미션을 먼저 완료해 주세요.");
 
     private final HttpStatus httpStatus;
     private final String code;

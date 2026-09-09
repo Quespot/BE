@@ -24,4 +24,8 @@ public interface MissionAttemptRepository extends JpaRepository<MissionAttempt, 
     List<MissionAttemptStatusProjection> findByUserIdAndMissionIdInAndStatusIn(
             Long userId, List<Long> missionIds, List<MissionAttemptStatus> statuses
     );
+
+    // 코스 포기 시 그 코스에 연결된 모든 미션 시도를 찾아 courseAttemptId를
+    // null로 비우는 데 쓴다(#39).
+    List<MissionAttempt> findByCourseAttemptId(Long courseAttemptId);
 }

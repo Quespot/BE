@@ -67,4 +67,30 @@ class MissionAttemptTest {
 
         assertThat(attempt.getReflection()).isEqualTo("좋았어요");
     }
+
+    @Test
+    void startWithCourseAttemptIdSetsCourseAttemptId() {
+        Mission mission = mission();
+
+        MissionAttempt attempt = MissionAttempt.start(1L, mission, 55L);
+
+        assertThat(attempt.getCourseAttemptId()).isEqualTo(55L);
+        assertThat(attempt.getStatus()).isEqualTo(MissionAttemptStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void startWithoutCourseAttemptIdLeavesItNull() {
+        MissionAttempt attempt = MissionAttempt.start(1L, mission());
+
+        assertThat(attempt.getCourseAttemptId()).isNull();
+    }
+
+    @Test
+    void clearCourseAttemptSetsCourseAttemptIdToNull() {
+        MissionAttempt attempt = MissionAttempt.start(1L, mission(), 55L);
+
+        attempt.clearCourseAttempt();
+
+        assertThat(attempt.getCourseAttemptId()).isNull();
+    }
 }

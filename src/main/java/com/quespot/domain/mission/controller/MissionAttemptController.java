@@ -10,9 +10,11 @@ import com.quespot.domain.mission.dto.res.MissionAttemptListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionPhotoResponseDTO;
+import com.quespot.domain.mission.dto.res.UnlockConditionResponseDTO;
 import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.exception.code.MissionSuccessCode;
+import com.quespot.domain.mission.service.CourseLockPolicy;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.mission.service.MissionAttemptService;
 import com.quespot.domain.mission.service.MissionPhotoService;
@@ -30,7 +32,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Validated
 @RestController
@@ -41,14 +46,16 @@ public class MissionAttemptController {
     private final MissionAttemptService missionAttemptService;
     private final MissionArrivalService missionArrivalService;
     private final MissionPhotoService missionPhotoService;
+    private final CourseLockPolicy courseLockPolicy;
 
     @PostMapping("/api/missions/{missionId}/start")
     @Operation(summary = "미션 시작")
     public ApiResponse<MissionAttemptResponseDTO> start(
             @PathVariable @Positive Long missionId,
+            @RequestParam(required = false) @Positive Long courseAttemptId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        MissionAttempt attempt = missionAttemptService.start(principal.userId(), missionId);
+        MissionAttempt attempt = missionAttemptService.start(principal.userId(), missionId, courseAttemptId);
         return ApiResponse.of(MissionSuccessCode.MISSION_ATTEMPT_STARTED, MissionConverter.toAttemptResponse(attempt));
     }
 
@@ -146,5 +153,17 @@ public class MissionAttemptController {
     ) {
         missionAttemptService.quit(principal.userId(), attemptId);
         return ApiResponse.<Void>of(MissionSuccessCode.MISSION_ATTEMPT_QUIT, null);
+    }
+
+    @GetMapping("/api/missions/{missionId}/unlock-condition")
+    @Operation(summary = "코스 잠금 조건 조회")
+    public ApiResponse<UnlockConditionResponseDTO> getUnlockCondition(
+            @PathVariable @Positive Long missionId,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
+    ) {
+        boolean locked = courseLockPolicy
+                .resolveLockedMissionIds(principal.userId(), List.of(missionId))
+                .contains(missionId);
+        return ApiResponse.of(MissionSuccessCode.UNLOCK_CONDITION_FOUND, MissionConverter.toUnlockConditionResponse(locked));
     }
 }
