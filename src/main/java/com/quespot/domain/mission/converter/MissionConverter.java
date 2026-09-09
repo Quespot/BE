@@ -5,6 +5,8 @@ import com.quespot.domain.mission.dto.res.ArrivalResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
@@ -217,6 +219,25 @@ public class MissionConverter {
     ) {
         return new com.quespot.domain.mission.dto.res.CourseAttemptListResponseDTO(
                 attempts.stream().map(MissionConverter::toCourseAttemptResponse).toList()
+        );
+    }
+
+    public static MissionArchiveItemResponseDTO toArchiveItem(MissionPhoto photo) {
+        MissionAttempt attempt = photo.getAttempt();
+        Mission mission = attempt.getMission();
+        return new MissionArchiveItemResponseDTO(
+                photo.getId(), photo.getImageUrl(), photo.getCaption(),
+                mission.getId(), mission.getTitle(), mission.getCategory(),
+                attempt.getCompletedAt(), photo.getCreatedAt()
+        );
+    }
+
+    public static MissionArchiveListResponseDTO toArchiveListResponse(
+            List<MissionPhoto> photos, String nextCursor, boolean hasNext
+    ) {
+        return new MissionArchiveListResponseDTO(
+                photos.stream().map(MissionConverter::toArchiveItem).toList(),
+                nextCursor, hasNext
         );
     }
 
