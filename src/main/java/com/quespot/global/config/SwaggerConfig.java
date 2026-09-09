@@ -85,7 +85,10 @@ public class SwaggerConfig {
         return GroupedOpenApi.builder()
                 .group("02-mission")
                 .displayName("02. 미션 API")
-                .pathsToMatch("/api/missions/**")
+                .pathsToMatch(
+                        "/api/missions/**",
+                        "/api/users/me/archives/**"
+                )
                 .build();
     }
 
