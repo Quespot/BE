@@ -70,7 +70,8 @@ app:
   oauth2:
     frontend-redirect-uri: ${OAUTH2_FRONTEND_REDIRECT_URI:http://localhost:5173/oauth/callback}
     login-code-expiration-seconds: ${OAUTH2_LOGIN_CODE_EXPIRATION_SECONDS:60}
-    link-request-expiration-seconds: ${OAUTH2_LINK_REQUEST_EXPIRATION_SECONDS:300}
+    link-request-expiration-seconds: ${OAUTH2_LINK_REQUEST_EXPIRATION_SECONDS:120}
+    unlink-retry-delay-ms: ${OAUTH2_UNLINK_RETRY_DELAY_MS:30000}
     token-encryption-key: ${OAUTH2_TOKEN_ENCRYPTION_KEY:}
     google:
       enabled: ${GOOGLE_OAUTH_ENABLED:false}

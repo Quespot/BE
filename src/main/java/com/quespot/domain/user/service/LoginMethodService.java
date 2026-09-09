@@ -27,7 +27,7 @@ public class LoginMethodService {
     private final UserRepository userRepository;
     private final UserSocialAccountRepository userSocialAccountRepository;
     private final OAuth2LinkRequestService oAuth2LinkRequestService;
-    private final OAuth2ProviderUnlinkService oAuth2ProviderUnlinkService;
+    private final OAuth2UnlinkQueueService oAuth2UnlinkQueueService;
 
     // 현재 사용자의 이메일 및 소셜 로그인 수단 조회 로직
     @Transactional(readOnly = true)
@@ -76,7 +76,7 @@ public class LoginMethodService {
             throw new AuthException(AuthErrorCode.LAST_LOGIN_METHOD_CANNOT_BE_UNLINKED);
         }
 
-        oAuth2ProviderUnlinkService.unlink(socialAccount);
+        oAuth2UnlinkQueueService.enqueue(socialAccount);
         userSocialAccountRepository.delete(socialAccount);
     }
 

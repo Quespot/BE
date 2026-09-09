@@ -8,6 +8,7 @@ import com.quespot.global.security.handler.OAuth2LoginFailureHandler;
 import com.quespot.global.security.handler.OAuth2LoginSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -100,6 +101,16 @@ public class SecurityConfig {
         }
 
         return http.build();
+    }
+
+    @Bean
+    public FilterRegistrationBean<OAuth2LinkRequestFilter> oauth2LinkRequestFilterRegistration(
+            OAuth2LinkRequestFilter filter
+    ) {
+        FilterRegistrationBean<OAuth2LinkRequestFilter> registration =
+                new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean

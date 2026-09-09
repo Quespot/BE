@@ -42,7 +42,7 @@ class LoginMethodServiceTest {
     private OAuth2LinkRequestService oAuth2LinkRequestService;
 
     @Mock
-    private OAuth2ProviderUnlinkService oAuth2ProviderUnlinkService;
+    private OAuth2UnlinkQueueService oAuth2UnlinkQueueService;
 
     @InjectMocks
     private LoginMethodService loginMethodService;
@@ -93,7 +93,7 @@ class LoginMethodServiceTest {
                                 .isEqualTo(AuthErrorCode.LAST_LOGIN_METHOD_CANNOT_BE_UNLINKED)
                 );
         verify(userSocialAccountRepository, never()).delete(account);
-        verify(oAuth2ProviderUnlinkService, never()).unlink(account);
+        verify(oAuth2UnlinkQueueService, never()).enqueue(account);
     }
 
     @Test
@@ -118,7 +118,7 @@ class LoginMethodServiceTest {
 
         loginMethodService.unlink(AUTHENTICATED_USER, "naver");
 
-        verify(oAuth2ProviderUnlinkService).unlink(account);
+        verify(oAuth2UnlinkQueueService).enqueue(account);
         verify(userSocialAccountRepository).delete(account);
     }
 }

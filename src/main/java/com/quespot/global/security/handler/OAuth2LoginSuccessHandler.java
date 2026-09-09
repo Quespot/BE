@@ -58,10 +58,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
             OAuth2User oAuth2User = token.getPrincipal();
             OAuth2ProviderToken providerToken = resolveProviderToken(token);
-            String linkRequest = OAuth2LinkRequestFilter.takeLinkRequest(request);
-            if (linkRequest != null) {
+            String linkNonce = OAuth2LinkRequestFilter.takeLinkRequest(request);
+            if (linkNonce != null) {
                 LoginProvider linkedProvider = oAuth2LoginService.linkAccount(
-                        linkRequest,
+                        linkNonce,
                         token.getAuthorizedClientRegistrationId(),
                         oAuth2User,
                         providerToken

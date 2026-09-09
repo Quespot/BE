@@ -8,6 +8,7 @@ import com.quespot.domain.user.enums.LoginProvider;
 import com.quespot.domain.user.enums.UserStatus;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
+import com.quespot.domain.user.repository.OAuth2UnlinkTaskRepository;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
@@ -32,6 +33,7 @@ public class OAuth2LoginService {
     private final OAuth2LoginCodeService oAuth2LoginCodeService;
     private final OAuth2LinkRequestService oAuth2LinkRequestService;
     private final OAuth2TokenCipher oAuth2TokenCipher;
+    private final OAuth2UnlinkTaskRepository oAuth2UnlinkTaskRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
 
@@ -48,6 +50,7 @@ public class OAuth2LoginService {
         User user = userSocialAccountRepository
                 .findByProviderAndProviderUserId(provider, userInfo.providerUserId())
                 .map(account -> {
+                    cancelPendingUnlink(provider, userInfo.providerUserId());
                     account.updateProviderEmail(userInfo.email());
                     updateCredentials(account, providerToken);
                     return account.getUser();
@@ -61,13 +64,13 @@ public class OAuth2LoginService {
     // 로그인된 사용자에게 OAuth 인증 결과의 소셜 계정을 연결하는 로직
     @Transactional
     public LoginProvider linkAccount(
-            String linkRequestToken,
+            String linkNonce,
             String registrationId,
             OAuth2User oAuth2User,
             OAuth2ProviderToken providerToken
     ) {
         OAuth2LinkRequestService.LinkRequest linkRequest =
-                oAuth2LinkRequestService.consume(linkRequestToken);
+                oAuth2LinkRequestService.consume(linkNonce);
         LoginProvider provider = resolveProvider(registrationId);
         if (linkRequest.provider() != provider) {
             throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
@@ -87,6 +90,7 @@ public class OAuth2LoginService {
             }
             providerAccount.updateProviderEmail(userInfo.email());
             updateCredentials(providerAccount, providerToken);
+            cancelPendingUnlink(provider, userInfo.providerUserId());
             return provider;
         }
 
@@ -106,6 +110,7 @@ public class OAuth2LoginService {
                             providerToken.accessTokenExpiresAt()
                     )
             );
+            cancelPendingUnlink(provider, userInfo.providerUserId());
             return provider;
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_LINKED_TO_ANOTHER_USER);
@@ -154,6 +159,7 @@ public class OAuth2LoginService {
                             providerToken.accessTokenExpiresAt()
                     )
             );
+            cancelPendingUnlink(provider, userInfo.providerUserId());
             return user;
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
@@ -169,6 +175,10 @@ public class OAuth2LoginService {
                 oAuth2TokenCipher.encrypt(providerToken.refreshToken()),
                 providerToken.accessTokenExpiresAt()
         );
+    }
+
+    private void cancelPendingUnlink(LoginProvider provider, String providerUserId) {
+        oAuth2UnlinkTaskRepository.deleteByProviderAndProviderUserId(provider, providerUserId);
     }
 
     private LoginProvider resolveProvider(String registrationId) {

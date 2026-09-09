@@ -36,21 +36,23 @@ public class OAuth2LinkRequestFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        clearLinkRequest(request);
-
-        String linkRequest = request.getParameter("linkRequest");
-        if (linkRequest == null || linkRequest.isBlank()) {
+        String linkNonce = getLinkRequest(request);
+        if (linkNonce == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            oAuth2LinkRequestService.validate(linkRequest, resolveProvider(request));
-            request.getSession(true).setAttribute(LINK_REQUEST_SESSION_ATTRIBUTE, linkRequest.trim());
+            oAuth2LinkRequestService.validate(linkNonce, resolveProvider(request));
             filterChain.doFilter(request, response);
         } catch (AuthException exception) {
+            clearLinkRequest(request);
             securityErrorResponseWriter.write(response, exception.getErrorCode());
         }
+    }
+
+    public static void storeLinkRequest(HttpServletRequest request, String nonce) {
+        request.getSession(true).setAttribute(LINK_REQUEST_SESSION_ATTRIBUTE, nonce);
     }
 
     public static String takeLinkRequest(HttpServletRequest request) {
@@ -69,6 +71,16 @@ public class OAuth2LinkRequestFilter extends OncePerRequestFilter {
         if (session != null) {
             session.removeAttribute(LINK_REQUEST_SESSION_ATTRIBUTE);
         }
+    }
+
+    private static String getLinkRequest(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            return null;
+        }
+
+        Object value = session.getAttribute(LINK_REQUEST_SESSION_ATTRIBUTE);
+        return value instanceof String nonce ? nonce : null;
     }
 
     private String resolveProvider(HttpServletRequest request) {

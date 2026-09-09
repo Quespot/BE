@@ -35,7 +35,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final UserSocialAccountRepository userSocialAccountRepository;
-    private final OAuth2ProviderUnlinkService oAuth2ProviderUnlinkService;
+    private final OAuth2UnlinkQueueService oAuth2UnlinkQueueService;
     private final EmailVerificationService emailVerificationService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
@@ -129,7 +129,7 @@ public class AuthService {
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN));
 
         List<UserSocialAccount> socialAccounts = userSocialAccountRepository.findAllByUserId(user.getId());
-        socialAccounts.forEach(oAuth2ProviderUnlinkService::unlink);
+        socialAccounts.forEach(oAuth2UnlinkQueueService::enqueue);
 
         user.withdraw();
         userProfileRepository.deleteByUserId(user.getId());

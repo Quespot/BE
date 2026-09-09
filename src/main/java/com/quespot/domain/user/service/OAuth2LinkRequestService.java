@@ -17,7 +17,7 @@ import java.util.Locale;
 @Service
 public class OAuth2LinkRequestService {
 
-    private static final String LINK_REQUEST_KEY_PREFIX = "quespot:auth:oauth2-link-request";
+    private static final String LINK_REQUEST_KEY_PREFIX = "quespot:auth:oauth2-link-nonce";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private static final DefaultRedisScript<String> CONSUME_LINK_REQUEST_SCRIPT = new DefaultRedisScript<>("""
             local request = redis.call('GET', KEYS[1])
@@ -58,31 +58,31 @@ public class OAuth2LinkRequestService {
 
         byte[] randomBytes = new byte[32];
         SECURE_RANDOM.nextBytes(randomBytes);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
+        String nonce = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         String value = "%d|%s".formatted(userId, provider.name());
-        stringRedisTemplate.opsForValue().set(linkRequestKey(token), value, expiration);
+        stringRedisTemplate.opsForValue().set(linkRequestKey(nonce), value, expiration);
 
-        return new IssuedLinkRequest(provider, token, expiration.toSeconds());
+        return new IssuedLinkRequest(provider, nonce, expiration.toSeconds());
     }
 
     // OAuth 로그인 시작 전에 연결 요청과 제공자를 검증하는 로직
-    public void validate(String token, String providerValue) {
+    public void validate(String nonce, String providerValue) {
         LoginProvider provider = resolveSocialProvider(providerValue);
-        LinkRequest linkRequest = parse(read(token));
+        LinkRequest linkRequest = parse(read(nonce));
         if (linkRequest.provider() != provider) {
             throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
         }
     }
 
     // OAuth 콜백에서 연결 요청을 한 번만 소모하는 로직
-    public LinkRequest consume(String token) {
-        if (token == null || token.isBlank()) {
+    public LinkRequest consume(String nonce) {
+        if (nonce == null || nonce.isBlank()) {
             throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
         }
 
         String value = stringRedisTemplate.execute(
                 CONSUME_LINK_REQUEST_SCRIPT,
-                List.of(linkRequestKey(token.trim()))
+                List.of(linkRequestKey(nonce.trim()))
         );
         return parse(value);
     }
@@ -115,12 +115,12 @@ public class OAuth2LinkRequestService {
         }
     }
 
-    private String read(String token) {
-        if (token == null || token.isBlank()) {
+    private String read(String nonce) {
+        if (nonce == null || nonce.isBlank()) {
             throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
         }
 
-        String value = stringRedisTemplate.opsForValue().get(linkRequestKey(token.trim()));
+        String value = stringRedisTemplate.opsForValue().get(linkRequestKey(nonce.trim()));
         if (value == null) {
             throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
         }
@@ -144,11 +144,11 @@ public class OAuth2LinkRequestService {
         }
     }
 
-    private String linkRequestKey(String token) {
-        return "%s:%s".formatted(LINK_REQUEST_KEY_PREFIX, token);
+    private String linkRequestKey(String nonce) {
+        return "%s:%s".formatted(LINK_REQUEST_KEY_PREFIX, nonce);
     }
 
-    public record IssuedLinkRequest(LoginProvider provider, String token, long expiresInSeconds) {
+    public record IssuedLinkRequest(LoginProvider provider, String nonce, long expiresInSeconds) {
     }
 
     public record LinkRequest(Long userId, LoginProvider provider) {

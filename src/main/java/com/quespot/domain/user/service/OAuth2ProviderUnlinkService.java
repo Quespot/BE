@@ -1,6 +1,5 @@
 package com.quespot.domain.user.service;
 
-import com.quespot.domain.user.entity.UserSocialAccount;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,12 +43,12 @@ public class OAuth2ProviderUnlinkService {
     }
 
     // 제공자별 API를 호출하여 Quespot에 부여된 OAuth 연동을 해제하는 로직
-    public void unlink(UserSocialAccount account) {
+    public void unlink(OAuth2UnlinkCommand command) {
         try {
-            switch (account.getProvider()) {
-                case NAVER -> unlinkNaver(account);
-                case KAKAO -> unlinkKakao(account);
-                case GOOGLE -> unlinkGoogle(account);
+            switch (command.provider()) {
+                case NAVER -> unlinkNaver(command);
+                case KAKAO -> unlinkKakao(command);
+                case GOOGLE -> unlinkGoogle(command);
                 default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_LOGIN_PROVIDER);
             }
         } catch (RestClientException exception) {
@@ -57,14 +56,17 @@ public class OAuth2ProviderUnlinkService {
         }
     }
 
-    private void unlinkNaver(UserSocialAccount account) {
-        String refreshToken = oAuth2TokenCipher.decrypt(account.getEncryptedRefreshToken());
-        String accessToken = oAuth2TokenCipher.decrypt(account.getEncryptedAccessToken());
+    private void unlinkNaver(OAuth2UnlinkCommand command) {
+        String refreshToken = oAuth2TokenCipher.decrypt(command.encryptedRefreshToken());
+        String accessToken = oAuth2TokenCipher.decrypt(command.encryptedAccessToken());
         if (naverClientId.isBlank() || naverClientSecret.isBlank()) {
             throw new AuthException(AuthErrorCode.OAUTH2_UNLINK_FAILED);
         }
         if (refreshToken != null) {
-            accessToken = refreshNaverAccessToken(refreshToken);
+            try {
+                accessToken = refreshNaverAccessToken(refreshToken);
+            } catch (AuthException | RestClientException ignored) {
+            }
         }
         if (accessToken == null) {
             throw new AuthException(AuthErrorCode.OAUTH2_UNLINK_FAILED);
@@ -100,15 +102,15 @@ public class OAuth2ProviderUnlinkService {
         return value;
     }
 
-    private void unlinkKakao(UserSocialAccount account) {
+    private void unlinkKakao(OAuth2UnlinkCommand command) {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         String authorization;
         if (!kakaoAdminKey.isBlank()) {
             authorization = "KakaoAK " + kakaoAdminKey;
             body.add("target_id_type", "user_id");
-            body.add("target_id", account.getProviderUserId());
+            body.add("target_id", command.providerUserId());
         } else {
-            String accessToken = oAuth2TokenCipher.decrypt(account.getEncryptedAccessToken());
+            String accessToken = oAuth2TokenCipher.decrypt(command.encryptedAccessToken());
             if (accessToken == null) {
                 throw new AuthException(AuthErrorCode.OAUTH2_UNLINK_FAILED);
             }
@@ -118,9 +120,9 @@ public class OAuth2ProviderUnlinkService {
         postForm(KAKAO_UNLINK_URI, body, authorization);
     }
 
-    private void unlinkGoogle(UserSocialAccount account) {
-        String refreshToken = oAuth2TokenCipher.decrypt(account.getEncryptedRefreshToken());
-        String accessToken = oAuth2TokenCipher.decrypt(account.getEncryptedAccessToken());
+    private void unlinkGoogle(OAuth2UnlinkCommand command) {
+        String refreshToken = oAuth2TokenCipher.decrypt(command.encryptedRefreshToken());
+        String accessToken = oAuth2TokenCipher.decrypt(command.encryptedAccessToken());
         String token = refreshToken != null ? refreshToken : accessToken;
         if (token == null) {
             throw new AuthException(AuthErrorCode.OAUTH2_UNLINK_FAILED);

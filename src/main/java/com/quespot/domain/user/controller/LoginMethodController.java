@@ -6,10 +6,12 @@ import com.quespot.domain.user.exception.code.AuthSuccessCode;
 import com.quespot.domain.user.service.LoginMethodService;
 import com.quespot.domain.user.service.OAuth2LinkRequestService;
 import com.quespot.global.apiPayload.ApiResponse;
+import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -50,14 +52,15 @@ public class LoginMethodController {
     public ApiResponse<OAuth2LinkStartResponseDTO> startLink(
             @Parameter(hidden = true)
             @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
-            @PathVariable String provider
+            @PathVariable String provider,
+            HttpServletRequest httpServletRequest
     ) {
         OAuth2LinkRequestService.IssuedLinkRequest issued =
                 loginMethodService.startLink(authenticatedUser, provider);
+        OAuth2LinkRequestFilter.storeLinkRequest(httpServletRequest, issued.nonce());
         String authorizationUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/auth/login/")
                 .path(issued.provider().name().toLowerCase(Locale.ROOT))
-                .queryParam("linkRequest", issued.token())
                 .build()
                 .encode()
                 .toUriString();
