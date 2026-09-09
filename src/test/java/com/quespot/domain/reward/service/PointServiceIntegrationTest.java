@@ -58,5 +58,12 @@ class PointServiceIntegrationTest {
         assertThatThrownBy(() ->
                 pointService.credit(9001L, 100, "MISSION_REWARD", "MISSION_ATTEMPT", 1L, "미션 완료 보상")
         ).isInstanceOf(DataIntegrityViolationException.class);
+
+        // 두 번째 credit()의 upsert(balance +100)가 point_transactions insert
+        // 실패로 같은 트랜잭션째 롤백됐는지 확인한다 — 이게 없으면 "유니크
+        // 제약이 예외를 던진다"만 확인할 뿐, upsert까지 함께 롤백되는
+        // 원자성은 검증하지 못한다.
+        assertThat(userPointRepository.findById(9001L).get().getBalance()).isEqualTo(100);
+        assertThat(pointTransactionRepository.findAll()).hasSize(1);
     }
 }

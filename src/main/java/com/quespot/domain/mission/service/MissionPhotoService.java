@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -50,5 +51,10 @@ public class MissionPhotoService {
         return missionPhotoRepository.save(
                 MissionPhoto.record(attempt, imageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<MissionPhoto> findByAttemptId(Long attemptId) {
+        return missionPhotoRepository.findByAttemptId(attemptId);
     }
 }

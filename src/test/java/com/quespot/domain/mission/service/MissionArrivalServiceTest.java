@@ -116,6 +116,40 @@ class MissionArrivalServiceTest {
     }
 
     @Test
+    void arrivalAtExactlyRadiusMetersSucceeds() {
+        // 정확히 500m 지점에서의 경계값(> vs >=)을 실제 좌표 오차 없이 검증하기
+        // 위해 GeoDistanceCalculator를 스텁으로 대체한다.
+        GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
+        when(stubCalculator.distanceMeters(any(), any(), any(), any()))
+                .thenReturn((long) MissionArrivalService.RADIUS_METERS);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator);
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = attemptOwnedBy(1L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        ArrivalResultDTO result = service.arrive(1L, 100L, new BigDecimal("37.5665"), new BigDecimal("126.9780"));
+
+        assertThat(result.success()).isTrue();
+        assertThat(attempt.getStatus()).isEqualTo(MissionAttemptStatus.COMPLETED);
+    }
+
+    @Test
+    void arrivalOneMeterBeyondRadiusFails() {
+        GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
+        when(stubCalculator.distanceMeters(any(), any(), any(), any()))
+                .thenReturn((long) MissionArrivalService.RADIUS_METERS + 1);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator);
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = attemptOwnedBy(1L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        ArrivalResultDTO result = service.arrive(1L, 100L, new BigDecimal("37.5665"), new BigDecimal("126.9780"));
+
+        assertThat(result.success()).isFalse();
+        assertThat(attempt.getStatus()).isEqualTo(MissionAttemptStatus.IN_PROGRESS);
+    }
+
+    @Test
     void arrivalOnAttemptNotOwnedByUserThrows() {
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(2L, mission);

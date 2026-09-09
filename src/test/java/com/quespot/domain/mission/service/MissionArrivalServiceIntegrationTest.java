@@ -8,6 +8,8 @@ import com.quespot.domain.mission.enums.MissionTemplate;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionCandidateRepository;
 import com.quespot.domain.mission.repository.MissionRepository;
+import com.quespot.domain.reward.entity.PointTransaction;
+import com.quespot.domain.reward.repository.PointTransactionRepository;
 import com.quespot.domain.reward.repository.UserPointRepository;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
@@ -71,6 +73,9 @@ class MissionArrivalServiceIntegrationTest {
     private UserPointRepository userPointRepository;
 
     @Autowired
+    private PointTransactionRepository pointTransactionRepository;
+
+    @Autowired
     private DataSource dataSource;
 
     // Hibernate는 생성 컬럼을 만들지 못해 ddl-auto: create가 active_key를
@@ -126,5 +131,29 @@ class MissionArrivalServiceIntegrationTest {
         assertThatThrownBy(() ->
                 missionAttemptRepository.saveAndFlush(MissionAttempt.start(9003L, mission))
         ).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void whenPointCreditFailsTheAttemptStaysInProgressInsteadOfBeingCorruptedToCompleted() {
+        // point_transactions의 UNIQUE(user_id, type, reference_type, reference_id)와
+        // 똑같은 키로 행을 미리 심어둬서, arrive() 안의 credit()이 반드시
+        // DataIntegrityViolationException으로 실패하도록 강제한다. arrive()가
+        // 완료 처리와 포인트 지급을 정말 하나의 트랜잭션으로 묶고 있다면,
+        // 이 실패로 attempt의 COMPLETED 변경도 함께 롤백되어야 한다 — 만약
+        // credit()이 REQUIRES_NEW였다면 이 실패는 credit() 쪽 트랜잭션에만
+        // 갇히고, attempt는 (이미 커밋된) COMPLETED로 남아있는 모순이 생긴다.
+        Mission mission = createPublishedMission();
+        MissionAttempt attempt = missionAttemptRepository.save(MissionAttempt.start(9004L, mission));
+        pointTransactionRepository.saveAndFlush(
+                PointTransaction.earn(9004L, mission.getRewardPoint(), "MISSION_REWARD", "MISSION_ATTEMPT", attempt.getId(), 0)
+        );
+
+        assertThatThrownBy(() ->
+                missionArrivalService.arrive(9004L, attempt.getId(), new BigDecimal("37.5665"), new BigDecimal("126.9780"))
+        ).isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+
+        MissionAttempt reloaded = missionAttemptRepository.findById(attempt.getId()).orElseThrow();
+        assertThat(reloaded.getStatus()).isEqualTo(MissionAttemptStatus.IN_PROGRESS);
+        assertThat(reloaded.getEarnedPoint()).isNull();
     }
 }

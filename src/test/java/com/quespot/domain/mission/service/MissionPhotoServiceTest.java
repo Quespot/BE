@@ -95,6 +95,20 @@ class MissionPhotoServiceTest {
     }
 
     @Test
+    void throwsWhenAttemptNotOwnedByUser() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(2L, mission);
+        attempt.complete(new BigDecimal("37.5665"), new BigDecimal("126.9780"), mission.getRewardPoint());
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        assertThatThrownBy(() -> missionPhotoService.registerPhoto(
+                1L, 100L, "https://example.com/a.jpg", null, null, null, null
+        )).isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.ATTEMPT_NOT_FOUND);
+    }
+
+    @Test
     void throwsWhenPhotoAlreadyExists() {
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = MissionAttempt.start(1L, mission);

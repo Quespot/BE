@@ -12,9 +12,7 @@ import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionPhotoResponseDTO;
 import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.MissionAttempt;
-import com.quespot.domain.mission.entity.MissionPhoto;
 import com.quespot.domain.mission.exception.code.MissionSuccessCode;
-import com.quespot.domain.mission.repository.MissionPhotoRepository;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.mission.service.MissionAttemptService;
 import com.quespot.domain.mission.service.MissionPhotoService;
@@ -27,12 +25,14 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+@Validated
 @RestController
 @RequiredArgsConstructor
 @Tag(name = "MissionAttempt", description = "미션 수행 API")
@@ -41,7 +41,6 @@ public class MissionAttemptController {
     private final MissionAttemptService missionAttemptService;
     private final MissionArrivalService missionArrivalService;
     private final MissionPhotoService missionPhotoService;
-    private final MissionPhotoRepository missionPhotoRepository;
 
     @PostMapping("/api/missions/{missionId}/start")
     @Operation(summary = "미션 시작")
@@ -107,7 +106,7 @@ public class MissionAttemptController {
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
         MissionAttempt attempt = missionAttemptService.getAttempt(principal.userId(), attemptId);
-        MissionPhoto photo = missionPhotoRepository.findByAttemptId(attemptId).orElse(null);
+        var photo = missionPhotoService.findByAttemptId(attemptId).orElse(null);
         return ApiResponse.of(
                 MissionSuccessCode.MISSION_ATTEMPT_RESULT_FOUND,
                 MissionConverter.toAttemptResultResponse(attempt, photo)
@@ -121,7 +120,7 @@ public class MissionAttemptController {
             @Valid @RequestBody RegisterMissionPhotoRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        MissionPhoto photo = missionPhotoService.registerPhoto(
+        var photo = missionPhotoService.registerPhoto(
                 principal.userId(), attemptId, request.imageUrl(), request.caption(),
                 request.latitude(), request.longitude(), request.takenAt()
         );
