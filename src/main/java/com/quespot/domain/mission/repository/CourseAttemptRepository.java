@@ -14,4 +14,6 @@ public interface CourseAttemptRepository extends JpaRepository<CourseAttempt, Lo
     );
 
     List<CourseAttempt> findByUserIdAndStatus(Long userId, CourseAttemptStatus status);
+
+    List<CourseAttempt> findByCourseIdIn(List<Long> courseIds);
 }
