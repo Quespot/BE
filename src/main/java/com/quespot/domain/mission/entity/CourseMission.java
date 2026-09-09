@@ -15,7 +15,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 // course_missions는 등록 후 안 바뀌는 순수 연결 테이블이라 감사 컬럼(created_at/
-// updated_at)이 없다 — BaseEntity를 상속하지 않는다. 정적 팩토리도 없음(SQL 등록).
+// updated_at)이 없다 — BaseEntity를 상속하지 않는다.
 @Entity
 @Table(
         name = "course_missions",
@@ -43,4 +43,14 @@ public class CourseMission {
 
     @Column(name = "seq", nullable = false)
     private Integer seq;
+
+    private CourseMission(MissionCourse course, Mission mission, Integer seq) {
+        this.course = course;
+        this.mission = mission;
+        this.seq = seq;
+    }
+
+    public static CourseMission of(MissionCourse course, Mission mission, int seq) {
+        return new CourseMission(course, mission, seq);
+    }
 }
