@@ -28,7 +28,31 @@ public enum MissionErrorCode implements BaseErrorCode {
 
     INVALID_CURSOR(HttpStatus.BAD_REQUEST,
             "MISSION_400_002",
-            "유효하지 않은 미션 조회 커서입니다.");
+            "유효하지 않은 미션 조회 커서입니다."),
+
+    ATTEMPT_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "MISSION_404_004",
+            "미션 시도를 찾을 수 없습니다."),
+
+    MISSION_ALREADY_COMPLETED(HttpStatus.CONFLICT,
+            "MISSION_409_002",
+            "이미 완료한 미션은 다시 시작할 수 없습니다."),
+
+    ATTEMPT_NOT_IN_PROGRESS(HttpStatus.CONFLICT,
+            "MISSION_409_003",
+            "진행 중인 시도가 아닙니다."),
+
+    ATTEMPT_QUIT(HttpStatus.CONFLICT,
+            "MISSION_409_004",
+            "이미 종료된 시도입니다. 새로 시작해 주세요."),
+
+    PHOTO_ATTEMPT_NOT_COMPLETED(HttpStatus.CONFLICT,
+            "MISSION_409_006",
+            "완료된 미션에만 사진을 기록할 수 있습니다."),
+
+    PHOTO_ALREADY_EXISTS(HttpStatus.CONFLICT,
+            "MISSION_409_005",
+            "이미 사진을 기록했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

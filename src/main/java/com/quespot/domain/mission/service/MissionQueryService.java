@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +36,7 @@ public class MissionQueryService {
 
     private final MissionRepository missionRepository;
     private final MissionCursorCodec missionCursorCodec;
+    private final MissionAttemptStatusResolver missionAttemptStatusResolver;
 
     // 미션 목록 조회 로직
     @Transactional(readOnly = true)
@@ -75,9 +77,15 @@ public class MissionQueryService {
         );
         boolean hasNext = rows.size() > size;
         List<MissionListProjection> page = hasNext ? rows.subList(0, size) : rows;
-        UserMissionStatus userMissionStatus = UserMissionStatus.AVAILABLE;
+        Map<Long, UserMissionStatus> statusByMissionId = missionAttemptStatusResolver.resolveStatuses(
+                userId, page.stream().map(MissionListProjection::getMissionId).toList()
+        );
         List<MissionListItemResponseDTO> missions = page.stream()
-                .map(row -> MissionConverter.toMissionListItem(row, userMissionStatus, hasLocation))
+                .map(row -> MissionConverter.toMissionListItem(
+                        row,
+                        statusByMissionId.getOrDefault(row.getMissionId(), UserMissionStatus.AVAILABLE),
+                        hasLocation
+                ))
                 .toList();
         String nextCursor = hasNext
                 ? nextCursor(page.get(page.size() - 1), sortMode, seed, querySignature)
@@ -109,7 +117,7 @@ public class MissionQueryService {
         return MissionConverter.toMissionDetail(
                 mission,
                 distanceMeters,
-                resolveUserMissionStatus(userId, missionId)
+                missionAttemptStatusResolver.resolveStatus(userId, missionId)
         );
     }
 
@@ -178,10 +186,6 @@ public class MissionQueryService {
                 lastMission.getMissionId(),
                 querySignature
         ));
-    }
-
-    private UserMissionStatus resolveUserMissionStatus(Long userId, Long missionId) {
-        return UserMissionStatus.AVAILABLE;
     }
 
     private boolean validateLocation(BigDecimal latitude, BigDecimal longitude) {
