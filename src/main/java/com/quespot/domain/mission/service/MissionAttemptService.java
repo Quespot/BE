@@ -39,4 +39,35 @@ public class MissionAttemptService {
 
         return missionAttemptRepository.save(MissionAttempt.start(userId, mission));
     }
+
+    @Transactional(readOnly = true)
+    public java.util.List<MissionAttempt> getInProgressList(Long userId) {
+        return missionAttemptRepository.findByUserIdAndStatus(userId, MissionAttemptStatus.IN_PROGRESS);
+    }
+
+    @Transactional(readOnly = true)
+    public MissionAttempt getAttempt(Long userId, Long attemptId) {
+        return findOwnedAttempt(userId, attemptId);
+    }
+
+    @Transactional
+    public void quit(Long userId, Long attemptId) {
+        MissionAttempt attempt = findOwnedAttempt(userId, attemptId);
+        if (attempt.getStatus() != MissionAttemptStatus.IN_PROGRESS) {
+            throw new MissionException(MissionErrorCode.ATTEMPT_NOT_IN_PROGRESS);
+        }
+        attempt.quit();
+    }
+
+    @Transactional
+    public void writeReflection(Long userId, Long attemptId, String content) {
+        MissionAttempt attempt = findOwnedAttempt(userId, attemptId);
+        attempt.writeReflection(content);
+    }
+
+    private MissionAttempt findOwnedAttempt(Long userId, Long attemptId) {
+        return missionAttemptRepository.findById(attemptId)
+                .filter(a -> a.getUserId().equals(userId))
+                .orElseThrow(() -> new MissionException(MissionErrorCode.ATTEMPT_NOT_FOUND));
+    }
 }

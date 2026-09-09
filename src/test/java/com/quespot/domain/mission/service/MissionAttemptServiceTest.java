@@ -104,4 +104,51 @@ class MissionAttemptServiceTest {
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.MISSION_NOT_FOUND);
     }
+
+    @Test
+    void quitSetsStatusToQuitWhenInProgress() {
+        Mission mission = activeMission();
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        missionAttemptService.quit(1L, 100L);
+
+        assertThat(attempt.getStatus()).isEqualTo(MissionAttemptStatus.QUIT);
+    }
+
+    @Test
+    void quitThrowsWhenNotInProgress() {
+        Mission mission = activeMission();
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        attempt.quit();
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        assertThatThrownBy(() -> missionAttemptService.quit(1L, 100L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.ATTEMPT_NOT_IN_PROGRESS);
+    }
+
+    @Test
+    void getAttemptThrowsWhenNotOwnedByUser() {
+        Mission mission = activeMission();
+        MissionAttempt attempt = MissionAttempt.start(2L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        assertThatThrownBy(() -> missionAttemptService.getAttempt(1L, 100L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.ATTEMPT_NOT_FOUND);
+    }
+
+    @Test
+    void writeReflectionSetsReflectionOnOwnedAttempt() {
+        Mission mission = activeMission();
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        missionAttemptService.writeReflection(1L, 100L, "좋았어요");
+
+        assertThat(attempt.getReflection()).isEqualTo("좋았어요");
+    }
 }
