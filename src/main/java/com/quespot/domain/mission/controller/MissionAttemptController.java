@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Validated
@@ -46,9 +47,10 @@ public class MissionAttemptController {
     @Operation(summary = "미션 시작")
     public ApiResponse<MissionAttemptResponseDTO> start(
             @PathVariable @Positive Long missionId,
+            @RequestParam(required = false) Long courseAttemptId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        MissionAttempt attempt = missionAttemptService.start(principal.userId(), missionId);
+        MissionAttempt attempt = missionAttemptService.start(principal.userId(), missionId, courseAttemptId);
         return ApiResponse.of(MissionSuccessCode.MISSION_ATTEMPT_STARTED, MissionConverter.toAttemptResponse(attempt));
     }
 

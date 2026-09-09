@@ -162,6 +162,57 @@ public class MissionConverter {
         );
     }
 
+    public static com.quespot.domain.mission.dto.res.MissionCourseListItemResponseDTO toCourseListItem(
+            com.quespot.domain.mission.entity.MissionCourse course
+    ) {
+        return new com.quespot.domain.mission.dto.res.MissionCourseListItemResponseDTO(
+                course.getId(), course.getName(), course.getCoverImageUrl(), course.getRegionCode(),
+                course.getTotalRewardPoint(), course.getBonusPoint(), course.getMissionCount(),
+                course.getEstimatedMinutes()
+        );
+    }
+
+    public static com.quespot.domain.mission.dto.res.MissionCourseDetailResponseDTO toCourseDetail(
+            com.quespot.domain.mission.dto.MissionCourseDetailResultDTO result
+    ) {
+        com.quespot.domain.mission.entity.MissionCourse course = result.course();
+        return new com.quespot.domain.mission.dto.res.MissionCourseDetailResponseDTO(
+                course.getId(), course.getName(), course.getDescription(), course.getCoverImageUrl(),
+                course.getRegionCode(), course.getTotalRewardPoint(), course.getBonusPoint(),
+                course.getEstimatedMinutes(),
+                result.missions().stream().map(MissionConverter::toCourseMissionItem).toList(),
+                result.myStatus()
+        );
+    }
+
+    private static com.quespot.domain.mission.dto.res.CourseMissionItemResponseDTO toCourseMissionItem(
+            com.quespot.domain.mission.dto.CourseMissionItemResultDTO item
+    ) {
+        var courseMission = item.courseMission();
+        var mission = courseMission.getMission();
+        return new com.quespot.domain.mission.dto.res.CourseMissionItemResponseDTO(
+                mission.getId(), courseMission.getSeq(), mission.getTitle(), mission.getSnapshotImageUrl(),
+                mission.getRewardPoint(), item.completed()
+        );
+    }
+
+    public static com.quespot.domain.mission.dto.res.CourseAttemptResponseDTO toCourseAttemptResponse(
+            com.quespot.domain.mission.entity.CourseAttempt attempt
+    ) {
+        return new com.quespot.domain.mission.dto.res.CourseAttemptResponseDTO(
+                attempt.getId(), attempt.getCourse().getId(), attempt.getCourse().getName(),
+                attempt.getStatus(), attempt.getStartedAt(), attempt.getCompletedAt(), attempt.getEarnedBonusPoint()
+        );
+    }
+
+    public static com.quespot.domain.mission.dto.res.CourseAttemptListResponseDTO toCourseAttemptListResponse(
+            java.util.List<com.quespot.domain.mission.entity.CourseAttempt> attempts
+    ) {
+        return new com.quespot.domain.mission.dto.res.CourseAttemptListResponseDTO(
+                attempts.stream().map(MissionConverter::toCourseAttemptResponse).toList()
+        );
+    }
+
     private static String preferredImage(Spot spot) {
         return hasText(spot.getImageUrl()) ? spot.getImageUrl() : spot.getThumbnailUrl();
     }
