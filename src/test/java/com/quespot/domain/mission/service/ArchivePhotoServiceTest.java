@@ -43,6 +43,17 @@ class ArchivePhotoServiceTest {
     }
 
     @Test
+    void registerPhotoReturnsExistingRowWhenSameObjectKeyIsResubmitted() {
+        ArchivePhoto existing = ArchivePhoto.upload(1L, VALID_OBJECT_KEY, "먼저 등록됨");
+        when(archivePhotoRepository.findByUserIdAndImageKey(1L, VALID_OBJECT_KEY)).thenReturn(java.util.Optional.of(existing));
+
+        ArchivePhoto photo = archivePhotoService.registerPhoto(1L, VALID_OBJECT_KEY, "재시도로 다시 옴");
+
+        assertThat(photo).isSameAs(existing);
+        org.mockito.Mockito.verify(archivePhotoRepository, org.mockito.Mockito.never()).save(any(ArchivePhoto.class));
+    }
+
+    @Test
     void registersPhotoWithNullCaption() {
         ArchivePhoto photo = archivePhotoService.registerPhoto(1L, VALID_OBJECT_KEY, null);
 

@@ -23,7 +23,12 @@ public class ArchivePhotoService {
         // MissionPhotoService.registerPhoto와 동일 패턴 — S3 API 호출 없이
         // key 패턴만 검증).
         s3ObjectKeyValidator.validate(objectKey, userId, UploadPurpose.ARCHIVE);
-        return archivePhotoRepository.save(ArchivePhoto.upload(userId, objectKey, caption));
+
+        // 같은 objectKey로 재제출(클라이언트 재시도 등)되면 새 행을 또 만들지
+        // 않고 기존 행을 그대로 돌려준다 — 좋아요/저장과 같은 멱등 정책(CLAUDE.md).
+        // (user_id, image_key) UNIQUE 제약이 동시 요청 경합까지 DB 레벨에서 막는다.
+        return archivePhotoRepository.findByUserIdAndImageKey(userId, objectKey)
+                .orElseGet(() -> archivePhotoRepository.save(ArchivePhoto.upload(userId, objectKey, caption)));
     }
 
     // 저장된 objectKey를 매번 새로 서명한 presigned GET URL로 바꿔서 돌려준다

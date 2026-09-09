@@ -8,8 +8,11 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ArchivePhotoRepository extends JpaRepository<ArchivePhoto, Long> {
+
+    Optional<ArchivePhoto> findByUserIdAndImageKey(Long userId, String imageKey);
 
     // mission_photos(미션 완료 사진) + archive_photos(자유 업로드 사진)를 하나의
     // 최신순 피드로 합친다(#45 확장). 두 테이블의 id가 서로 겹칠 수 있어 정렬·
