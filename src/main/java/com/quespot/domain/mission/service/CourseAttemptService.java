@@ -5,6 +5,7 @@ import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
+import com.quespot.domain.mission.enums.MissionCourseStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.CourseAttemptRepository;
@@ -31,7 +32,7 @@ public class CourseAttemptService {
 
     @Transactional
     public CourseAttempt start(Long userId, Long courseId) {
-        MissionCourse course = missionCourseRepository.findById(courseId)
+        MissionCourse course = missionCourseRepository.findByIdAndStatus(courseId, MissionCourseStatus.ACTIVE)
                 .orElseThrow(() -> new MissionException(MissionErrorCode.COURSE_NOT_FOUND));
 
         return courseAttemptRepository
@@ -83,6 +84,9 @@ public class CourseAttemptService {
         }
 
         List<Long> missionIds = courseMissionRepository.findMissionIdsByCourseId(courseAttempt.getCourse().getId());
+        if (missionIds.isEmpty()) {
+            return;
+        }
         List<MissionAttemptStatusProjection> completed = missionAttemptRepository
                 .findByUserIdAndMissionIdInAndStatusIn(
                         courseAttempt.getUserId(), missionIds, List.of(MissionAttemptStatus.COMPLETED)

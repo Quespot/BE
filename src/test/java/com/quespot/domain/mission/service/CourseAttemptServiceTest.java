@@ -67,7 +67,7 @@ class CourseAttemptServiceTest {
     @Test
     void startCreatesNewCourseAttemptWhenNoneExists() {
         MissionCourse course = activeCourse();
-        when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
+        when(missionCourseRepository.findByIdAndStatus(100L, MissionCourseStatus.ACTIVE)).thenReturn(Optional.of(course));
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
                 .thenReturn(Optional.empty());
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.COMPLETED))
@@ -83,7 +83,7 @@ class CourseAttemptServiceTest {
     void startReturnsExistingAttemptWhenAlreadyInProgress() {
         MissionCourse course = activeCourse();
         CourseAttempt existing = CourseAttempt.start(1L, course);
-        when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
+        when(missionCourseRepository.findByIdAndStatus(100L, MissionCourseStatus.ACTIVE)).thenReturn(Optional.of(course));
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
                 .thenReturn(Optional.of(existing));
 
@@ -96,7 +96,7 @@ class CourseAttemptServiceTest {
     @Test
     void startThrowsWhenAlreadyCompleted() {
         MissionCourse course = activeCourse();
-        when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
+        when(missionCourseRepository.findByIdAndStatus(100L, MissionCourseStatus.ACTIVE)).thenReturn(Optional.of(course));
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
                 .thenReturn(Optional.empty());
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.COMPLETED))
@@ -106,6 +106,16 @@ class CourseAttemptServiceTest {
                 .isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.COURSE_ALREADY_COMPLETED);
+    }
+
+    @Test
+    void startThrowsWhenCourseNotActive() {
+        when(missionCourseRepository.findByIdAndStatus(100L, MissionCourseStatus.ACTIVE)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> courseAttemptService.start(1L, 100L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.COURSE_NOT_FOUND);
     }
 
     @Test
@@ -199,6 +209,22 @@ class CourseAttemptServiceTest {
         courseAttemptService.tryCompleteViaMissionCompletion(55L);
 
         verify(courseMissionRepository, never()).findMissionIdsByCourseId(any());
+        verify(pointService, never()).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void tryCompleteIsNoOpWhenCourseHasNoMissionsRegistered() {
+        MissionCourse course = activeCourse();
+        CourseAttempt attempt = CourseAttempt.start(1L, course);
+        setId(attempt, 55L);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(attempt));
+        when(courseMissionRepository.findMissionIdsByCourseId(100L)).thenReturn(List.of());
+
+        courseAttemptService.tryCompleteViaMissionCompletion(55L);
+
+        assertThat(attempt.getStatus()).isEqualTo(CourseAttemptStatus.IN_PROGRESS);
+        verify(missionAttemptRepository, never())
+                .findByUserIdAndMissionIdInAndStatusIn(any(), any(), any());
         verify(pointService, never()).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
     }
 

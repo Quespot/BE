@@ -3,6 +3,7 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
+import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.enums.MissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
@@ -35,17 +36,40 @@ public class MissionAttemptService {
                 .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
 
         if (courseAttemptId != null) {
-            validateMissionBelongsToCourse(courseAttemptId, missionId);
+            validateMissionBelongsToCourse(userId, courseAttemptId, missionId);
         }
 
         return missionAttemptRepository
                 .findByUserIdAndMissionIdAndStatus(userId, missionId, MissionAttemptStatus.IN_PROGRESS)
+                .map(attempt -> attachToCourseIfNeeded(attempt, courseAttemptId))
                 .orElseGet(() -> createNewAttempt(userId, missionId, mission, courseAttemptId));
     }
 
-    private void validateMissionBelongsToCourse(Long courseAttemptId, Long missionId) {
+    // 이미 진행 중인 attempt를 코스 컨텍스트 없이 시작해 뒀다가, 나중에 같은 미션을
+    // 코스 화면에서 다시 시작하는 경우 courseAttemptId가 붙지 않으면 완주 판정
+    // 트리거(MissionArrivalService.arrive()의 courseAttemptId != null 체크)가
+    // 영영 걸리지 않는다. 붙어있지 않을 때만 채운다 — 이미 다른 코스에 연결돼
+    // 있으면 그 연결을 임의로 덮어쓰지 않고 에러로 알린다.
+    private MissionAttempt attachToCourseIfNeeded(MissionAttempt attempt, Long courseAttemptId) {
+        if (courseAttemptId == null) {
+            return attempt;
+        }
+        Long existing = attempt.getCourseAttemptId();
+        if (existing == null) {
+            attempt.attachToCourse(courseAttemptId);
+        } else if (!existing.equals(courseAttemptId)) {
+            throw new MissionException(MissionErrorCode.MISSION_NOT_IN_COURSE);
+        }
+        return attempt;
+    }
+
+    private void validateMissionBelongsToCourse(Long userId, Long courseAttemptId, Long missionId) {
         CourseAttempt courseAttempt = courseAttemptRepository.findById(courseAttemptId)
+                .filter(ca -> ca.getUserId().equals(userId))
                 .orElseThrow(() -> new MissionException(MissionErrorCode.COURSE_ATTEMPT_NOT_FOUND));
+        if (courseAttempt.getStatus() != CourseAttemptStatus.IN_PROGRESS) {
+            throw new MissionException(MissionErrorCode.COURSE_ATTEMPT_NOT_IN_PROGRESS);
+        }
         boolean belongsToCourse = courseMissionRepository
                 .existsByCourseIdAndMissionId(courseAttempt.getCourse().getId(), missionId);
         if (!belongsToCourse) {

@@ -132,4 +132,8 @@ public class MissionAttempt extends BaseEntity {
     public void clearCourseAttempt() {
         this.courseAttemptId = null;
     }
+
+    public void attachToCourse(Long courseAttemptId) {
+        this.courseAttemptId = courseAttemptId;
+    }
 }

@@ -5,6 +5,7 @@ import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCandidate;
 import com.quespot.domain.mission.entity.MissionCourse;
+import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.enums.MissionStatus;
 import com.quespot.domain.mission.enums.MissionTemplate;
@@ -105,6 +106,14 @@ class MissionAttemptServiceTest {
                 .isEqualTo(MissionErrorCode.MISSION_ALREADY_COMPLETED);
     }
 
+    private CourseAttempt courseAttemptOwnedBy(Long userId, MissionCourse course) {
+        CourseAttempt courseAttempt = mock(CourseAttempt.class);
+        when(courseAttempt.getUserId()).thenReturn(userId);
+        when(courseAttempt.getStatus()).thenReturn(CourseAttemptStatus.IN_PROGRESS);
+        when(courseAttempt.getCourse()).thenReturn(course);
+        return courseAttempt;
+    }
+
     @Test
     void startWithCourseAttemptIdSucceedsWhenMissionBelongsToCourse() {
         Mission mission = activeMission();
@@ -115,8 +124,7 @@ class MissionAttemptServiceTest {
                 .thenReturn(Optional.empty());
         MissionCourse course = mock(MissionCourse.class);
         when(course.getId()).thenReturn(100L);
-        CourseAttempt courseAttempt = mock(CourseAttempt.class);
-        when(courseAttempt.getCourse()).thenReturn(course);
+        CourseAttempt courseAttempt = courseAttemptOwnedBy(1L, course);
         when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
         when(courseMissionRepository.existsByCourseIdAndMissionId(100L, 10L)).thenReturn(true);
         when(missionAttemptRepository.save(any(MissionAttempt.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -132,10 +140,80 @@ class MissionAttemptServiceTest {
         when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
         MissionCourse course = mock(MissionCourse.class);
         when(course.getId()).thenReturn(100L);
-        CourseAttempt courseAttempt = mock(CourseAttempt.class);
-        when(courseAttempt.getCourse()).thenReturn(course);
+        CourseAttempt courseAttempt = courseAttemptOwnedBy(1L, course);
         when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
         when(courseMissionRepository.existsByCourseIdAndMissionId(100L, 10L)).thenReturn(false);
+
+        assertThatThrownBy(() -> missionAttemptService.start(1L, 10L, 55L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.MISSION_NOT_IN_COURSE);
+    }
+
+    @Test
+    void startWithCourseAttemptIdThrowsWhenCourseAttemptNotOwnedByUser() {
+        Mission mission = activeMission();
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        CourseAttempt courseAttempt = courseAttemptOwnedBy(2L, course);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
+
+        assertThatThrownBy(() -> missionAttemptService.start(1L, 10L, 55L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.COURSE_ATTEMPT_NOT_FOUND);
+    }
+
+    @Test
+    void startWithCourseAttemptIdThrowsWhenCourseAttemptNotInProgress() {
+        Mission mission = activeMission();
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        CourseAttempt courseAttempt = mock(CourseAttempt.class);
+        when(courseAttempt.getUserId()).thenReturn(1L);
+        when(courseAttempt.getStatus()).thenReturn(CourseAttemptStatus.COMPLETED);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
+
+        assertThatThrownBy(() -> missionAttemptService.start(1L, 10L, 55L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.COURSE_ATTEMPT_NOT_IN_PROGRESS);
+    }
+
+    @Test
+    void startAttachesCourseAttemptIdToExistingStandaloneInProgressAttempt() {
+        Mission mission = activeMission();
+        MissionAttempt existing = MissionAttempt.start(1L, mission);
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(1L, 10L, MissionAttemptStatus.IN_PROGRESS))
+                .thenReturn(Optional.of(existing));
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        CourseAttempt courseAttempt = courseAttemptOwnedBy(1L, course);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
+        when(courseMissionRepository.existsByCourseIdAndMissionId(100L, 10L)).thenReturn(true);
+
+        MissionAttempt attempt = missionAttemptService.start(1L, 10L, 55L);
+
+        assertThat(attempt).isSameAs(existing);
+        assertThat(attempt.getCourseAttemptId()).isEqualTo(55L);
+        verify(missionAttemptRepository, never()).save(any(MissionAttempt.class));
+    }
+
+    @Test
+    void startThrowsWhenExistingAttemptAlreadyLinkedToDifferentCourse() {
+        Mission mission = activeMission();
+        MissionAttempt existing = MissionAttempt.start(1L, mission, 99L);
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(1L, 10L, MissionAttemptStatus.IN_PROGRESS))
+                .thenReturn(Optional.of(existing));
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        CourseAttempt courseAttempt = courseAttemptOwnedBy(1L, course);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(courseAttempt));
+        when(courseMissionRepository.existsByCourseIdAndMissionId(100L, 10L)).thenReturn(true);
 
         assertThatThrownBy(() -> missionAttemptService.start(1L, 10L, 55L))
                 .isInstanceOf(MissionException.class)

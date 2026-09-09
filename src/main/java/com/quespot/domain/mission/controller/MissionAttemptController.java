@@ -47,7 +47,7 @@ public class MissionAttemptController {
     @Operation(summary = "미션 시작")
     public ApiResponse<MissionAttemptResponseDTO> start(
             @PathVariable @Positive Long missionId,
-            @RequestParam(required = false) Long courseAttemptId,
+            @RequestParam(required = false) @Positive Long courseAttemptId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
         MissionAttempt attempt = missionAttemptService.start(principal.userId(), missionId, courseAttemptId);
