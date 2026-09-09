@@ -8,7 +8,6 @@ import com.quespot.domain.mission.entity.MissionCandidate;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
-import com.quespot.domain.mission.enums.MissionCourseStatus;
 import com.quespot.domain.mission.enums.MissionTemplate;
 import com.quespot.domain.mission.repository.CourseAttemptRepository;
 import com.quespot.domain.mission.repository.CourseMissionRepository;
@@ -133,51 +132,15 @@ class MissionCourseCompletionIntegrationTest {
     }
 
     private MissionCourse createCourse(Mission... missions) {
-        MissionCourse course = missionCourseRepository.save(newCourseEntity());
+        MissionCourse course = missionCourseRepository.save(MissionCourse.generate(
+                missions[0], 9999L, missions.length, "정동 도보 코스", null, null, null,
+                200, 50, 60
+        ));
         int seq = 1;
         for (Mission mission : missions) {
-            courseMissionRepository.save(newCourseMissionEntity(course, mission, seq++));
+            courseMissionRepository.save(CourseMission.of(course, mission, seq++));
         }
         return course;
-    }
-
-    // MissionCourse/CourseMission은 정적 팩토리가 없다(SQL 등록 전제) — 통합
-    // 테스트에서만 리플렉션으로 필드를 채워 저장한다.
-    private MissionCourse newCourseEntity() {
-        try {
-            var constructor = MissionCourse.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            MissionCourse course = constructor.newInstance();
-            setField(course, "name", "정동 도보 코스");
-            setField(course, "totalRewardPoint", 200);
-            setField(course, "bonusPoint", 50);
-            setField(course, "missionCount", 2);
-            setField(course, "estimatedMinutes", 60);
-            setField(course, "status", MissionCourseStatus.ACTIVE);
-            return course;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private CourseMission newCourseMissionEntity(MissionCourse course, Mission mission, int seq) {
-        try {
-            var constructor = CourseMission.class.getDeclaredConstructor();
-            constructor.setAccessible(true);
-            CourseMission courseMission = constructor.newInstance();
-            setField(courseMission, "course", course);
-            setField(courseMission, "mission", mission);
-            setField(courseMission, "seq", seq);
-            return courseMission;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void setField(Object target, String name, Object value) throws Exception {
-        var field = target.getClass().getDeclaredField(name);
-        field.setAccessible(true);
-        field.set(target, value);
     }
 
     @Test
