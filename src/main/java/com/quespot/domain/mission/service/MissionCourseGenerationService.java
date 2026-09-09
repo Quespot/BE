@@ -9,7 +9,6 @@ import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.MissionStatus;
-import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.CourseMissionRepository;
@@ -48,6 +47,7 @@ public class MissionCourseGenerationService {
     private final CourseMissionRepository courseMissionRepository;
     private final MissionAttemptRepository missionAttemptRepository;
     private final CourseAttemptService courseAttemptService;
+    private final CourseLockPolicy courseLockPolicy;
 
     @Transactional
     public MissionCourseDetailResultDTO generateAndStart(Long userId, Long anchorMissionId) {
@@ -55,19 +55,24 @@ public class MissionCourseGenerationService {
                 .filter(m -> m.getStatus() == MissionStatus.ACTIVE)
                 .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
 
-        boolean anchorAttempted = missionAttemptRepository
-                .findByUserIdAndMissionIdAndStatus(userId, anchorMissionId, MissionAttemptStatus.IN_PROGRESS)
-                .isPresent()
-                || missionAttemptRepository
-                .findByUserIdAndMissionIdAndStatus(userId, anchorMissionId, MissionAttemptStatus.COMPLETED)
-                .isPresent();
+        boolean anchorAttempted = !missionAttemptRepository
+                .findByUserIdAndMissionIdInAndStatusIn(
+                        userId, List.of(anchorMissionId),
+                        List.of(MissionAttemptStatus.IN_PROGRESS, MissionAttemptStatus.COMPLETED)
+                )
+                .isEmpty();
         if (anchorAttempted) {
             throw new MissionException(MissionErrorCode.ANCHOR_NOT_AVAILABLE);
         }
 
+        Set<String> rejectedPairs = new HashSet<>();
+        for (ExistingCoursePairProjection p : courseMissionRepository.findExistingPairs(userId, anchor.getId())) {
+            rejectedPairs.add(p.getMission2Id() + ":" + p.getMission3Id());
+        }
+
         CandidatePair pair = null;
         for (int radius : List.of(RADIUS_STEP1_METERS, RADIUS_STEP2_METERS)) {
-            pair = tryFindPair(userId, anchor, radius);
+            pair = tryFindPair(userId, anchor, radius, rejectedPairs);
             if (pair != null) {
                 break;
             }
@@ -105,20 +110,14 @@ public class MissionCourseGenerationService {
 
         courseAttemptService.start(userId, course.getId());
 
-        List<CourseMissionItemResultDTO> missionItems = courseMissions.stream()
-                .map(cm -> new CourseMissionItemResultDTO(
-                        cm, cm.getSeq() == 1 ? UserMissionStatus.AVAILABLE : UserMissionStatus.LOCKED
-                ))
-                .toList();
+        // 방금 생성한 코스라 완료/진행중 미션이 있을 수 없다 — CourseLockPolicy를
+        // 재사용해 잠금 규칙이 세 사용처에서 계속 하나로 유지되게 한다.
+        List<CourseMissionItemResultDTO> missionItems =
+                courseLockPolicy.resolveCourseMissionStatuses(courseMissions, Set.of(), Set.of());
         return new MissionCourseDetailResultDTO(course, missionItems, CourseAttemptStatus.IN_PROGRESS);
     }
 
-    private CandidatePair tryFindPair(Long userId, Mission anchor, int radiusMeters) {
-        Set<String> rejectedPairs = new HashSet<>();
-        for (ExistingCoursePairProjection p : courseMissionRepository.findExistingPairs(userId, anchor.getId())) {
-            rejectedPairs.add(p.getMission2Id() + ":" + p.getMission3Id());
-        }
-
+    private CandidatePair tryFindPair(Long userId, Mission anchor, int radiusMeters, Set<String> rejectedPairs) {
         List<CourseCandidateMissionProjection> m2Candidates = candidateRepository.findNearestCandidates(
                 anchor.getSnapshotLatitude(), anchor.getSnapshotLongitude(), radiusMeters,
                 SECOND_CATEGORIES, List.of(anchor.getId()), userId, CANDIDATE_FETCH_LIMIT

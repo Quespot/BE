@@ -55,6 +55,7 @@ class MissionCourseQueryServiceTest {
     void getCourseDetailMarksOnlyCompletedMissionsAndCallsBulkQueryOnce() {
         MissionCourse course = mock(MissionCourse.class);
         when(course.getId()).thenReturn(100L);
+        when(course.getCreatedByUserId()).thenReturn(1L);
         when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
 
         CourseMission cm1 = mock(CourseMission.class);
@@ -93,6 +94,7 @@ class MissionCourseQueryServiceTest {
     void getCourseDetailMarksSeq2LockedWhenSeq1NotCompleted() {
         MissionCourse course = mock(MissionCourse.class);
         when(course.getId()).thenReturn(100L);
+        when(course.getCreatedByUserId()).thenReturn(1L);
         when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
 
         CourseMission cm1 = mock(CourseMission.class);
@@ -123,6 +125,7 @@ class MissionCourseQueryServiceTest {
     void getCourseDetailReturnsInProgressStatusWhenUserHasInProgressAttempt() {
         MissionCourse course = mock(MissionCourse.class);
         when(course.getId()).thenReturn(100L);
+        when(course.getCreatedByUserId()).thenReturn(1L);
         when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
         when(courseMissionRepository.findByCourseIdOrderBySeq(100L)).thenReturn(List.of());
         when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any()))
@@ -136,6 +139,18 @@ class MissionCourseQueryServiceTest {
         MissionCourseDetailResultDTO result = service.getCourseDetail(1L, 100L);
 
         assertThat(result.myStatus()).isEqualTo(CourseAttemptStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void getCourseDetailThrowsCourseNotFoundWhenNotOwnedByRequester() {
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getCreatedByUserId()).thenReturn(2L);
+        when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.getCourseDetail(1L, 100L))
+                .isInstanceOf(com.quespot.domain.mission.exception.MissionException.class)
+                .extracting(e -> ((com.quespot.domain.mission.exception.MissionException) e).getErrorCode())
+                .isEqualTo(com.quespot.domain.mission.exception.code.MissionErrorCode.COURSE_NOT_FOUND);
     }
 
     @Test

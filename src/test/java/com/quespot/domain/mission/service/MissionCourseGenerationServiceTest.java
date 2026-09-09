@@ -42,6 +42,7 @@ class MissionCourseGenerationServiceTest {
     private CourseMissionRepository courseMissionRepository;
     private MissionAttemptRepository missionAttemptRepository;
     private CourseAttemptService courseAttemptService;
+    private CourseLockPolicy courseLockPolicy;
     private MissionCourseGenerationService service;
 
     @BeforeEach
@@ -51,9 +52,12 @@ class MissionCourseGenerationServiceTest {
         courseMissionRepository = mock(CourseMissionRepository.class);
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         courseAttemptService = mock(CourseAttemptService.class);
+        // 실제 인스턴스 — resolveCourseMissionStatuses(courseMissions, Set.of(), Set.of())는
+        // 순수 계산이라 목킹 없이 그대로 검증 가능(방금 생성한 코스라 완료/진행중 없음).
+        courseLockPolicy = new CourseLockPolicy(courseMissionRepository, missionAttemptRepository);
         service = new MissionCourseGenerationService(
                 candidateRepository, missionCourseRepository, courseMissionRepository,
-                missionAttemptRepository, courseAttemptService
+                missionAttemptRepository, courseAttemptService, courseLockPolicy
         );
     }
 
@@ -101,8 +105,10 @@ class MissionCourseGenerationServiceTest {
     void generateAndStartThrowsAnchorNotAvailableWhenAlreadyInProgress() {
         Mission anchor = mission(1L, "경복궁", MissionTemplate.CULTURE_LOCATION, "37.5665", "126.9780");
         when(candidateRepository.findById(1L)).thenReturn(Optional.of(anchor));
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.IN_PROGRESS))
-                .thenReturn(Optional.of(mock(com.quespot.domain.mission.entity.MissionAttempt.class)));
+        var attemptedProjection = mock(com.quespot.domain.mission.repository.projection.MissionAttemptStatusProjection.class);
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(9L, List.of(1L), List.of(
+                MissionAttemptStatus.IN_PROGRESS, MissionAttemptStatus.COMPLETED
+        ))).thenReturn(List.of(attemptedProjection));
 
         assertThatThrownBy(() -> service.generateAndStart(9L, 1L))
                 .isInstanceOf(MissionException.class)
@@ -128,10 +134,9 @@ class MissionCourseGenerationServiceTest {
         when(candidateRepository.findById(1L)).thenReturn(Optional.of(anchor));
         when(candidateRepository.findById(2L)).thenReturn(Optional.of(m2));
         when(candidateRepository.findById(3L)).thenReturn(Optional.of(m3));
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.IN_PROGRESS))
-                .thenReturn(Optional.empty());
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.COMPLETED))
-                .thenReturn(Optional.empty());
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(9L, List.of(1L), List.of(
+                MissionAttemptStatus.IN_PROGRESS, MissionAttemptStatus.COMPLETED
+        ))).thenReturn(List.of());
         when(courseMissionRepository.findExistingPairs(9L, 1L)).thenReturn(List.of());
         CourseCandidateMissionProjection candidateM2 = candidate(2L, "37.5701", "126.9780");
         CourseCandidateMissionProjection candidateM3 = candidate(3L, "37.5715", "126.9850");
@@ -167,10 +172,9 @@ class MissionCourseGenerationServiceTest {
     void generateAndStartWidensTo1kmWhenNoCandidateWithin500m() {
         Mission anchor = mission(1L, "경복궁", MissionTemplate.CULTURE_LOCATION, "37.5665", "126.9780");
         when(candidateRepository.findById(1L)).thenReturn(Optional.of(anchor));
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.IN_PROGRESS))
-                .thenReturn(Optional.empty());
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.COMPLETED))
-                .thenReturn(Optional.empty());
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(9L, List.of(1L), List.of(
+                MissionAttemptStatus.IN_PROGRESS, MissionAttemptStatus.COMPLETED
+        ))).thenReturn(List.of());
         when(courseMissionRepository.findExistingPairs(9L, 1L)).thenReturn(List.of());
         when(candidateRepository.findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(500),
@@ -205,10 +209,9 @@ class MissionCourseGenerationServiceTest {
         when(candidateRepository.findById(1L)).thenReturn(Optional.of(anchor));
         when(candidateRepository.findById(4L)).thenReturn(Optional.of(m2Second));
         when(candidateRepository.findById(3L)).thenReturn(Optional.of(m3));
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.IN_PROGRESS))
-                .thenReturn(Optional.empty());
-        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(9L, 1L, MissionAttemptStatus.COMPLETED))
-                .thenReturn(Optional.empty());
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(9L, List.of(1L), List.of(
+                MissionAttemptStatus.IN_PROGRESS, MissionAttemptStatus.COMPLETED
+        ))).thenReturn(List.of());
         ExistingCoursePairProjection rejectedPair = mock(ExistingCoursePairProjection.class);
         when(rejectedPair.getMission2Id()).thenReturn(2L);
         when(rejectedPair.getMission3Id()).thenReturn(3L);

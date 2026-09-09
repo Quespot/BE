@@ -51,7 +51,10 @@ public class MissionCourseQueryService {
 
     @Transactional(readOnly = true)
     public MissionCourseDetailResultDTO getCourseDetail(Long userId, Long courseId) {
+        // 코스는 비공개(isPublic=false)라 소유자만 조회 가능하다. 존재 여부를
+        // 노출하지 않기 위해 403이 아니라 404(COURSE_NOT_FOUND)로 통일한다.
         MissionCourse course = missionCourseRepository.findById(courseId)
+                .filter(c -> c.getCreatedByUserId().equals(userId))
                 .orElseThrow(() -> new MissionException(MissionErrorCode.COURSE_NOT_FOUND));
 
         List<CourseMission> courseMissions = courseMissionRepository.findByCourseIdOrderBySeq(courseId);
