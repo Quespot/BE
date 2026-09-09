@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -19,12 +20,15 @@ import static org.mockito.Mockito.when;
 class MissionAttemptStatusResolverTest {
 
     private MissionAttemptRepository missionAttemptRepository;
+    private CourseLockPolicy courseLockPolicy;
     private MissionAttemptStatusResolver resolver;
 
     @BeforeEach
     void setUp() {
         missionAttemptRepository = mock(MissionAttemptRepository.class);
-        resolver = new MissionAttemptStatusResolver(missionAttemptRepository);
+        courseLockPolicy = mock(CourseLockPolicy.class);
+        resolver = new MissionAttemptStatusResolver(missionAttemptRepository, courseLockPolicy);
+        when(courseLockPolicy.resolveLockedMissionIds(anyLong(), any())).thenReturn(Set.of());
     }
 
     private MissionAttemptStatusProjection projectionOf(Long missionId, MissionAttemptStatus status) {
@@ -59,5 +63,28 @@ class MissionAttemptStatusResolverTest {
         UserMissionStatus status = resolver.resolveStatus(1L, 5L);
 
         assertThat(status).isEqualTo(UserMissionStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void resolveStatusesMarksLockedMissionsThatHaveNoAttemptYet() {
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any()))
+                .thenReturn(List.of());
+        when(courseLockPolicy.resolveLockedMissionIds(1L, List.of(30L))).thenReturn(Set.of(30L));
+
+        Map<Long, UserMissionStatus> statuses = resolver.resolveStatuses(1L, List.of(30L));
+
+        assertThat(statuses.get(30L)).isEqualTo(UserMissionStatus.LOCKED);
+    }
+
+    @Test
+    void resolveStatusesDoesNotOverrideCompletedOrInProgressWithLocked() {
+        MissionAttemptStatusProjection completed = projectionOf(1L, MissionAttemptStatus.COMPLETED);
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any()))
+                .thenReturn(List.of(completed));
+        when(courseLockPolicy.resolveLockedMissionIds(anyLong(), any())).thenReturn(Set.of(1L));
+
+        Map<Long, UserMissionStatus> statuses = resolver.resolveStatuses(1L, List.of(1L));
+
+        assertThat(statuses.get(1L)).isEqualTo(UserMissionStatus.COMPLETED);
     }
 }
