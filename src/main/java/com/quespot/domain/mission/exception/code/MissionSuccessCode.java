@@ -76,7 +76,27 @@ public enum MissionSuccessCode implements BaseCode {
 
     MISSION_ATTEMPT_QUIT(HttpStatus.OK,
             "MISSION_200_017",
-            "미션 시도를 종료했습니다.");
+            "미션 시도를 종료했습니다."),
+
+    COURSES_FOUND(HttpStatus.OK,
+            "MISSION_200_018",
+            "미션 코스 목록을 조회했습니다."),
+
+    COURSE_FOUND(HttpStatus.OK,
+            "MISSION_200_019",
+            "미션 코스를 조회했습니다."),
+
+    COURSE_ATTEMPT_STARTED(HttpStatus.OK,
+            "MISSION_200_020",
+            "코스를 시작했습니다."),
+
+    COURSE_ATTEMPTS_FOUND(HttpStatus.OK,
+            "MISSION_200_021",
+            "진행 중인 코스 목록을 조회했습니다."),
+
+    COURSE_ATTEMPT_QUIT(HttpStatus.OK,
+            "MISSION_200_022",
+            "코스를 포기했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
