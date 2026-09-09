@@ -96,7 +96,15 @@ public enum MissionSuccessCode implements BaseCode {
 
     COURSE_ATTEMPT_QUIT(HttpStatus.OK,
             "MISSION_200_022",
-            "코스를 포기했습니다.");
+            "코스를 포기했습니다."),
+
+    COURSE_GENERATED(HttpStatus.CREATED,
+            "MISSION_201_002",
+            "미션 코스를 생성했습니다."),
+
+    UNLOCK_CONDITION_FOUND(HttpStatus.OK,
+            "MISSION_200_023",
+            "잠금 조건을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
