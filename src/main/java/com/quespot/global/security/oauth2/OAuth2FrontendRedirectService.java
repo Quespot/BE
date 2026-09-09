@@ -55,8 +55,9 @@ public class OAuth2FrontendRedirectService {
         try {
             String normalized = value.trim();
             URI uri = URI.create(normalized);
-            boolean supportedScheme = "http".equalsIgnoreCase(uri.getScheme())
-                    || "https".equalsIgnoreCase(uri.getScheme());
+            boolean supportedScheme = "https".equalsIgnoreCase(uri.getScheme())
+                    || ("http".equalsIgnoreCase(uri.getScheme())
+                        && isLoopbackHost(uri.getHost()));
             if (!uri.isAbsolute()
                     || !supportedScheme
                     || uri.getHost() == null
@@ -69,5 +70,19 @@ public class OAuth2FrontendRedirectService {
         } catch (IllegalArgumentException | NullPointerException exception) {
             throw new IllegalStateException("OAuth2 frontend redirect URI configuration is invalid.");
         }
+    }
+
+    private boolean isLoopbackHost(String host) {
+        if (host == null) {
+            return false;
+        }
+
+        String normalized = host.startsWith("[") && host.endsWith("]")
+                ? host.substring(1, host.length() - 1)
+                : host;
+        return "localhost".equalsIgnoreCase(normalized)
+                || "127.0.0.1".equals(normalized)
+                || "::1".equals(normalized)
+                || "0:0:0:0:0:0:0:1".equals(normalized);
     }
 }
