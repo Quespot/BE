@@ -2,6 +2,7 @@ package com.quespot.domain.user.service;
 
 import com.quespot.domain.user.entity.OAuth2UnlinkTask;
 import com.quespot.domain.user.enums.OAuth2UnlinkTaskStatus;
+import com.quespot.domain.user.exception.OAuth2ProviderUnlinkException;
 import com.quespot.domain.user.repository.OAuth2UnlinkTaskRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,11 +31,24 @@ public class OAuth2UnlinkTaskProcessor {
     }
 
     private void process(OAuth2UnlinkTask task) {
+        oAuth2UnlinkTaskStateService.claim(task.getProvider(), task.getProviderUserId())
+                .ifPresent(claimed -> unlink(claimed.taskId(), claimed.command()));
+    }
+
+    private void unlink(Long taskId, OAuth2UnlinkCommand command) {
         try {
-            oAuth2ProviderUnlinkService.unlink(task.toCommand());
-            oAuth2UnlinkTaskStateService.complete(task.getId());
+            oAuth2ProviderUnlinkService.unlink(command);
+        } catch (OAuth2ProviderUnlinkException exception) {
+            oAuth2UnlinkTaskStateService.fail(
+                    taskId,
+                    exception.getMessage(),
+                    exception.isRetryable()
+            );
+            return;
         } catch (RuntimeException exception) {
-            oAuth2UnlinkTaskStateService.fail(task.getId(), exception.getMessage());
+            oAuth2UnlinkTaskStateService.fail(taskId, exception.getMessage(), true);
+            return;
         }
+        oAuth2UnlinkTaskStateService.complete(taskId);
     }
 }

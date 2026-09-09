@@ -1,6 +1,7 @@
 package com.quespot.domain.user.service;
 
 import com.quespot.domain.user.exception.AuthException;
+import com.quespot.domain.user.exception.OAuth2ProviderUnlinkException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -11,6 +12,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.Map;
 
@@ -49,10 +51,19 @@ public class OAuth2ProviderUnlinkService {
                 case NAVER -> unlinkNaver(command);
                 case KAKAO -> unlinkKakao(command);
                 case GOOGLE -> unlinkGoogle(command);
-                default -> throw new AuthException(AuthErrorCode.UNSUPPORTED_LOGIN_PROVIDER);
+                default -> throw OAuth2ProviderUnlinkException.permanent(
+                        new AuthException(AuthErrorCode.UNSUPPORTED_LOGIN_PROVIDER)
+                );
             }
+        } catch (OAuth2ProviderUnlinkException exception) {
+            throw exception;
         } catch (RestClientException exception) {
-            throw new AuthException(AuthErrorCode.OAUTH2_UNLINK_FAILED);
+            if (isRetryable(exception)) {
+                throw OAuth2ProviderUnlinkException.retryable(exception);
+            }
+            throw OAuth2ProviderUnlinkException.permanent(exception);
+        } catch (AuthException exception) {
+            throw OAuth2ProviderUnlinkException.permanent(exception);
         }
     }
 
@@ -147,5 +158,13 @@ public class OAuth2ProviderUnlinkService {
         request.body(body)
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    private boolean isRetryable(RestClientException exception) {
+        if (exception instanceof RestClientResponseException responseException) {
+            return responseException.getStatusCode().value() == 429
+                    || responseException.getStatusCode().is5xxServerError();
+        }
+        return true;
     }
 }

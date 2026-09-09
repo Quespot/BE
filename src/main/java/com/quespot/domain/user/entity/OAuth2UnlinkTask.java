@@ -25,6 +25,7 @@ import java.time.LocalDateTime;
 public class OAuth2UnlinkTask extends BaseEntity {
 
     private static final int MAX_ERROR_LENGTH = 500;
+    private static final int MAX_ATTEMPTS = 5;
     private static final long MAX_RETRY_DELAY_SECONDS = 3600;
 
     @Id
@@ -79,14 +80,32 @@ public class OAuth2UnlinkTask extends BaseEntity {
         );
     }
 
-    public void recordFailure(String errorMessage) {
+    public boolean claim(LocalDateTime claimedAt) {
+        if (status != OAuth2UnlinkTaskStatus.PENDING || nextAttemptAt.isAfter(claimedAt)) {
+            return false;
+        }
+        this.status = OAuth2UnlinkTaskStatus.PROCESSING;
+        return true;
+    }
+
+    public boolean isProcessing() {
+        return status == OAuth2UnlinkTaskStatus.PROCESSING;
+    }
+
+    public void recordFailure(String errorMessage, boolean retryable) {
         this.attemptCount++;
+        this.lastError = truncate(errorMessage);
+        if (!retryable || attemptCount >= MAX_ATTEMPTS) {
+            this.status = OAuth2UnlinkTaskStatus.FAILED;
+            return;
+        }
+
         long retryDelaySeconds = Math.min(
                 30L * (1L << Math.min(attemptCount - 1, 7)),
                 MAX_RETRY_DELAY_SECONDS
         );
+        this.status = OAuth2UnlinkTaskStatus.PENDING;
         this.nextAttemptAt = LocalDateTime.now().plusSeconds(retryDelaySeconds);
-        this.lastError = truncate(errorMessage);
     }
 
     private String truncate(String value) {
