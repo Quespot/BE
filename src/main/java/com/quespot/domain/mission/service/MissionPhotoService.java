@@ -58,10 +58,13 @@ public class MissionPhotoService {
 
         // 우리 버킷 URL인지, missions/ 아래인지, 업로드한 본인이 맞는지 검증한다.
         // S3 API 호출(headObject)은 하지 않는다 — URL 패턴 검증만(#45 결정 사항).
-        s3ImageUrlValidator.validate(imageUrl, userId, UploadPurpose.MISSION);
+        // 검증에 쓰인 bucket/region/key로 재조립한 정규 URL을 저장한다 — 제출된
+        // 원본 문자열의 쿼리스트링/트레일링 슬래시 같은 잡음이 그대로 저장되지
+        // 않게 하기 위함(코드 리뷰 반영).
+        String canonicalImageUrl = s3ImageUrlValidator.validate(imageUrl, userId, UploadPurpose.MISSION);
 
         return missionPhotoRepository.save(
-                MissionPhoto.record(attempt, imageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
+                MissionPhoto.record(attempt, canonicalImageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
     }
 

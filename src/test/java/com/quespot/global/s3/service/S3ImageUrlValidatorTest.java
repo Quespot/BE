@@ -7,7 +7,7 @@ import com.quespot.global.s3.exception.code.S3ErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class S3ImageUrlValidatorTest {
@@ -20,10 +20,48 @@ class S3ImageUrlValidatorTest {
     }
 
     @Test
-    void acceptsUrlMatchingOurBucketPurposeAndOwner() {
-        assertThatCode(() -> validator.validate(
+    void acceptsUrlMatchingOurBucketPurposeAndOwnerAndReturnsCanonicalUrl() {
+        String canonical = validator.validate(
                 "https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg", 1L, UploadPurpose.MISSION
-        )).doesNotThrowAnyException();
+        );
+
+        assertThat(canonical).isEqualTo("https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg");
+    }
+
+    @Test
+    void acceptsMixedCaseHost() {
+        String canonical = validator.validate(
+                "https://Test-Bucket.S3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg", 1L, UploadPurpose.MISSION
+        );
+
+        assertThat(canonical).isEqualTo("https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg");
+    }
+
+    @Test
+    void stripsQueryStringFromStoredCanonicalUrl() {
+        String canonical = validator.validate(
+                "https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg?redirect=evil.com",
+                1L, UploadPurpose.MISSION
+        );
+
+        assertThat(canonical).isEqualTo("https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg");
+    }
+
+    @Test
+    void rejectsUrlWithTrailingSlashAfterFilename() {
+        assertThatThrownBy(() -> validator.validate(
+                "https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/abc.jpg/", 1L, UploadPurpose.MISSION
+        )).isInstanceOf(S3Exception.class)
+                .extracting(e -> ((S3Exception) e).getErrorCode())
+                .isEqualTo(S3ErrorCode.INVALID_OBJECT_KEY);
+    }
+
+    @Test
+    void rejectsNullUrl() {
+        assertThatThrownBy(() -> validator.validate(null, 1L, UploadPurpose.MISSION))
+                .isInstanceOf(S3Exception.class)
+                .extracting(e -> ((S3Exception) e).getErrorCode())
+                .isEqualTo(S3ErrorCode.IMAGE_URL_NOT_OUR_BUCKET);
     }
 
     @Test

@@ -19,13 +19,18 @@ import java.net.URISyntaxException;
 //
 // 프로필 이미지 등 다른 UploadPurpose에도 그대로 재사용 가능하도록
 // domain 패키지가 아니라 global/s3에 둔다.
+//
+// 검증만 하고 끝내지 않고 재조립한 정규 URL을 돌려준다 — 제출된 원본
+// 문자열에는 쿼리스트링/트레일링 슬래시 등 key와 무관한 잡음이 섞여
+// 있어도 통과할 수 있는데(코드 리뷰에서 발견됨), 검증에 실제로 쓰인
+// bucket/region/key 세 조각으로만 다시 조립하면 그런 잡음이 저장되지 않는다.
 @Component
 @RequiredArgsConstructor
 public class S3ImageUrlValidator {
 
     private final S3Properties properties;
 
-    public void validate(String imageUrl, Long userId, UploadPurpose expectedPurpose) {
+    public String validate(String imageUrl, Long userId, UploadPurpose expectedPurpose) {
         URI uri = parse(imageUrl);
 
         String expectedHost = "%s.s3.%s.amazonaws.com".formatted(properties.bucket(), properties.region());
@@ -35,7 +40,10 @@ public class S3ImageUrlValidator {
 
         String path = uri.getPath();
         String key = path.startsWith("/") ? path.substring(1) : path;
-        String[] segments = key.split("/");
+        // split(regex)는 뒤쪽 빈 문자열을 조용히 버린다 — "missions/1/x.jpg/"가
+        // 길이 3으로 통과해버리는 문제가 있어 limit=-1로 트레일링 빈 세그먼트도
+        // 그대로 살려서 걸러낸다.
+        String[] segments = key.split("/", -1);
         if (segments.length != 3) {
             throw new S3Exception(S3ErrorCode.INVALID_OBJECT_KEY);
         }
@@ -45,9 +53,14 @@ public class S3ImageUrlValidator {
         if (!userId.toString().equals(segments[1])) {
             throw new S3Exception(S3ErrorCode.IMAGE_URL_OWNER_MISMATCH);
         }
+
+        return "https://%s/%s".formatted(expectedHost, key);
     }
 
     private URI parse(String imageUrl) {
+        if (imageUrl == null) {
+            throw new S3Exception(S3ErrorCode.IMAGE_URL_NOT_OUR_BUCKET);
+        }
         try {
             URI uri = new URI(imageUrl);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
