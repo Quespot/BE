@@ -49,4 +49,23 @@ public class PointTransaction {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public static PointTransaction earn(
+            Long userId,
+            int amount,
+            String type,
+            String referenceType,
+            Long referenceId,
+            int balanceAfter
+    ) {
+        PointTransaction transaction = new PointTransaction();
+        transaction.userId = userId;
+        transaction.amount = amount;
+        transaction.type = type;
+        transaction.referenceType = referenceType;
+        transaction.referenceId = referenceId;
+        transaction.balanceAfter = balanceAfter;
+        transaction.createdAt = LocalDateTime.now();
+        return transaction;
+    }
 }

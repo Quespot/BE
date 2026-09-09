@@ -59,4 +59,23 @@ public class RewardActivity {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    public static RewardActivity of(
+            Long userId,
+            ActivityType activityType,
+            String title,
+            PointTransaction pointTransaction,
+            String referenceType,
+            Long referenceId
+    ) {
+        RewardActivity activity = new RewardActivity();
+        activity.userId = userId;
+        activity.activityType = activityType;
+        activity.title = title;
+        activity.pointTransaction = pointTransaction;
+        activity.referenceType = referenceType;
+        activity.referenceId = referenceId;
+        activity.createdAt = LocalDateTime.now();
+        return activity;
+    }
 }
