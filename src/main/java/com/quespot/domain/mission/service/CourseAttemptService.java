@@ -4,12 +4,14 @@ import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
+import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.CourseAttemptRepository;
 import com.quespot.domain.mission.repository.CourseMissionRepository;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionCourseRepository;
+import com.quespot.domain.mission.repository.projection.MissionAttemptStatusProjection;
 import com.quespot.domain.reward.service.PointService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -68,5 +70,32 @@ public class CourseAttemptService {
         for (MissionAttempt missionAttempt : missionAttemptRepository.findByCourseAttemptId(courseAttemptId)) {
             missionAttempt.clearCourseAttempt();
         }
+    }
+
+    // MissionArrivalService.arrive()가 미션을 COMPLETED로 만든 직후, 같은
+    // 트랜잭션 안에서 호출한다(REQUIRES_NEW 아님 — arrive()의 트랜잭션에 합류).
+    @Transactional
+    public void tryCompleteViaMissionCompletion(Long courseAttemptId) {
+        CourseAttempt courseAttempt = courseAttemptRepository.findById(courseAttemptId)
+                .orElseThrow(() -> new MissionException(MissionErrorCode.COURSE_ATTEMPT_NOT_FOUND));
+        if (courseAttempt.getStatus() != CourseAttemptStatus.IN_PROGRESS) {
+            return;
+        }
+
+        List<Long> missionIds = courseMissionRepository.findMissionIdsByCourseId(courseAttempt.getCourse().getId());
+        List<MissionAttemptStatusProjection> completed = missionAttemptRepository
+                .findByUserIdAndMissionIdInAndStatusIn(
+                        courseAttempt.getUserId(), missionIds, List.of(MissionAttemptStatus.COMPLETED)
+                );
+        if (completed.size() < missionIds.size()) {
+            return;
+        }
+
+        Integer bonusPoint = courseAttempt.getCourse().getBonusPoint();
+        courseAttempt.complete(bonusPoint);
+        pointService.credit(
+                courseAttempt.getUserId(), bonusPoint, "COURSE_BONUS", "COURSE_ATTEMPT", courseAttempt.getId(),
+                courseAttempt.getCourse().getName() + " 완주 보너스"
+        );
     }
 }

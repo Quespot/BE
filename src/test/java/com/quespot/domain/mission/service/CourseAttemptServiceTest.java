@@ -4,6 +4,7 @@ import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
+import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.enums.MissionCourseStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
@@ -11,16 +12,22 @@ import com.quespot.domain.mission.repository.CourseAttemptRepository;
 import com.quespot.domain.mission.repository.CourseMissionRepository;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionCourseRepository;
+import com.quespot.domain.mission.repository.projection.MissionAttemptStatusProjection;
 import com.quespot.domain.reward.service.PointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -141,5 +148,74 @@ class CourseAttemptServiceTest {
                 .isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.COURSE_ATTEMPT_NOT_IN_PROGRESS);
+    }
+
+    @Test
+    void tryCompleteCompletesCourseAndCreditsBonusWhenAllMissionsCompleted() {
+        MissionCourse course = activeCourse();
+        CourseAttempt attempt = CourseAttempt.start(1L, course);
+        setId(attempt, 55L);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(attempt));
+        when(courseMissionRepository.findMissionIdsByCourseId(100L)).thenReturn(List.of(10L, 20L, 30L));
+        MissionAttemptStatusProjection p10 = statusProjection(10L);
+        MissionAttemptStatusProjection p20 = statusProjection(20L);
+        MissionAttemptStatusProjection p30 = statusProjection(30L);
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(
+                eq(1L), eq(List.of(10L, 20L, 30L)), eq(List.of(MissionAttemptStatus.COMPLETED))
+        )).thenReturn(List.of(p10, p20, p30));
+
+        courseAttemptService.tryCompleteViaMissionCompletion(55L);
+
+        assertThat(attempt.getStatus()).isEqualTo(CourseAttemptStatus.COMPLETED);
+        assertThat(attempt.getEarnedBonusPoint()).isEqualTo(50);
+        verify(pointService).credit(1L, 50, "COURSE_BONUS", "COURSE_ATTEMPT", 55L, "정동 도보 코스 완주 보너스");
+    }
+
+    @Test
+    void tryCompleteDoesNothingWhenNotAllMissionsCompleted() {
+        MissionCourse course = activeCourse();
+        CourseAttempt attempt = CourseAttempt.start(1L, course);
+        setId(attempt, 55L);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(attempt));
+        when(courseMissionRepository.findMissionIdsByCourseId(100L)).thenReturn(List.of(10L, 20L, 30L));
+        MissionAttemptStatusProjection p10 = statusProjection(10L);
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(
+                eq(1L), eq(List.of(10L, 20L, 30L)), eq(List.of(MissionAttemptStatus.COMPLETED))
+        )).thenReturn(List.of(p10));
+
+        courseAttemptService.tryCompleteViaMissionCompletion(55L);
+
+        assertThat(attempt.getStatus()).isEqualTo(CourseAttemptStatus.IN_PROGRESS);
+        verify(pointService, never()).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
+    }
+
+    @Test
+    void tryCompleteIsNoOpWhenCourseAttemptAlreadyCompleted() {
+        MissionCourse course = activeCourse();
+        CourseAttempt attempt = CourseAttempt.start(1L, course);
+        attempt.complete(50);
+        when(courseAttemptRepository.findById(55L)).thenReturn(Optional.of(attempt));
+
+        courseAttemptService.tryCompleteViaMissionCompletion(55L);
+
+        verify(courseMissionRepository, never()).findMissionIdsByCourseId(any());
+        verify(pointService, never()).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
+    }
+
+    private MissionAttemptStatusProjection statusProjection(Long missionId) {
+        MissionAttemptStatusProjection projection = mock(MissionAttemptStatusProjection.class);
+        when(projection.getMissionId()).thenReturn(missionId);
+        when(projection.getStatus()).thenReturn(MissionAttemptStatus.COMPLETED);
+        return projection;
+    }
+
+    private void setId(CourseAttempt attempt, Long id) {
+        try {
+            Field field = CourseAttempt.class.getDeclaredField("id");
+            field.setAccessible(true);
+            field.set(attempt, id);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

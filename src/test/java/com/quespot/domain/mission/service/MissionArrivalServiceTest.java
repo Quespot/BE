@@ -34,14 +34,16 @@ class MissionArrivalServiceTest {
 
     private MissionAttemptRepository missionAttemptRepository;
     private PointService pointService;
+    private CourseAttemptService courseAttemptService;
     private MissionArrivalService missionArrivalService;
 
     @BeforeEach
     void setUp() {
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         pointService = mock(PointService.class);
+        courseAttemptService = mock(CourseAttemptService.class);
         missionArrivalService = new MissionArrivalService(
-                missionAttemptRepository, pointService, new GeoDistanceCalculator()
+                missionAttemptRepository, pointService, new GeoDistanceCalculator(), courseAttemptService
         );
     }
 
@@ -71,6 +73,18 @@ class MissionArrivalServiceTest {
         assertThat(result.status()).isEqualTo(MissionAttemptStatus.COMPLETED);
         assertThat(result.earnedPoint()).isEqualTo(mission.getRewardPoint());
         verify(pointService).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
+        verify(courseAttemptService, never()).tryCompleteViaMissionCompletion(any());
+    }
+
+    @Test
+    void arrivalWithCourseAttemptIdTriggersCourseCompletionCheck() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(1L, mission, 55L);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        missionArrivalService.arrive(1L, 100L, new BigDecimal("37.5665"), new BigDecimal("126.9780"));
+
+        verify(courseAttemptService).tryCompleteViaMissionCompletion(55L);
     }
 
     @Test
@@ -122,7 +136,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService);
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
@@ -138,7 +152,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS + 1);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService);
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
