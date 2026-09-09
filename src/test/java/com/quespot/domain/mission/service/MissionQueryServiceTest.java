@@ -33,14 +33,19 @@ class MissionQueryServiceTest {
     private static final String CURSOR_SECRET = "mission-cursor-test-secret";
 
     private MissionRepository missionRepository;
+    private MissionAttemptStatusResolver missionAttemptStatusResolver;
     private MissionQueryService missionQueryService;
 
     @BeforeEach
     void setUp() {
         missionRepository = mock(MissionRepository.class);
+        missionAttemptStatusResolver = mock(MissionAttemptStatusResolver.class);
+        when(missionAttemptStatusResolver.resolveStatuses(anyLong(), any())).thenReturn(java.util.Map.of());
+        when(missionAttemptStatusResolver.resolveStatus(anyLong(), anyLong())).thenReturn(UserMissionStatus.AVAILABLE);
         missionQueryService = new MissionQueryService(
                 missionRepository,
-                new MissionCursorCodec(CURSOR_SECRET)
+                new MissionCursorCodec(CURSOR_SECRET),
+                missionAttemptStatusResolver
         );
     }
 
