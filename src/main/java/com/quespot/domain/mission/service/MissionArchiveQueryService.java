@@ -1,9 +1,11 @@
 package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.converter.MissionConverter;
+import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
 import com.quespot.domain.mission.entity.MissionPhoto;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ public class MissionArchiveQueryService {
 
     private final MissionPhotoRepository missionPhotoRepository;
     private final ArchiveCursorCodec archiveCursorCodec;
+    private final S3Service s3Service;
 
     @Transactional(readOnly = true)
     public MissionArchiveListResponseDTO getArchives(Long userId, String cursorValue, int size) {
@@ -42,6 +45,15 @@ public class MissionArchiveQueryService {
                 ))
                 : null;
 
-        return MissionConverter.toArchiveListResponse(page, nextCursor, hasNext);
+        // 저장된 값은 objectKey라 매번 새로 서명한 presigned GET URL로 바꿔서
+        // 돌려준다(버킷 비공개, #45). presign은 로컬 서명 계산이라 사진 수만큼
+        // 반복해도 외부 API 호출이 아니다.
+        List<MissionArchiveItemResponseDTO> items = page.stream()
+                .map(photo -> MissionConverter.toArchiveItem(
+                        photo, s3Service.createPresignedDownloadUrl(photo.getImageKey())
+                ))
+                .toList();
+
+        return MissionConverter.toArchiveListResponse(items, nextCursor, hasNext);
     }
 }

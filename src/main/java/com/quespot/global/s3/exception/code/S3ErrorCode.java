@@ -38,17 +38,13 @@ public enum S3ErrorCode implements BaseErrorCode {
             "S3_502_003",
             "파일 조회 URL 생성에 실패했습니다."),
 
-    IMAGE_URL_NOT_OUR_BUCKET(HttpStatus.BAD_REQUEST,
-            "S3_400_005",
-            "우리 서비스에 업로드된 이미지가 아닙니다."),
-
-    IMAGE_URL_WRONG_PURPOSE(HttpStatus.BAD_REQUEST,
+    OBJECT_KEY_WRONG_PURPOSE(HttpStatus.BAD_REQUEST,
             "S3_400_006",
-            "잘못된 업로드 경로의 이미지입니다."),
+            "잘못된 업로드 경로의 파일입니다."),
 
-    IMAGE_URL_OWNER_MISMATCH(HttpStatus.BAD_REQUEST,
+    OBJECT_KEY_OWNER_MISMATCH(HttpStatus.BAD_REQUEST,
             "S3_400_007",
-            "본인이 업로드한 이미지만 등록할 수 있습니다.");
+            "본인이 업로드한 파일만 등록할 수 있습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

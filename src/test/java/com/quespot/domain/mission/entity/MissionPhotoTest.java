@@ -16,12 +16,12 @@ class MissionPhotoTest {
         LocalDateTime takenAt = LocalDateTime.of(2026, 1, 1, 12, 0);
 
         MissionPhoto photo = MissionPhoto.record(
-                attempt, "https://example.com/a.jpg", "좋았다",
+                attempt, "missions/1/abc.jpg", "좋았다",
                 new BigDecimal("37.5"), new BigDecimal("127.0"), takenAt
         );
 
         assertThat(photo.getAttempt()).isEqualTo(attempt);
-        assertThat(photo.getImageUrl()).isEqualTo("https://example.com/a.jpg");
+        assertThat(photo.getImageKey()).isEqualTo("missions/1/abc.jpg");
         assertThat(photo.getCaption()).isEqualTo("좋았다");
         assertThat(photo.getLatitude()).isEqualByComparingTo("37.5");
         assertThat(photo.getLongitude()).isEqualByComparingTo("127.0");

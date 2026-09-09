@@ -147,19 +147,22 @@ public class MissionConverter {
         );
     }
 
-    public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, MissionPhoto photo) {
+    // photoViewUrl은 서비스 레이어가 MissionPhotoService.resolveViewUrl(photo)로
+    // 미리 만들어 넘긴다 — MissionConverter는 static 유틸이라 S3Service를 주입받을
+    // 수 없다(엔티티→DTO 변환은 static Converter로 한다는 컨벤션 유지, #45).
+    public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, String photoViewUrl) {
         return new MissionAttemptResultResponseDTO(
                 attempt.getId(),
                 attempt.getMission().getTitle(),
                 attempt.getEarnedPoint(),
                 attempt.getCompletedAt(),
-                photo == null ? null : photo.getImageUrl()
+                photoViewUrl
         );
     }
 
-    public static MissionPhotoResponseDTO toPhotoResponse(MissionPhoto photo) {
+    public static MissionPhotoResponseDTO toPhotoResponse(MissionPhoto photo, String photoViewUrl) {
         return new MissionPhotoResponseDTO(
-                photo.getId(), photo.getImageUrl(), photo.getCaption(),
+                photo.getId(), photoViewUrl, photo.getCaption(),
                 photo.getLatitude(), photo.getLongitude(), photo.getTakenAt()
         );
     }
@@ -222,22 +225,21 @@ public class MissionConverter {
         );
     }
 
-    public static MissionArchiveItemResponseDTO toArchiveItem(MissionPhoto photo) {
+    public static MissionArchiveItemResponseDTO toArchiveItem(MissionPhoto photo, String photoViewUrl) {
         MissionAttempt attempt = photo.getAttempt();
         Mission mission = attempt.getMission();
         return new MissionArchiveItemResponseDTO(
-                photo.getId(), photo.getImageUrl(), photo.getCaption(),
+                photo.getId(), photoViewUrl, photo.getCaption(),
                 mission.getId(), mission.getTitle(), mission.getCategory(),
                 attempt.getCompletedAt(), photo.getCreatedAt()
         );
     }
 
     public static MissionArchiveListResponseDTO toArchiveListResponse(
-            List<MissionPhoto> photos, String nextCursor, boolean hasNext
+            List<MissionArchiveItemResponseDTO> items, String nextCursor, boolean hasNext
     ) {
         return new MissionArchiveListResponseDTO(
-                photos.stream().map(MissionConverter::toArchiveItem).toList(),
-                nextCursor, hasNext
+                items, nextCursor, hasNext
         );
     }
 

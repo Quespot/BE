@@ -78,7 +78,7 @@ class MissionPhotoRepositoryTest {
         attempt.complete(new BigDecimal("37.5665"), new BigDecimal("126.9780"), mission.getRewardPoint());
         attempt = missionAttemptRepository.save(attempt);
         return missionPhotoRepository.save(MissionPhoto.record(
-                attempt, "https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/" + userId + "/" + suffix + ".jpg",
+                attempt, "missions/" + userId + "/" + suffix + ".jpg",
                 null, new BigDecimal("37.5665"), new BigDecimal("126.9780"), null
         ));
     }

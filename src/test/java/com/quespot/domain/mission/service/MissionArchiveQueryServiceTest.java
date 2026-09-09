@@ -7,6 +7,7 @@ import com.quespot.domain.mission.entity.MissionPhoto;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.global.s3.service.S3Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
@@ -28,13 +29,16 @@ class MissionArchiveQueryServiceTest {
 
     private MissionPhotoRepository missionPhotoRepository;
     private ArchiveCursorCodec archiveCursorCodec;
+    private S3Service s3Service;
     private MissionArchiveQueryService service;
 
     @BeforeEach
     void setUp() {
         missionPhotoRepository = mock(MissionPhotoRepository.class);
         archiveCursorCodec = mock(ArchiveCursorCodec.class);
-        service = new MissionArchiveQueryService(missionPhotoRepository, archiveCursorCodec);
+        s3Service = mock(S3Service.class);
+        service = new MissionArchiveQueryService(missionPhotoRepository, archiveCursorCodec, s3Service);
+        when(s3Service.createPresignedDownloadUrl(org.mockito.ArgumentMatchers.anyString())).thenReturn("https://presigned-url");
     }
 
     private MissionPhoto photoAt(Long id, LocalDateTime createdAt) {
@@ -42,7 +46,7 @@ class MissionArchiveQueryServiceTest {
         MissionAttempt attempt = mock(MissionAttempt.class);
         Mission mission = mock(Mission.class);
         when(photo.getId()).thenReturn(id);
-        when(photo.getImageUrl()).thenReturn("https://test-bucket.s3.ap-northeast-2.amazonaws.com/missions/1/" + id + ".jpg");
+        when(photo.getImageKey()).thenReturn("missions/1/" + id + ".jpg");
         when(photo.getCreatedAt()).thenReturn(createdAt);
         when(photo.getAttempt()).thenReturn(attempt);
         when(attempt.getMission()).thenReturn(mission);
