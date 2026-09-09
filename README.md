@@ -11,6 +11,7 @@
 - Spring Data JPA, MySQL
 - Spring Data Redis
 - Spring Security, JWT, OAuth2 Client
+- AWS SDK for Java, Amazon S3
 - Gmail SMTP
 - Spring Boot Actuator
 - Lombok
@@ -34,6 +35,11 @@ CREATE DATABASE IF NOT EXISTS quespot
 - 소셜 계정 연결 요청은 `OAUTH2_LINK_REQUEST_EXPIRATION_SECONDS` 동안 유효하며, 기본값은 120초입니다.
 - 계정 연결 시 프론트는 쿠키를 포함해 `POST /api/users/me/login-methods/{provider}`를 호출한 뒤, 같은 브라우저 세션에서 반환된 URL로 이동합니다. 연결 완료 콜백에는 로그인 코드 대신 `linkedProvider` 쿼리 파라미터가 전달됩니다.
 
+## S3 파일 업로드
+
+- S3 버킷은 비공개로 운영하며, 클라이언트는 `POST /api/uploads/presigned-url`에서 5분간 유효한 업로드 URL을 발급받아 파일을 직접 업로드합니다.
+- 지원 형식은 JPEG, PNG, WebP이고 기본 최대 크기는 10MB입니다. 업로드 요청에 사용한 `Content-Type`을 S3 PUT 요청에도 동일하게 전달해야 합니다.
+
 ## 실행
 
 ```bash
@@ -52,7 +58,7 @@ CREATE DATABASE IF NOT EXISTS quespot
 - `develop` 대상 Pull Request에서 GitHub Actions CI가 실행됩니다.
 - `develop` 브랜치에 반영되면 테스트, ECR 이미지 업로드, EC2 배포가 순서대로 실행됩니다.
 - EC2에서는 Docker Compose로 Spring Boot, Redis, Nginx, Certbot을 실행합니다.
-- 최초 배포 전 EC2의 `/opt/quespot/.env`에 `DB_URL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_VERIFICATION_CODE_SECRET`, `OAUTH2_TOKEN_ENCRYPTION_KEY`의 실제 값을 입력해야 합니다. OAuth 제공자를 활성화하면 `OAUTH2_TOKEN_ENCRYPTION_KEY`가 반드시 필요합니다. `.env.example`을 복사한 경우 나열한 필수 항목의 빈 값을 모두 채우고 파일 권한을 `600`으로 설정해야 배포 검증을 통과합니다.
+- 최초 배포 전 EC2의 `/opt/quespot/.env`에 `DB_URL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_VERIFICATION_CODE_SECRET`, `OAUTH2_TOKEN_ENCRYPTION_KEY`, `AWS_S3_BUCKET`의 실제 값을 입력해야 합니다. OAuth 제공자를 활성화하면 `OAUTH2_TOKEN_ENCRYPTION_KEY`가 반드시 필요합니다. `.env.example`을 복사한 경우 나열한 필수 항목의 빈 값을 모두 채우고 파일 권한을 `600`으로 설정해야 배포 검증을 통과합니다.
 - 운영 API는 `https://api.quespot.site`를 사용합니다. 최초 배포 전 EC2의 `/etc/letsencrypt/live/api.quespot.site`에 인증서가 있어야 하며, Compose의 Certbot 서비스가 이후 갱신을 시도합니다.
 - 운영 배포 시 `SWAGGER_ENABLED=false`, `JWT_REFRESH_TOKEN_COOKIE_SECURE=true`로 설정하고 `CORS_ALLOWED_ORIGINS`, OAuth Redirect URI, `OAUTH2_FRONTEND_REDIRECT_URI`를 실제 프론트 및 API 도메인으로 변경합니다.
 

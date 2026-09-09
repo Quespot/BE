@@ -159,4 +159,16 @@ public class SwaggerConfig {
                 .pathsToMatch("/api/admin/tour-sync/**")
                 .build();
     }
+
+    /**
+     * S3 파일 업로드 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi storageApi() {
+        return GroupedOpenApi.builder()
+                .group("08-storage")
+                .displayName("08. 파일 업로드 API")
+                .pathsToMatch("/api/uploads/**")
+                .build();
+    }
 }
