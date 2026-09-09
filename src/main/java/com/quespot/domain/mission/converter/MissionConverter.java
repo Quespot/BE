@@ -193,7 +193,13 @@ public class MissionConverter {
         var mission = courseMission.getMission();
         return new com.quespot.domain.mission.dto.res.CourseMissionItemResponseDTO(
                 mission.getId(), courseMission.getSeq(), mission.getTitle(), mission.getSnapshotImageUrl(),
-                mission.getRewardPoint(), item.status() == com.quespot.domain.mission.enums.UserMissionStatus.COMPLETED
+                mission.getRewardPoint(), item.status()
+        );
+    }
+
+    public static com.quespot.domain.mission.dto.res.UnlockConditionResponseDTO toUnlockConditionResponse(boolean locked) {
+        return new com.quespot.domain.mission.dto.res.UnlockConditionResponseDTO(
+                locked, locked ? "코스 진행 중이며 앞 미션을 완료해야 합니다." : null
         );
     }
 
