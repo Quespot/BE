@@ -24,6 +24,7 @@ public class MissionAttemptService {
     private final MissionRepository missionRepository;
     private final CourseAttemptRepository courseAttemptRepository;
     private final CourseMissionRepository courseMissionRepository;
+    private final CourseLockPolicy courseLockPolicy;
 
     @Transactional
     public MissionAttempt start(Long userId, Long missionId) {
@@ -34,6 +35,12 @@ public class MissionAttemptService {
     public MissionAttempt start(Long userId, Long missionId, Long courseAttemptId) {
         Mission mission = missionRepository.findByIdAndStatus(missionId, MissionStatus.ACTIVE)
                 .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
+
+        // courseAttemptId 유무와 무관하게 항상 실행 — 미션 목록에서 courseAttemptId
+        // 없이 직접 시작을 눌러도 잠긴 미션이면 막는다(#39 재설계 핵심 요구사항).
+        if (courseLockPolicy.resolveLockedMissionIds(userId, java.util.List.of(missionId)).contains(missionId)) {
+            throw new MissionException(MissionErrorCode.MISSION_LOCKED);
+        }
 
         if (courseAttemptId != null) {
             validateMissionBelongsToCourse(userId, courseAttemptId, missionId);

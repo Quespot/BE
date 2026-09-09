@@ -27,6 +27,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ class MissionAttemptServiceTest {
     private MissionRepository missionRepository;
     private CourseAttemptRepository courseAttemptRepository;
     private CourseMissionRepository courseMissionRepository;
+    private CourseLockPolicy courseLockPolicy;
     private MissionAttemptService missionAttemptService;
 
     @BeforeEach
@@ -46,9 +48,12 @@ class MissionAttemptServiceTest {
         missionRepository = mock(MissionRepository.class);
         courseAttemptRepository = mock(CourseAttemptRepository.class);
         courseMissionRepository = mock(CourseMissionRepository.class);
+        courseLockPolicy = mock(CourseLockPolicy.class);
         missionAttemptService = new MissionAttemptService(
-                missionAttemptRepository, missionRepository, courseAttemptRepository, courseMissionRepository
+                missionAttemptRepository, missionRepository, courseAttemptRepository, courseMissionRepository,
+                courseLockPolicy
         );
+        when(courseLockPolicy.resolveLockedMissionIds(anyLong(), any())).thenReturn(java.util.Set.of());
     }
 
     private Mission activeMission() {
@@ -276,5 +281,33 @@ class MissionAttemptServiceTest {
         missionAttemptService.writeReflection(1L, 100L, "좋았어요");
 
         assertThat(attempt.getReflection()).isEqualTo("좋았어요");
+    }
+
+    @Test
+    void startThrowsMissionLockedWhenMissionIsLockedEvenWithoutCourseAttemptId() {
+        Mission mission = activeMission();
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        when(courseLockPolicy.resolveLockedMissionIds(1L, java.util.List.of(10L))).thenReturn(java.util.Set.of(10L));
+
+        assertThatThrownBy(() -> missionAttemptService.start(1L, 10L))
+                .isInstanceOf(MissionException.class)
+                .extracting(e -> ((MissionException) e).getErrorCode())
+                .isEqualTo(MissionErrorCode.MISSION_LOCKED);
+    }
+
+    @Test
+    void startSucceedsWhenMissionIsNotLocked() {
+        Mission mission = activeMission();
+        when(missionRepository.findByIdAndStatus(10L, MissionStatus.ACTIVE)).thenReturn(Optional.of(mission));
+        when(courseLockPolicy.resolveLockedMissionIds(1L, java.util.List.of(10L))).thenReturn(java.util.Set.of());
+        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(1L, 10L, MissionAttemptStatus.IN_PROGRESS))
+                .thenReturn(Optional.empty());
+        when(missionAttemptRepository.findByUserIdAndMissionIdAndStatus(1L, 10L, MissionAttemptStatus.COMPLETED))
+                .thenReturn(Optional.empty());
+        when(missionAttemptRepository.save(any(MissionAttempt.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        MissionAttempt attempt = missionAttemptService.start(1L, 10L);
+
+        assertThat(attempt.getStatus()).isEqualTo(MissionAttemptStatus.IN_PROGRESS);
     }
 }
