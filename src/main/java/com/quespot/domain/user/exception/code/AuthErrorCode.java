@@ -60,7 +60,39 @@ public enum AuthErrorCode implements BaseErrorCode {
 
     INVALID_OAUTH2_LOGIN_CODE(HttpStatus.UNAUTHORIZED,
             "AUTH_401_006",
-            "소셜 로그인 코드가 올바르지 않거나 만료되었습니다.");
+            "소셜 로그인 코드가 올바르지 않거나 만료되었습니다."),
+
+    UNSUPPORTED_LOGIN_PROVIDER(HttpStatus.BAD_REQUEST,
+            "AUTH_400_004",
+            "지원하지 않는 로그인 방식입니다."),
+
+    DISABLED_LOGIN_PROVIDER(HttpStatus.BAD_REQUEST,
+            "AUTH_400_005",
+            "현재 사용할 수 없는 로그인 방식입니다."),
+
+    INVALID_OAUTH2_LINK_REQUEST(HttpStatus.UNAUTHORIZED,
+            "AUTH_401_007",
+            "소셜 계정 연결 요청이 올바르지 않거나 만료되었습니다."),
+
+    LOGIN_METHOD_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "AUTH_404_001",
+            "연결된 로그인 방식을 찾을 수 없습니다."),
+
+    LOGIN_METHOD_ALREADY_LINKED(HttpStatus.CONFLICT,
+            "AUTH_409_003",
+            "이미 연결된 로그인 방식입니다."),
+
+    SOCIAL_ACCOUNT_LINKED_TO_ANOTHER_USER(HttpStatus.CONFLICT,
+            "AUTH_409_004",
+            "해당 소셜 계정은 다른 사용자에게 연결되어 있습니다."),
+
+    LAST_LOGIN_METHOD_CANNOT_BE_UNLINKED(HttpStatus.CONFLICT,
+            "AUTH_409_005",
+            "마지막 로그인 방식은 연결 해제할 수 없습니다."),
+
+    OAUTH2_UNLINK_FAILED(HttpStatus.BAD_GATEWAY,
+            "AUTH_502_001",
+            "소셜 계정 연결 해제에 실패했습니다. 잠시 후 다시 시도해주세요.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -30,22 +30,90 @@ public class OAuth2LoginService {
     private final UserSocialAccountRepository userSocialAccountRepository;
     private final UserProfileRepository userProfileRepository;
     private final OAuth2LoginCodeService oAuth2LoginCodeService;
+    private final OAuth2LinkRequestService oAuth2LinkRequestService;
+    private final OAuth2TokenCipher oAuth2TokenCipher;
+    private final OAuth2UnlinkTaskStateService oAuth2UnlinkTaskStateService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
 
     // 소셜 로그인 사용자 확인 및 일회용 코드 발급 로직
     @Transactional
-    public String prepareLogin(String registrationId, OAuth2User oAuth2User) {
+    public String prepareLogin(
+            String registrationId,
+            OAuth2User oAuth2User,
+            OAuth2ProviderToken providerToken
+    ) {
         LoginProvider provider = resolveProvider(registrationId);
         OAuth2UserInfo userInfo = resolveUserInfo(provider, oAuth2User);
 
         User user = userSocialAccountRepository
                 .findByProviderAndProviderUserId(provider, userInfo.providerUserId())
-                .map(UserSocialAccount::getUser)
+                .map(account -> {
+                    prepareForRelink(provider, userInfo.providerUserId());
+                    account.updateProviderEmail(userInfo.email());
+                    updateCredentials(account, providerToken);
+                    return account.getUser();
+                })
                 .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
-                .orElseGet(() -> createSocialUser(provider, userInfo));
+                .orElseGet(() -> createSocialUser(provider, userInfo, providerToken));
 
         return oAuth2LoginCodeService.issue(user.getId());
+    }
+
+    // 로그인된 사용자에게 OAuth 인증 결과의 소셜 계정을 연결하는 로직
+    @Transactional
+    public LoginProvider linkAccount(
+            String linkNonce,
+            String registrationId,
+            OAuth2User oAuth2User,
+            OAuth2ProviderToken providerToken
+    ) {
+        OAuth2LinkRequestService.LinkRequest linkRequest =
+                oAuth2LinkRequestService.consume(linkNonce);
+        LoginProvider provider = resolveProvider(registrationId);
+        if (linkRequest.provider() != provider) {
+            throw new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST);
+        }
+
+        User user = userRepository.findByIdForUpdate(linkRequest.userId())
+                .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_OAUTH2_LINK_REQUEST));
+        OAuth2UserInfo userInfo = resolveUserInfo(provider, oAuth2User);
+
+        UserSocialAccount providerAccount = userSocialAccountRepository
+                .findByProviderAndProviderUserId(provider, userInfo.providerUserId())
+                .orElse(null);
+        if (providerAccount != null) {
+            if (!providerAccount.getUser().getId().equals(user.getId())) {
+                throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_LINKED_TO_ANOTHER_USER);
+            }
+            providerAccount.updateProviderEmail(userInfo.email());
+            updateCredentials(providerAccount, providerToken);
+            prepareForRelink(provider, userInfo.providerUserId());
+            return provider;
+        }
+
+        if (userSocialAccountRepository.findByUserIdAndProvider(user.getId(), provider).isPresent()) {
+            throw new AuthException(AuthErrorCode.LOGIN_METHOD_ALREADY_LINKED);
+        }
+
+        try {
+            userSocialAccountRepository.saveAndFlush(
+                    UserSocialAccount.create(
+                            user,
+                            provider,
+                            userInfo.providerUserId(),
+                            userInfo.email(),
+                            oAuth2TokenCipher.encrypt(providerToken.accessToken()),
+                            oAuth2TokenCipher.encrypt(providerToken.refreshToken()),
+                            providerToken.accessTokenExpiresAt()
+                    )
+            );
+            prepareForRelink(provider, userInfo.providerUserId());
+            return provider;
+        } catch (DataIntegrityViolationException exception) {
+            throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_LINKED_TO_ANOTHER_USER);
+        }
     }
 
     // 일회용 코드를 Quespot 토큰으로 교환하는 로직
@@ -66,7 +134,11 @@ public class OAuth2LoginService {
         );
     }
 
-    private User createSocialUser(LoginProvider provider, OAuth2UserInfo userInfo) {
+    private User createSocialUser(
+            LoginProvider provider,
+            OAuth2UserInfo userInfo,
+            OAuth2ProviderToken providerToken
+    ) {
         if (userRepository.findByEmailForUpdate(userInfo.email()).isPresent()) {
             throw new AuthException(AuthErrorCode.SOCIAL_ACCOUNT_LINK_REQUIRED);
         }
@@ -76,12 +148,36 @@ public class OAuth2LoginService {
                     User.createSocialUser(userInfo.email(), provider)
             );
             userSocialAccountRepository.saveAndFlush(
-                    UserSocialAccount.create(user, provider, userInfo.providerUserId())
+                    UserSocialAccount.create(
+                            user,
+                            provider,
+                            userInfo.providerUserId(),
+                            userInfo.email(),
+                            oAuth2TokenCipher.encrypt(providerToken.accessToken()),
+                            oAuth2TokenCipher.encrypt(providerToken.refreshToken()),
+                            providerToken.accessTokenExpiresAt()
+                    )
             );
+            prepareForRelink(provider, userInfo.providerUserId());
             return user;
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);
         }
+    }
+
+    private void updateCredentials(
+            UserSocialAccount account,
+            OAuth2ProviderToken providerToken
+    ) {
+        account.updateOAuth2Credentials(
+                oAuth2TokenCipher.encrypt(providerToken.accessToken()),
+                oAuth2TokenCipher.encrypt(providerToken.refreshToken()),
+                providerToken.accessTokenExpiresAt()
+        );
+    }
+
+    private void prepareForRelink(LoginProvider provider, String providerUserId) {
+        oAuth2UnlinkTaskStateService.prepareForRelink(provider, providerUserId);
     }
 
     private LoginProvider resolveProvider(String registrationId) {
