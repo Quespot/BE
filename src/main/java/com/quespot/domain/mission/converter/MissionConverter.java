@@ -1,16 +1,28 @@
 package com.quespot.domain.mission.converter;
 
+import com.quespot.domain.mission.dto.ArrivalResultDTO;
+import com.quespot.domain.mission.dto.res.ArrivalResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionAttemptListResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionAttemptResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionListItemResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionPhotoResponseDTO;
+import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
+import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCandidate;
+import com.quespot.domain.mission.entity.MissionPhoto;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
+import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.spot.entity.Spot;
 import org.springframework.data.domain.Page;
+
+import java.util.List;
 
 public class MissionConverter {
 
@@ -96,6 +108,57 @@ public class MissionConverter {
                 userMissionStatus.canStart(),
                 false,
                 userMissionStatus.canCreateArchive()
+        );
+    }
+
+    public static MissionAttemptResponseDTO toAttemptResponse(MissionAttempt attempt) {
+        return new MissionAttemptResponseDTO(
+                attempt.getId(),
+                attempt.getMission().getId(),
+                attempt.getMission().getTitle(),
+                attempt.getStatus(),
+                attempt.getStartedAt(),
+                attempt.getCompletedAt(),
+                attempt.getEarnedPoint()
+        );
+    }
+
+    public static MissionAttemptListResponseDTO toAttemptListResponse(List<MissionAttempt> attempts) {
+        return new MissionAttemptListResponseDTO(
+                attempts.stream().map(MissionConverter::toAttemptResponse).toList()
+        );
+    }
+
+    public static ArrivalResponseDTO toArrivalResponse(ArrivalResultDTO result) {
+        return new ArrivalResponseDTO(
+                result.success(), result.distanceMeters(), result.radiusMeters(),
+                result.status(), result.earnedPoint()
+        );
+    }
+
+    public static VerificationGuideResponseDTO toVerificationGuideResponse(MissionAttempt attempt) {
+        return new VerificationGuideResponseDTO(
+                attempt.getId(),
+                attempt.getMission().getSnapshotLatitude(),
+                attempt.getMission().getSnapshotLongitude(),
+                MissionArrivalService.RADIUS_METERS
+        );
+    }
+
+    public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, MissionPhoto photo) {
+        return new MissionAttemptResultResponseDTO(
+                attempt.getId(),
+                attempt.getMission().getTitle(),
+                attempt.getEarnedPoint(),
+                attempt.getCompletedAt(),
+                photo == null ? null : photo.getImageUrl()
+        );
+    }
+
+    public static MissionPhotoResponseDTO toPhotoResponse(MissionPhoto photo) {
+        return new MissionPhotoResponseDTO(
+                photo.getId(), photo.getImageUrl(), photo.getCaption(),
+                photo.getLatitude(), photo.getLongitude(), photo.getTakenAt()
         );
     }
 
