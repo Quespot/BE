@@ -1,11 +1,14 @@
 package com.quespot.domain.mission.service;
 
+import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
 import com.quespot.domain.mission.enums.MissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
+import com.quespot.domain.mission.repository.CourseAttemptRepository;
+import com.quespot.domain.mission.repository.CourseMissionRepository;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -18,18 +21,39 @@ public class MissionAttemptService {
 
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionRepository missionRepository;
+    private final CourseAttemptRepository courseAttemptRepository;
+    private final CourseMissionRepository courseMissionRepository;
 
     @Transactional
     public MissionAttempt start(Long userId, Long missionId) {
+        return start(userId, missionId, null);
+    }
+
+    @Transactional
+    public MissionAttempt start(Long userId, Long missionId, Long courseAttemptId) {
         Mission mission = missionRepository.findByIdAndStatus(missionId, MissionStatus.ACTIVE)
                 .orElseThrow(() -> new MissionException(MissionErrorCode.MISSION_NOT_FOUND));
 
+        if (courseAttemptId != null) {
+            validateMissionBelongsToCourse(courseAttemptId, missionId);
+        }
+
         return missionAttemptRepository
                 .findByUserIdAndMissionIdAndStatus(userId, missionId, MissionAttemptStatus.IN_PROGRESS)
-                .orElseGet(() -> createNewAttempt(userId, missionId, mission));
+                .orElseGet(() -> createNewAttempt(userId, missionId, mission, courseAttemptId));
     }
 
-    private MissionAttempt createNewAttempt(Long userId, Long missionId, Mission mission) {
+    private void validateMissionBelongsToCourse(Long courseAttemptId, Long missionId) {
+        CourseAttempt courseAttempt = courseAttemptRepository.findById(courseAttemptId)
+                .orElseThrow(() -> new MissionException(MissionErrorCode.COURSE_ATTEMPT_NOT_FOUND));
+        boolean belongsToCourse = courseMissionRepository
+                .existsByCourseIdAndMissionId(courseAttempt.getCourse().getId(), missionId);
+        if (!belongsToCourse) {
+            throw new MissionException(MissionErrorCode.MISSION_NOT_IN_COURSE);
+        }
+    }
+
+    private MissionAttempt createNewAttempt(Long userId, Long missionId, Mission mission, Long courseAttemptId) {
         boolean alreadyCompleted = missionAttemptRepository
                 .findByUserIdAndMissionIdAndStatus(userId, missionId, MissionAttemptStatus.COMPLETED)
                 .isPresent();
@@ -37,7 +61,7 @@ public class MissionAttemptService {
             throw new MissionException(MissionErrorCode.MISSION_ALREADY_COMPLETED);
         }
 
-        return missionAttemptRepository.save(MissionAttempt.start(userId, mission));
+        return missionAttemptRepository.save(MissionAttempt.start(userId, mission, courseAttemptId));
     }
 
     @Transactional(readOnly = true)
