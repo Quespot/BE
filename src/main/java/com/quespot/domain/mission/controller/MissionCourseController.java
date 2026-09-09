@@ -1,19 +1,20 @@
 package com.quespot.domain.mission.controller;
 
 import com.quespot.domain.mission.converter.MissionConverter;
+import com.quespot.domain.mission.dto.req.MissionCourseGenerateRequestDTO;
 import com.quespot.domain.mission.dto.res.CourseAttemptListResponseDTO;
-import com.quespot.domain.mission.dto.res.CourseAttemptResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCourseDetailResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCourseListItemResponseDTO;
-import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.exception.code.MissionSuccessCode;
 import com.quespot.domain.mission.service.CourseAttemptService;
+import com.quespot.domain.mission.service.MissionCourseGenerationService;
 import com.quespot.domain.mission.service.MissionCourseQueryService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -32,6 +34,7 @@ import java.util.List;
 public class MissionCourseController {
 
     private final MissionCourseQueryService missionCourseQueryService;
+    private final MissionCourseGenerationService missionCourseGenerationService;
     private final CourseAttemptService courseAttemptService;
 
     @GetMapping("/api/mission-courses")
@@ -45,6 +48,16 @@ public class MissionCourseController {
         return ApiResponse.of(MissionSuccessCode.COURSES_FOUND, courses);
     }
 
+    @PostMapping("/api/mission-courses")
+    @Operation(summary = "미션 코스 생성(즉시 시작)")
+    public ApiResponse<MissionCourseDetailResponseDTO> generateCourse(
+            @Valid @RequestBody MissionCourseGenerateRequestDTO request,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
+    ) {
+        var result = missionCourseGenerationService.generateAndStart(principal.userId(), request.anchorMissionId());
+        return ApiResponse.of(MissionSuccessCode.COURSE_GENERATED, MissionConverter.toCourseDetail(result));
+    }
+
     @GetMapping("/api/mission-courses/{courseId}")
     @Operation(summary = "미션 코스 상세 조회")
     public ApiResponse<MissionCourseDetailResponseDTO> getCourseDetail(
@@ -53,16 +66,6 @@ public class MissionCourseController {
     ) {
         var result = missionCourseQueryService.getCourseDetail(principal.userId(), courseId);
         return ApiResponse.of(MissionSuccessCode.COURSE_FOUND, MissionConverter.toCourseDetail(result));
-    }
-
-    @PostMapping("/api/mission-courses/{courseId}/start")
-    @Operation(summary = "미션 코스 시작")
-    public ApiResponse<CourseAttemptResponseDTO> startCourse(
-            @PathVariable @Positive Long courseId,
-            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
-    ) {
-        CourseAttempt attempt = courseAttemptService.start(principal.userId(), courseId);
-        return ApiResponse.of(MissionSuccessCode.COURSE_ATTEMPT_STARTED, MissionConverter.toCourseAttemptResponse(attempt));
     }
 
     @GetMapping("/api/course-attempts")
