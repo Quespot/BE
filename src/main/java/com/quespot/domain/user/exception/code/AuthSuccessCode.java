@@ -32,7 +32,19 @@ public enum AuthSuccessCode implements BaseCode {
 
     WITHDRAW_SUCCESS(HttpStatus.OK,
             "AUTH_200_006",
-            "회원탈퇴가 완료되었습니다.");
+            "회원탈퇴가 완료되었습니다."),
+
+    LOGIN_METHODS_FOUND(HttpStatus.OK,
+            "AUTH_200_007",
+            "로그인 방식 목록을 조회했습니다."),
+
+    LOGIN_METHOD_LINK_STARTED(HttpStatus.OK,
+            "AUTH_200_008",
+            "로그인 방식 연결을 시작했습니다."),
+
+    LOGIN_METHOD_UNLINKED(HttpStatus.OK,
+            "AUTH_200_009",
+            "로그인 방식 연결을 해제했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

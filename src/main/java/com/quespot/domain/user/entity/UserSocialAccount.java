@@ -18,6 +18,8 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(
         name = "user_social_accounts",
@@ -52,17 +54,69 @@ public class UserSocialAccount extends BaseEntity {
     @Column(name = "provider_user_id", nullable = false, length = 255)
     private String providerUserId;
 
-    private UserSocialAccount(User user, LoginProvider provider, String providerUserId) {
+    @Column(name = "provider_email", length = 255)
+    private String providerEmail;
+
+    @Column(name = "encrypted_access_token", columnDefinition = "TEXT")
+    private String encryptedAccessToken;
+
+    @Column(name = "encrypted_refresh_token", columnDefinition = "TEXT")
+    private String encryptedRefreshToken;
+
+    @Column(name = "access_token_expires_at")
+    private LocalDateTime accessTokenExpiresAt;
+
+    private UserSocialAccount(
+            User user,
+            LoginProvider provider,
+            String providerUserId,
+            String providerEmail,
+            String encryptedAccessToken,
+            String encryptedRefreshToken,
+            LocalDateTime accessTokenExpiresAt
+    ) {
         this.user = user;
         this.provider = provider;
         this.providerUserId = providerUserId;
+        this.providerEmail = providerEmail;
+        this.encryptedAccessToken = encryptedAccessToken;
+        this.encryptedRefreshToken = encryptedRefreshToken;
+        this.accessTokenExpiresAt = accessTokenExpiresAt;
     }
 
     public static UserSocialAccount create(
             User user,
             LoginProvider provider,
-            String providerUserId
+            String providerUserId,
+            String providerEmail,
+            String encryptedAccessToken,
+            String encryptedRefreshToken,
+            LocalDateTime accessTokenExpiresAt
     ) {
-        return new UserSocialAccount(user, provider, providerUserId);
+        return new UserSocialAccount(
+                user,
+                provider,
+                providerUserId,
+                providerEmail,
+                encryptedAccessToken,
+                encryptedRefreshToken,
+                accessTokenExpiresAt
+        );
+    }
+
+    public void updateProviderEmail(String providerEmail) {
+        this.providerEmail = providerEmail;
+    }
+
+    public void updateOAuth2Credentials(
+            String encryptedAccessToken,
+            String encryptedRefreshToken,
+            LocalDateTime accessTokenExpiresAt
+    ) {
+        this.encryptedAccessToken = encryptedAccessToken;
+        if (encryptedRefreshToken != null) {
+            this.encryptedRefreshToken = encryptedRefreshToken;
+        }
+        this.accessTokenExpiresAt = accessTokenExpiresAt;
     }
 }

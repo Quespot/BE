@@ -31,6 +31,9 @@ CREATE DATABASE IF NOT EXISTS quespot
 - Kakao 로그인을 사용하려면 `.env.example`의 `KAKAO_*` 환경변수를 등록하고 `KAKAO_OAUTH_ENABLED=true`로 설정합니다.
 - Naver 로그인을 사용하려면 `.env.example`의 `NAVER_*` 환경변수를 등록하고 `NAVER_OAUTH_ENABLED=true`로 설정합니다.
 - 소셜 인증 완료 후 프론트는 `OAUTH2_FRONTEND_REDIRECT_URI`로 전달된 일회용 코드를 `/api/auth/login/oauth2/exchange`에서 Quespot 토큰으로 교환합니다.
+- 소셜 계정 연결 요청은 `OAUTH2_LINK_REQUEST_EXPIRATION_SECONDS` 동안 유효하며, 기본값은 300초입니다.
+- 계정 연결 시 프론트는 `POST /api/users/me/login-methods/{provider}`가 반환한 URL로 이동합니다. 연결 완료 콜백에는 로그인 코드 대신 `linkedProvider` 쿼리 파라미터가 전달됩니다.
+- 연결 해제와 회원탈퇴 시 외부 OAuth 연동도 함께 해제합니다. 제공자 토큰은 `OAUTH2_TOKEN_ENCRYPTION_KEY`로 암호화하며, 카카오는 `KAKAO_ADMIN_KEY`가 설정되면 Admin Key 방식으로 해제합니다.
 
 ## 실행
 

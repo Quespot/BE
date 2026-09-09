@@ -71,7 +71,8 @@ public class SwaggerConfig {
                 .displayName("01. 회원·인증 API")
                 .pathsToMatch(
                         "/api/auth/**",
-                        "/api/users/me/profile/**"
+                        "/api/users/me/profile/**",
+                        "/api/users/me/login-methods/**"
                 )
                 .build();
     }

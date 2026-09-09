@@ -1,6 +1,7 @@
 package com.quespot.global.security.handler;
 
 import com.quespot.domain.user.exception.code.AuthErrorCode;
+import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +30,7 @@ public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
             HttpServletResponse response,
             AuthenticationException exception
     ) throws IOException, ServletException {
+        OAuth2LinkRequestFilter.clearLinkRequest(request);
         String redirectUri = UriComponentsBuilder.fromUriString(frontendRedirectUri)
                 .queryParam("error", AuthErrorCode.OAUTH2_LOGIN_FAILED.getReason().getCode())
                 .build()

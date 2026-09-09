@@ -1,6 +1,7 @@
 package com.quespot.global.config;
 
 import com.quespot.global.security.filter.JwtAuthenticationFilter;
+import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
 import com.quespot.global.security.handler.JwtAccessDeniedHandler;
 import com.quespot.global.security.handler.JwtAuthenticationEntryPoint;
 import com.quespot.global.security.handler.OAuth2LoginFailureHandler;
@@ -14,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.web.OAuth2AuthorizationRequestRedirectFilter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -47,6 +49,7 @@ public class SecurityConfig {
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2LinkRequestFilter oAuth2LinkRequestFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
@@ -82,7 +85,11 @@ public class SecurityConfig {
                         .requestMatchers(PUBLIC_API_PATHS).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(
+                        oAuth2LinkRequestFilter,
+                        OAuth2AuthorizationRequestRedirectFilter.class
+                );
 
         if (googleOAuth2Enabled || kakaoOAuth2Enabled || naverOAuth2Enabled) {
             http.oauth2Login(oauth2 -> oauth2

@@ -75,6 +75,7 @@ public class OAuth2ClientConfig {
                 .clientId(clientId)
                 .clientSecret(clientSecret)
                 .redirectUri(redirectUri)
+                .authorizationUri("https://accounts.google.com/o/oauth2/v2/auth?access_type=offline")
                 .scope("openid", "email")
                 .build();
     }

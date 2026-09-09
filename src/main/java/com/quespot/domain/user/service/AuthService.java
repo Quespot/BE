@@ -7,14 +7,15 @@ import com.quespot.domain.user.dto.res.SignUpResponseDTO;
 import com.quespot.domain.user.dto.token.LoginResultDTO;
 import com.quespot.domain.user.dto.token.TokenReissueResultDTO;
 import com.quespot.domain.user.entity.User;
+import com.quespot.domain.user.entity.UserSocialAccount;
 import com.quespot.domain.user.enums.EmailVerificationPurpose;
 import com.quespot.domain.user.enums.LoginProvider;
 import com.quespot.domain.user.enums.UserStatus;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
+import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
-import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -24,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -33,6 +35,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final UserSocialAccountRepository userSocialAccountRepository;
+    private final OAuth2ProviderUnlinkService oAuth2ProviderUnlinkService;
     private final EmailVerificationService emailVerificationService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
@@ -124,6 +127,9 @@ public class AuthService {
         User user = userRepository.findByIdForUpdate(authenticatedUser.userId())
                 .filter(foundUser -> foundUser.getStatus() == UserStatus.ACTIVE)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.INVALID_ACCESS_TOKEN));
+
+        List<UserSocialAccount> socialAccounts = userSocialAccountRepository.findAllByUserId(user.getId());
+        socialAccounts.forEach(oAuth2ProviderUnlinkService::unlink);
 
         user.withdraw();
         userProfileRepository.deleteByUserId(user.getId());
