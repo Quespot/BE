@@ -108,7 +108,11 @@ public enum MissionSuccessCode implements BaseCode {
 
     ARCHIVES_FOUND(HttpStatus.OK,
             "MISSION_200_024",
-            "아카이브 목록을 조회했습니다.");
+            "아카이브 목록을 조회했습니다."),
+
+    ARCHIVE_PHOTO_REGISTERED(HttpStatus.CREATED,
+            "MISSION_201_003",
+            "아카이브에 사진을 등록했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

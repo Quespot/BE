@@ -16,9 +16,12 @@ import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCandidate;
+import com.quespot.domain.mission.entity.ArchivePhoto;
 import com.quespot.domain.mission.entity.MissionPhoto;
+import com.quespot.domain.mission.enums.ArchivePhotoSource;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.UserMissionStatus;
+import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.spot.entity.Spot;
@@ -225,13 +228,21 @@ public class MissionConverter {
         );
     }
 
-    public static MissionArchiveItemResponseDTO toArchiveItem(MissionPhoto photo, String photoViewUrl) {
-        MissionAttempt attempt = photo.getAttempt();
-        Mission mission = attempt.getMission();
+    public static MissionArchiveItemResponseDTO toArchiveItem(ArchivePhoto photo, String photoViewUrl) {
         return new MissionArchiveItemResponseDTO(
-                photo.getId(), photoViewUrl, photo.getCaption(),
-                mission.getId(), mission.getTitle(), mission.getCategory(),
-                attempt.getCompletedAt(), photo.getCreatedAt()
+                photo.getId(), ArchivePhotoSource.ARCHIVE, photoViewUrl, photo.getCaption(),
+                null, null, null,
+                null, photo.getCreatedAt()
+        );
+    }
+
+    public static MissionArchiveItemResponseDTO toArchiveItem(ArchiveFeedRowProjection row, String photoViewUrl) {
+        MissionCategory category = row.getMissionCategory() == null
+                ? null : MissionCategory.valueOf(row.getMissionCategory());
+        return new MissionArchiveItemResponseDTO(
+                row.getId(), ArchivePhotoSource.valueOf(row.getSource()), photoViewUrl, row.getCaption(),
+                row.getMissionId(), row.getMissionTitle(), category,
+                row.getCompletedAt(), row.getCreatedAt()
         );
     }
 

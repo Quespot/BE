@@ -1,16 +1,14 @@
 package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
-import com.quespot.domain.mission.entity.Mission;
-import com.quespot.domain.mission.entity.MissionAttempt;
-import com.quespot.domain.mission.entity.MissionPhoto;
+import com.quespot.domain.mission.enums.ArchivePhotoSource;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
-import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.domain.mission.repository.ArchivePhotoRepository;
+import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
 import com.quespot.global.s3.service.S3Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,7 +16,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -27,46 +25,47 @@ import static org.mockito.Mockito.when;
 
 class MissionArchiveQueryServiceTest {
 
-    private MissionPhotoRepository missionPhotoRepository;
+    private ArchivePhotoRepository archivePhotoRepository;
     private ArchiveCursorCodec archiveCursorCodec;
     private S3Service s3Service;
     private MissionArchiveQueryService service;
 
     @BeforeEach
     void setUp() {
-        missionPhotoRepository = mock(MissionPhotoRepository.class);
+        archivePhotoRepository = mock(ArchivePhotoRepository.class);
         archiveCursorCodec = mock(ArchiveCursorCodec.class);
         s3Service = mock(S3Service.class);
-        service = new MissionArchiveQueryService(missionPhotoRepository, archiveCursorCodec, s3Service);
+        service = new MissionArchiveQueryService(archivePhotoRepository, archiveCursorCodec, s3Service);
         when(s3Service.createPresignedDownloadUrl(org.mockito.ArgumentMatchers.anyString())).thenReturn("https://presigned-url");
     }
 
-    private MissionPhoto photoAt(Long id, LocalDateTime createdAt) {
-        MissionPhoto photo = mock(MissionPhoto.class);
-        MissionAttempt attempt = mock(MissionAttempt.class);
-        Mission mission = mock(Mission.class);
-        when(photo.getId()).thenReturn(id);
-        when(photo.getImageKey()).thenReturn("missions/1/" + id + ".jpg");
-        when(photo.getCreatedAt()).thenReturn(createdAt);
-        when(photo.getAttempt()).thenReturn(attempt);
-        when(attempt.getMission()).thenReturn(mission);
-        when(attempt.getCompletedAt()).thenReturn(createdAt.minusMinutes(5));
-        when(mission.getId()).thenReturn(200L + id);
-        when(mission.getTitle()).thenReturn("미션 " + id);
-        return photo;
+    private ArchiveFeedRowProjection rowAt(Long id, ArchivePhotoSource source, LocalDateTime createdAt) {
+        ArchiveFeedRowProjection row = mock(ArchiveFeedRowProjection.class);
+        when(row.getId()).thenReturn(id);
+        when(row.getSource()).thenReturn(source.name());
+        when(row.getImageKey()).thenReturn("missions/1/" + id + ".jpg");
+        when(row.getCreatedAt()).thenReturn(createdAt);
+        if (source == ArchivePhotoSource.MISSION) {
+            when(row.getMissionId()).thenReturn(200L + id);
+            when(row.getMissionTitle()).thenReturn("미션 " + id);
+            when(row.getMissionCategory()).thenReturn("CULTURE");
+            when(row.getCompletedAt()).thenReturn(createdAt.minusMinutes(5));
+        }
+        return row;
     }
 
     @Test
     void getArchivesFirstPageQueriesWithNullCursor() {
         LocalDateTime now = LocalDateTime.of(2026, 9, 10, 10, 0);
-        MissionPhoto p1 = photoAt(1L, now);
-        when(missionPhotoRepository.findArchivePage(eq(1L), isNull(), isNull(), any(PageRequest.class)))
-                .thenReturn(List.of(p1));
+        ArchiveFeedRowProjection r1 = rowAt(1L, ArchivePhotoSource.MISSION, now);
+        when(archivePhotoRepository.findFeedPage(eq(1L), isNull(), isNull(), isNull(), anyInt()))
+                .thenReturn(List.of(r1));
 
         MissionArchiveListResponseDTO result = service.getArchives(1L, null, 20);
 
         assertThat(result.archives()).hasSize(1);
         assertThat(result.archives().get(0).photoId()).isEqualTo(1L);
+        assertThat(result.archives().get(0).source()).isEqualTo(ArchivePhotoSource.MISSION);
         assertThat(result.hasNext()).isFalse();
         assertThat(result.nextCursor()).isNull();
     }
@@ -74,11 +73,11 @@ class MissionArchiveQueryServiceTest {
     @Test
     void getArchivesSetsHasNextAndTrimsExtraRowWhenMoreThanSizeReturned() {
         LocalDateTime now = LocalDateTime.of(2026, 9, 10, 10, 0);
-        MissionPhoto p1 = photoAt(1L, now);
-        MissionPhoto p2 = photoAt(2L, now.minusMinutes(1));
-        MissionPhoto p3 = photoAt(3L, now.minusMinutes(2));
-        when(missionPhotoRepository.findArchivePage(eq(1L), isNull(), isNull(), any(PageRequest.class)))
-                .thenReturn(List.of(p1, p2, p3));
+        ArchiveFeedRowProjection r1 = rowAt(1L, ArchivePhotoSource.MISSION, now);
+        ArchiveFeedRowProjection r2 = rowAt(2L, ArchivePhotoSource.ARCHIVE, now.minusMinutes(1));
+        ArchiveFeedRowProjection r3 = rowAt(3L, ArchivePhotoSource.ARCHIVE, now.minusMinutes(2));
+        when(archivePhotoRepository.findFeedPage(eq(1L), isNull(), isNull(), isNull(), anyInt()))
+                .thenReturn(List.of(r1, r2, r3));
         when(archiveCursorCodec.encode(any(ArchiveCursor.class))).thenReturn("encoded-cursor");
 
         MissionArchiveListResponseDTO result = service.getArchives(1L, null, 2);
@@ -92,14 +91,14 @@ class MissionArchiveQueryServiceTest {
     @Test
     void getArchivesDecodesGivenCursorAndPassesItToRepository() {
         LocalDateTime cursorTime = LocalDateTime.of(2026, 9, 10, 9, 0);
-        ArchiveCursor cursor = new ArchiveCursor(cursorTime, 5L);
+        ArchiveCursor cursor = new ArchiveCursor(cursorTime, ArchivePhotoSource.ARCHIVE, 5L);
         when(archiveCursorCodec.decode("some-cursor")).thenReturn(cursor);
-        when(missionPhotoRepository.findArchivePage(eq(1L), eq(cursorTime), eq(5L), any(PageRequest.class)))
+        when(archivePhotoRepository.findFeedPage(eq(1L), eq(cursorTime), eq("ARCHIVE"), eq(5L), anyInt()))
                 .thenReturn(List.of());
 
         service.getArchives(1L, "some-cursor", 20);
 
-        verify(missionPhotoRepository).findArchivePage(eq(1L), eq(cursorTime), eq(5L), any(PageRequest.class));
+        verify(archivePhotoRepository).findFeedPage(eq(1L), eq(cursorTime), eq("ARCHIVE"), eq(5L), anyInt());
     }
 
     @Test
