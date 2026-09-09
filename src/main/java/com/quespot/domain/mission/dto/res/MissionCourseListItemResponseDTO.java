@@ -1,5 +1,7 @@
 package com.quespot.domain.mission.dto.res;
 
+import com.quespot.domain.mission.enums.CourseAttemptStatus;
+
 public record MissionCourseListItemResponseDTO(
         Long courseId,
         String name,
@@ -8,6 +10,7 @@ public record MissionCourseListItemResponseDTO(
         Integer totalRewardPoint,
         Integer bonusPoint,
         Integer missionCount,
-        Integer estimatedMinutes
+        Integer estimatedMinutes,
+        CourseAttemptStatus myStatus
 ) {
 }

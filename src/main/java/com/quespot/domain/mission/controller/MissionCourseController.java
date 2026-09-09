@@ -21,7 +21,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -36,11 +35,11 @@ public class MissionCourseController {
     private final CourseAttemptService courseAttemptService;
 
     @GetMapping("/api/mission-courses")
-    @Operation(summary = "미션 코스 목록 조회")
+    @Operation(summary = "내가 만든 코스 목록 조회")
     public ApiResponse<List<MissionCourseListItemResponseDTO>> getCourses(
-            @RequestParam(required = false) String regionCode
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        var courses = missionCourseQueryService.getCourses(regionCode).stream()
+        var courses = missionCourseQueryService.getCourses(principal.userId()).stream()
                 .map(MissionConverter::toCourseListItem)
                 .toList();
         return ApiResponse.of(MissionSuccessCode.COURSES_FOUND, courses);

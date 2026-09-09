@@ -163,12 +163,13 @@ public class MissionConverter {
     }
 
     public static com.quespot.domain.mission.dto.res.MissionCourseListItemResponseDTO toCourseListItem(
-            com.quespot.domain.mission.entity.MissionCourse course
+            com.quespot.domain.mission.dto.MissionCourseListItemResultDTO result
     ) {
+        com.quespot.domain.mission.entity.MissionCourse course = result.course();
         return new com.quespot.domain.mission.dto.res.MissionCourseListItemResponseDTO(
                 course.getId(), course.getName(), course.getCoverImageUrl(), course.getRegionCode(),
                 course.getTotalRewardPoint(), course.getBonusPoint(), course.getMissionCount(),
-                course.getEstimatedMinutes()
+                course.getEstimatedMinutes(), result.myStatus()
         );
     }
 

@@ -1,10 +1,13 @@
 package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.dto.MissionCourseDetailResultDTO;
+import com.quespot.domain.mission.dto.MissionCourseListItemResultDTO;
+import com.quespot.domain.mission.entity.CourseAttempt;
 import com.quespot.domain.mission.entity.CourseMission;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
+import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.repository.CourseAttemptRepository;
 import com.quespot.domain.mission.repository.CourseMissionRepository;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
@@ -30,6 +33,7 @@ class MissionCourseQueryServiceTest {
     private CourseMissionRepository courseMissionRepository;
     private MissionAttemptRepository missionAttemptRepository;
     private CourseAttemptRepository courseAttemptRepository;
+    private CourseLockPolicy courseLockPolicy;
     private MissionCourseQueryService service;
 
     @BeforeEach
@@ -38,8 +42,12 @@ class MissionCourseQueryServiceTest {
         courseMissionRepository = mock(CourseMissionRepository.class);
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         courseAttemptRepository = mock(CourseAttemptRepository.class);
+        // 실제 인스턴스를 넣는다 — resolveCourseMissionStatuses는 순수 계산이라 부작용
+        // 없이 getCourseDetail의 4상태 계산 로직을 목킹 없이 그대로 검증할 수 있다.
+        courseLockPolicy = new CourseLockPolicy(courseMissionRepository, missionAttemptRepository);
         service = new MissionCourseQueryService(
-                missionCourseRepository, courseMissionRepository, missionAttemptRepository, courseAttemptRepository
+                missionCourseRepository, courseMissionRepository, missionAttemptRepository,
+                courseAttemptRepository, courseLockPolicy
         );
     }
 
@@ -53,14 +61,17 @@ class MissionCourseQueryServiceTest {
         Mission mission1 = mock(Mission.class);
         when(mission1.getId()).thenReturn(10L);
         when(cm1.getMission()).thenReturn(mission1);
+        when(cm1.getSeq()).thenReturn(1);
         CourseMission cm2 = mock(CourseMission.class);
         Mission mission2 = mock(Mission.class);
         when(mission2.getId()).thenReturn(20L);
         when(cm2.getMission()).thenReturn(mission2);
+        when(cm2.getSeq()).thenReturn(2);
         when(courseMissionRepository.findByCourseIdOrderBySeq(100L)).thenReturn(List.of(cm1, cm2));
 
         MissionAttemptStatusProjection completedProjection = mock(MissionAttemptStatusProjection.class);
         when(completedProjection.getMissionId()).thenReturn(10L);
+        when(completedProjection.getStatus()).thenReturn(com.quespot.domain.mission.enums.MissionAttemptStatus.COMPLETED);
         when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any()))
                 .thenReturn(List.of(completedProjection));
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
@@ -71,11 +82,41 @@ class MissionCourseQueryServiceTest {
         MissionCourseDetailResultDTO result = service.getCourseDetail(1L, 100L);
 
         assertThat(result.missions()).hasSize(2);
-        assertThat(result.missions().get(0).status()).isEqualTo(com.quespot.domain.mission.enums.UserMissionStatus.COMPLETED);
-        assertThat(result.missions().get(1).status()).isEqualTo(com.quespot.domain.mission.enums.UserMissionStatus.AVAILABLE);
+        assertThat(result.missions().get(0).status()).isEqualTo(UserMissionStatus.COMPLETED);
+        assertThat(result.missions().get(1).status()).isEqualTo(UserMissionStatus.AVAILABLE);
         assertThat(result.myStatus()).isNull();
         verify(missionAttemptRepository, times(1))
                 .findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any());
+    }
+
+    @Test
+    void getCourseDetailMarksSeq2LockedWhenSeq1NotCompleted() {
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        when(missionCourseRepository.findById(100L)).thenReturn(Optional.of(course));
+
+        CourseMission cm1 = mock(CourseMission.class);
+        Mission mission1 = mock(Mission.class);
+        when(mission1.getId()).thenReturn(10L);
+        when(cm1.getMission()).thenReturn(mission1);
+        when(cm1.getSeq()).thenReturn(1);
+        CourseMission cm2 = mock(CourseMission.class);
+        Mission mission2 = mock(Mission.class);
+        when(mission2.getId()).thenReturn(20L);
+        when(cm2.getMission()).thenReturn(mission2);
+        when(cm2.getSeq()).thenReturn(2);
+        when(courseMissionRepository.findByCourseIdOrderBySeq(100L)).thenReturn(List.of(cm1, cm2));
+        when(missionAttemptRepository.findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any()))
+                .thenReturn(List.of());
+        when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
+                .thenReturn(Optional.empty());
+        when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.COMPLETED))
+                .thenReturn(Optional.empty());
+
+        MissionCourseDetailResultDTO result = service.getCourseDetail(1L, 100L);
+
+        assertThat(result.missions().get(0).status()).isEqualTo(UserMissionStatus.AVAILABLE);
+        assertThat(result.missions().get(1).status()).isEqualTo(UserMissionStatus.LOCKED);
     }
 
     @Test
@@ -88,12 +129,29 @@ class MissionCourseQueryServiceTest {
                 .thenReturn(List.of());
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.COMPLETED))
                 .thenReturn(Optional.empty());
-        var inProgressAttempt = mock(com.quespot.domain.mission.entity.CourseAttempt.class);
+        var inProgressAttempt = mock(CourseAttempt.class);
         when(courseAttemptRepository.findByUserIdAndCourseIdAndStatus(1L, 100L, CourseAttemptStatus.IN_PROGRESS))
                 .thenReturn(Optional.of(inProgressAttempt));
 
         MissionCourseDetailResultDTO result = service.getCourseDetail(1L, 100L);
 
         assertThat(result.myStatus()).isEqualTo(CourseAttemptStatus.IN_PROGRESS);
+    }
+
+    @Test
+    void getCoursesReturnsOnlyThisUsersCoursesWithMyStatus() {
+        MissionCourse course = mock(MissionCourse.class);
+        when(course.getId()).thenReturn(100L);
+        when(missionCourseRepository.findByCreatedByUserIdOrderByCreatedAtDesc(1L)).thenReturn(List.of(course));
+        CourseAttempt attempt = mock(CourseAttempt.class);
+        when(attempt.getCourse()).thenReturn(course);
+        when(attempt.getStatus()).thenReturn(CourseAttemptStatus.IN_PROGRESS);
+        when(courseAttemptRepository.findByCourseIdIn(List.of(100L))).thenReturn(List.of(attempt));
+
+        List<MissionCourseListItemResultDTO> result = service.getCourses(1L);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).course()).isSameAs(course);
+        assertThat(result.get(0).myStatus()).isEqualTo(CourseAttemptStatus.IN_PROGRESS);
     }
 }
