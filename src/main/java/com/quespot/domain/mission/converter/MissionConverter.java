@@ -192,7 +192,7 @@ public class MissionConverter {
         var mission = courseMission.getMission();
         return new com.quespot.domain.mission.dto.res.CourseMissionItemResponseDTO(
                 mission.getId(), courseMission.getSeq(), mission.getTitle(), mission.getSnapshotImageUrl(),
-                mission.getRewardPoint(), item.completed()
+                mission.getRewardPoint(), item.status() == com.quespot.domain.mission.enums.UserMissionStatus.COMPLETED
         );
     }
 

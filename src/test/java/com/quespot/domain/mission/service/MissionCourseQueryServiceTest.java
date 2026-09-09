@@ -71,8 +71,8 @@ class MissionCourseQueryServiceTest {
         MissionCourseDetailResultDTO result = service.getCourseDetail(1L, 100L);
 
         assertThat(result.missions()).hasSize(2);
-        assertThat(result.missions().get(0).completed()).isTrue();
-        assertThat(result.missions().get(1).completed()).isFalse();
+        assertThat(result.missions().get(0).status()).isEqualTo(com.quespot.domain.mission.enums.UserMissionStatus.COMPLETED);
+        assertThat(result.missions().get(1).status()).isEqualTo(com.quespot.domain.mission.enums.UserMissionStatus.AVAILABLE);
         assertThat(result.myStatus()).isNull();
         verify(missionAttemptRepository, times(1))
                 .findByUserIdAndMissionIdInAndStatusIn(anyLong(), any(), any());

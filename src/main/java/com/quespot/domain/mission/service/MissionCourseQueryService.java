@@ -53,8 +53,15 @@ public class MissionCourseQueryService {
                 .findByUserIdAndMissionIdInAndStatusIn(userId, missionIds, List.of(MissionAttemptStatus.COMPLETED))
                 .forEach(row -> completedMissionIds.add(row.getMissionId()));
 
+        // TODO(#39 Task 10에서 교체): CourseLockPolicy.resolveCourseMissionStatuses로 바꾸기 전까지의
+        // 임시 shim — 지금은 LOCKED/IN_PROGRESS를 구분 안 하고 컴파일만 유지한다.
         List<CourseMissionItemResultDTO> missionItems = courseMissions.stream()
-                .map(cm -> new CourseMissionItemResultDTO(cm, completedMissionIds.contains(cm.getMission().getId())))
+                .map(cm -> new CourseMissionItemResultDTO(
+                        cm,
+                        completedMissionIds.contains(cm.getMission().getId())
+                                ? com.quespot.domain.mission.enums.UserMissionStatus.COMPLETED
+                                : com.quespot.domain.mission.enums.UserMissionStatus.AVAILABLE
+                ))
                 .toList();
 
         CourseAttemptStatus myStatus = resolveMyStatus(userId, courseId);
