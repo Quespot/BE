@@ -121,7 +121,14 @@ public class MissionAttemptController {
     }
 
     @PostMapping("/api/mission-attempts/{attemptId}/photos")
-    @Operation(summary = "완료 후 사진 기록")
+    @Operation(
+            summary = "완료 후 사진 기록",
+            description = """
+                    업로드 3단계 흐름의 마지막 단계. 먼저 POST /api/uploads/presigned-url(purpose=MISSION)로
+                    URL을 발급받아 S3에 직접 PUT한 뒤, 그 objectKey로 만든 정규 S3 URL을 imageUrl로 제출한다.
+                    우리 버킷/missions 디렉터리/본인이 업로드한 파일이 아니면 거부된다.
+                    """
+    )
     public ApiResponse<MissionPhotoResponseDTO> registerPhoto(
             @PathVariable @Positive Long attemptId,
             @Valid @RequestBody RegisterMissionPhotoRequestDTO request,
