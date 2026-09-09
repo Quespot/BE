@@ -11,12 +11,15 @@ public final class ProfileConverter {
     private ProfileConverter() {
     }
 
-    public static ProfileResponseDTO toProfileResponseDTO(UserProfile profile) {
+    public static ProfileResponseDTO toProfileResponseDTO(
+            UserProfile profile,
+            String profileImageUrl
+    ) {
         return new ProfileResponseDTO(
                 profile.getUser().getId(),
                 profile.getUser().getEmail(),
                 profile.getNickname(),
-                profile.getProfileImageUrl(),
+                profileImageUrl,
                 profile.getGender(),
                 profile.getBirthDate(),
                 profile.getResidenceRegion(),

@@ -10,14 +10,13 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDate;
 import java.util.Set;
 
 public record CreateProfileRequestDTO(
-        @URL(protocol = "https", message = "프로필 이미지 URL은 올바른 HTTPS URL이어야 합니다.")
-        String profileImageUrl,
+        @Size(max = 1024, message = "프로필 이미지 객체 키는 1024자 이하여야 합니다.")
+        String profileImageObjectKey,
 
         @NotBlank(message = "닉네임은 필수입니다.")
         @Size(min = 2, max = 10, message = "닉네임은 2자 이상 10자 이하로 입력해주세요.")
@@ -45,8 +44,8 @@ public record CreateProfileRequestDTO(
 ) {
 
     public CreateProfileRequestDTO {
-        if (profileImageUrl != null) {
-            profileImageUrl = profileImageUrl.trim();
+        if (profileImageObjectKey != null) {
+            profileImageObjectKey = profileImageObjectKey.trim();
         }
     }
 }
