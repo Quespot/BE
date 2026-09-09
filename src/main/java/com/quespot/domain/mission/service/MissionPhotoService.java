@@ -42,6 +42,11 @@ public class MissionPhotoService {
         if (missionPhotoRepository.existsByAttemptId(attemptId)) {
             throw new MissionException(MissionErrorCode.PHOTO_ALREADY_EXISTS);
         }
+        // 위도/경도는 둘 다 오거나 둘 다 없어야 한다 — 하나만 오면 제출 좌표와
+        // 스냅샷 좌표가 뒤섞인 무의미한 좌표쌍이 저장된다.
+        if ((latitude == null) != (longitude == null)) {
+            throw new MissionException(MissionErrorCode.INVALID_LOCATION);
+        }
 
         // 촬영 위치가 없으면 미션 스냅샷 좌표로 폴백한다 — 반경 500m 안에서
         // 자유롭게 찍는 정책이라 값이 없을 때 (0,0) 대신 스냅샷 좌표가 낫다.
