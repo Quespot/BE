@@ -7,6 +7,8 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.global.s3.enums.UploadPurpose;
+import com.quespot.global.s3.service.S3ImageUrlValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,7 @@ public class MissionPhotoService {
 
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionPhotoRepository missionPhotoRepository;
+    private final S3ImageUrlValidator s3ImageUrlValidator;
 
     @Transactional
     public MissionPhoto registerPhoto(
@@ -52,6 +55,10 @@ public class MissionPhotoService {
         // 자유롭게 찍는 정책이라 값이 없을 때 (0,0) 대신 스냅샷 좌표가 낫다.
         BigDecimal effectiveLatitude = latitude != null ? latitude : attempt.getMission().getSnapshotLatitude();
         BigDecimal effectiveLongitude = longitude != null ? longitude : attempt.getMission().getSnapshotLongitude();
+
+        // 우리 버킷 URL인지, missions/ 아래인지, 업로드한 본인이 맞는지 검증한다.
+        // S3 API 호출(headObject)은 하지 않는다 — URL 패턴 검증만(#45 결정 사항).
+        s3ImageUrlValidator.validate(imageUrl, userId, UploadPurpose.MISSION);
 
         return missionPhotoRepository.save(
                 MissionPhoto.record(attempt, imageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
