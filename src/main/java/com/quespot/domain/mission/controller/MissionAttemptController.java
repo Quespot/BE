@@ -58,7 +58,7 @@ public class MissionAttemptController {
                     미션 수행 흐름의 1단계. 응답의 attemptId를 이후 arrival / photos / result / quit에서 쓴다.
                     코스 진행 중에 시작하면 courseAttemptId를 쿼리로 함께 보낸다(코스에 속하지 않는 미션이면 400).
                     앱을 껐다 켜면 GET /api/mission-attempts로 진행 중 시도를 복구한다.
-                    같은 미션의 진행 중 시도가 이미 있으면 새로 만들지 않고 그 시도를 돌려준다.
+                    같은 미션의 진행 중 시도가 이미 있으면 새로 만들지 않고 그 시도를 돌려준다(응답 status는 항상 IN_PROGRESS).
                     이미 완료한 미션은 재도전할 수 없고(409), 코스에서 앞 미션을 완료하지 않은 잠긴 미션도 시작할 수 없다(409).
                     """
     )
@@ -112,9 +112,13 @@ public class MissionAttemptController {
             summary = "GPS 도착 인증",
             description = """
                     미션 수행 흐름의 2단계. 현재 위치를 보내면 GPS 판정 후 **즉시** 결과를 돌려준다(비동기 아님).
-                    미션 스냅샷 좌표 반경 500m 안이면 그 자리에서 COMPLETED가 되고 포인트가 지급되며 배지·스탬프 판정이 돈다.
-                    반경 밖이면 200 + success:false 로 오고 distanceMeters를 함께 준다. 이때 상태는 바뀌지 않으므로
-                    위치를 다시 잡아 재시도하면 된다. 이미 완료된 시도에 다시 보내도 200이다(멱등).
+
+                    **인증 실패도 HTTP 200이다.** 4xx가 아니라 `success:false`로 온다. 이때 `distanceMeters`와 `radiusMeters`를
+                    함께 주므로 "1,072m 떨어져 있어요. 500m 안으로 가주세요" 같은 안내를 만들 수 있다. 실패해도 시도 상태는
+                    바뀌지 않으므로(IN_PROGRESS 유지) 위치를 다시 잡아 같은 API를 재시도하면 된다.
+
+                    성공(`success:true`)하면 그 자리에서 `status`가 COMPLETED가 되고 `earnedPoint`가 채워지며 포인트 지급과
+                    배지·스탬프 판정까지 끝난다. 이미 완료된 시도에 다시 보내면 멱등하게 `success:true`를 돌려준다(포인트 재지급 없음).
                     """
     )
     @ApiResponses({
@@ -173,6 +177,7 @@ public class MissionAttemptController {
             summary = "완료 후 사진 기록",
             description = """
                     미션 수행 흐름의 3단계(선택). 사진이 없어도 미션은 이미 완료된 상태다. 미션당 1장이며 완료 후 언제든 등록할 수 있다.
+                    등록한 사진은 GET /api/users/me/archives 피드에 source=MISSION으로 나타난다.
 
                     업로드는 3단계다: ① POST /api/files/presigned-upload-url(purpose=MISSION)로 objectKey와 uploadUrl 발급 →
                     ② uploadUrl로 파일을 직접 PUT → ③ 그 objectKey를 그대로 여기 제출(버킷이 비공개라 URL이 아니라 objectKey를 낸다.

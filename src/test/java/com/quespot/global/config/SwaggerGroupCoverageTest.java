@@ -101,4 +101,27 @@ class SwaggerGroupCoverageTest {
         assertThat(start.has("409")).isTrue();
         assertThat(start.path("409").path("description").asText()).contains("MISSION_409_011");
     }
+
+    @Test
+    void nullableFieldsAndEnumMeaningsAreRenderedInSchemas() throws Exception {
+        ResponseEntity<String> response = restTemplate.getForEntity("/v3/api-docs/03-mission", String.class);
+        JsonNode schemas = objectMapper.readTree(response.getBody()).path("components").path("schemas");
+
+        // OpenAPI 3.0은 nullable:true, 3.1(springdoc 기본)은 type:["integer","null"]로 렌더링한다.
+        JsonNode earnedPoint = schemas.path("ArrivalResponseDTO").path("properties").path("earnedPoint");
+        boolean nullableFlag = earnedPoint.path("nullable").asBoolean(false);
+        boolean nullType = false;
+        for (JsonNode t : earnedPoint.path("type")) {
+            nullType |= "null".equals(t.asText());
+        }
+        assertThat(nullableFlag || nullType).as("@Schema(nullable=true) must render; got %s", earnedPoint).isTrue();
+        assertThat(earnedPoint.path("description").asText()).contains("null");
+
+        // enum은 별도 컴포넌트가 아니라 프로퍼티에 인라인된다 — 타입 레벨 @Schema가 프로퍼티까지 오는지 확인
+        JsonNode attemptStatus = schemas.path("MissionAttemptResponseDTO").path("properties").path("status");
+        assertThat(attemptStatus.path("description").asText())
+                .as("enum type-level @Schema should surface on property; got %s / components has UserMissionStatus=%s",
+                        attemptStatus, schemas.has("UserMissionStatus"))
+                .contains("QUIT");
+    }
 }

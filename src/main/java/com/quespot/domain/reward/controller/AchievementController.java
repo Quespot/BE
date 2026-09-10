@@ -24,9 +24,11 @@ public class AchievementController {
     @GetMapping
     @Operation(
             summary = "달성 현황 요약",
-            description = "완료 미션 수, 보유 포인트, 배지/스탬프 획득 수와 전체 수를 한 번에 조회한다. "
-                    + "분모는 서버가 계산한다(배지=활성 마스터 수, 스탬프=전체 슬롯 수). "
-                    + "완료 미션 분모는 기획 미확정이라 내리지 않는다."
+            description = """
+                    홈 상단 숫자와 마이페이지 달성 현황이 같이 쓴다. 완료 미션 수, 보유 포인트(잔액), 배지·스탬프 획득 수와 전체 수를
+                    한 번에 돌려준다. **분모(totalBadgeCount, totalStampCount)는 서버가 계산해 내리므로 하드코딩하지 말 것** —
+                    배지는 활성 마스터 수, 스탬프는 잠금 포함 전체 슬롯 수다. completedMissionCount는 분모가 없다(기준 미정).
+                    """
     )
     public ApiResponse<AchievementSummaryResponseDTO> getSummary(
             @AuthenticationPrincipal AuthenticatedUser principal
