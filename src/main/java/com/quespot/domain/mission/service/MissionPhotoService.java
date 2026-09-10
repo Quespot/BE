@@ -9,6 +9,7 @@ import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
 import com.quespot.global.s3.enums.UploadPurpose;
 import com.quespot.global.s3.service.S3ObjectKeyValidator;
+import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class MissionPhotoService {
     private final MissionPhotoRepository missionPhotoRepository;
     private final S3ObjectKeyValidator s3ObjectKeyValidator;
     private final S3Service s3Service;
+    private final AchievementService achievementService;
 
     @Transactional
     public MissionPhoto registerPhoto(
@@ -62,9 +64,12 @@ public class MissionPhotoService {
         // (headObject 등)은 하지 않는다 — key 패턴 검증만(#45 결정 사항).
         s3ObjectKeyValidator.validate(objectKey, userId, UploadPurpose.MISSION);
 
-        return missionPhotoRepository.save(
+        MissionPhoto photo = missionPhotoRepository.save(
                 MissionPhoto.record(attempt, objectKey, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
+        // 사진작가 배지 판정(#50) — 같은 트랜잭션에 합류한다.
+        achievementService.onPhotoRegistered(userId);
+        return photo;
     }
 
     @Transactional(readOnly = true)
