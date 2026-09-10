@@ -9,6 +9,7 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
@@ -26,6 +27,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class MissionPhotoServiceTest {
@@ -36,6 +39,7 @@ class MissionPhotoServiceTest {
     private MissionPhotoRepository missionPhotoRepository;
     private FileStorage fileStorage;
     private FileService fileService;
+    private AchievementService achievementService;
     private MissionPhotoService missionPhotoService;
 
     @BeforeEach
@@ -44,8 +48,9 @@ class MissionPhotoServiceTest {
         missionPhotoRepository = mock(MissionPhotoRepository.class);
         fileStorage = mock(FileStorage.class);
         fileService = new FileService(fileStorage);
+        achievementService = mock(AchievementService.class);
         missionPhotoService = new MissionPhotoService(
-                missionAttemptRepository, missionPhotoRepository, fileService
+                missionAttemptRepository, missionPhotoRepository, fileService, achievementService
         );
         when(missionPhotoRepository.save(any(MissionPhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -76,6 +81,7 @@ class MissionPhotoServiceTest {
         assertThat(photo.getImageKey()).isEqualTo(VALID_OBJECT_KEY);
         assertThat(photo.getLatitude()).isEqualByComparingTo("37.6");
         assertThat(photo.getLongitude()).isEqualByComparingTo("127.0");
+        verify(achievementService).onPhotoRegistered(1L);
     }
 
     @Test
@@ -105,6 +111,7 @@ class MissionPhotoServiceTest {
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.PHOTO_ATTEMPT_NOT_COMPLETED);
+        verifyNoInteractions(achievementService);
     }
 
     @Test

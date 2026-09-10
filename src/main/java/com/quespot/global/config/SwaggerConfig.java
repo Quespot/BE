@@ -108,7 +108,8 @@ public class SwaggerConfig {
                         "/api/users/me/points/**",
                         "/api/users/me/reward-activities/**",
                         "/api/users/me/badges/**",
-                        "/api/users/me/stamps/**"
+                        "/api/users/me/stamps/**",
+                        "/api/users/me/achievements/**"
                 )
                 .build();
     }
@@ -123,6 +124,7 @@ public class SwaggerConfig {
                 .displayName("04. 아이템·상점 API")
                 .pathsToMatch(
                         "/api/users/me/items/**",
+                        "/api/users/me/questy",
                         "/api/shop/items/**"
                 )
                 .build();
@@ -164,6 +166,23 @@ public class SwaggerConfig {
                 .group("07-file")
                 .displayName("07. 파일 API")
                 .pathsToMatch("/api/files/**")
+                .build();
+    }
+
+    /**
+     * 좋아요(미션·코스) 등록·해제와 목록 조회 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi likeApi() {
+        return GroupedOpenApi.builder()
+                .group("09-like")
+                .displayName("09. 좋아요 API")
+                .pathsToMatch(
+                        "/api/missions/*/like",
+                        "/api/mission-courses/*/like",
+                        "/api/users/me/liked-missions",
+                        "/api/users/me/liked-courses"
+                )
                 .build();
     }
 }

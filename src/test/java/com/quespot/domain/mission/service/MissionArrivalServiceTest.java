@@ -9,12 +9,14 @@ import com.quespot.domain.mission.enums.MissionTemplate;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
+import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.domain.reward.service.PointService;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -25,9 +27,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class MissionArrivalServiceTest {
@@ -35,6 +39,7 @@ class MissionArrivalServiceTest {
     private MissionAttemptRepository missionAttemptRepository;
     private PointService pointService;
     private CourseAttemptService courseAttemptService;
+    private AchievementService achievementService;
     private MissionArrivalService missionArrivalService;
 
     @BeforeEach
@@ -42,8 +47,9 @@ class MissionArrivalServiceTest {
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         pointService = mock(PointService.class);
         courseAttemptService = mock(CourseAttemptService.class);
+        achievementService = mock(AchievementService.class);
         missionArrivalService = new MissionArrivalService(
-                missionAttemptRepository, pointService, new GeoDistanceCalculator(), courseAttemptService
+                missionAttemptRepository, pointService, new GeoDistanceCalculator(), courseAttemptService, achievementService
         );
     }
 
@@ -51,6 +57,7 @@ class MissionArrivalServiceTest {
         Spot spot = Spot.builder()
                 .source(SpotSource.TOUR_API).sourceContentId("1").name("테스트 스팟")
                 .latitude(new BigDecimal(lat)).longitude(new BigDecimal(lng))
+                .ldongRegnCd("11")
                 .appCategory(AppCategory.CULTURE).categoryMappingVersion(1).showFlag(true)
                 .build();
         MissionCandidate candidate = MissionCandidate.generate(spot, MissionTemplate.CULTURE_LOCATION, 1);
@@ -59,6 +66,32 @@ class MissionArrivalServiceTest {
 
     private MissionAttempt attemptOwnedBy(Long userId, Mission mission) {
         return MissionAttempt.start(userId, mission);
+    }
+
+    @Test
+    void arrivalEvaluatesAchievementsAfterCourseCompletionWithSpotRegion() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(1L, mission, 55L);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        missionArrivalService.arrive(1L, 100L, new BigDecimal("37.5665"), new BigDecimal("126.9780"));
+
+        // 코스 완주 판정 뒤에 배지 판정이 돌아야 COURSE_COMPLETED가 즉시 반영된다(#50).
+        InOrder inOrder = inOrder(pointService, courseAttemptService, achievementService);
+        inOrder.verify(pointService).credit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
+        inOrder.verify(courseAttemptService).tryCompleteViaMissionCompletion(55L);
+        inOrder.verify(achievementService).onMissionCompleted(1L, "11");
+    }
+
+    @Test
+    void arrivalOutsideRadiusDoesNotEvaluateAchievements() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = attemptOwnedBy(1L, mission);
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+
+        missionArrivalService.arrive(1L, 100L, new BigDecimal("38.5665"), new BigDecimal("126.9780"));
+
+        verifyNoInteractions(achievementService);
     }
 
     @Test
@@ -136,7 +169,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService);
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
@@ -152,7 +185,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS + 1);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService);
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));

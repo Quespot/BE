@@ -1,10 +1,13 @@
 package com.quespot.domain.item.service;
 
 import com.quespot.domain.item.converter.ItemConverter;
+import com.quespot.domain.item.dto.res.EquippedItemResponseDTO;
+import com.quespot.domain.item.dto.res.QuestyResponseDTO;
 import com.quespot.domain.item.dto.res.UserItemResponseDTO;
 import com.quespot.domain.item.entity.EquipSlotLimit;
 import com.quespot.domain.item.entity.UserItem;
 import com.quespot.domain.item.enums.ItemCategory;
+import com.quespot.domain.item.enums.ItemRarity;
 import com.quespot.domain.item.exception.ItemException;
 import com.quespot.domain.item.exception.code.ItemErrorCode;
 import com.quespot.domain.item.repository.EquipSlotLimitRepository;
@@ -28,6 +31,23 @@ public class UserItemService {
         return userItemRepository.findAllByUserIdWithItem(userId).stream()
                 .map(ItemConverter::toUserItemResponseDTO)
                 .toList();
+    }
+
+    // 기존 join fetch 쿼리 한 번으로 장착 목록·보유 수·최고 등급을 모두 계산한다(#50).
+    @Transactional(readOnly = true)
+    public QuestyResponseDTO getQuesty(Long userId) {
+        List<UserItem> owned = userItemRepository.findAllByUserIdWithItem(userId);
+        List<EquippedItemResponseDTO> equipped = owned.stream()
+                .filter(UserItem::getIsEquipped)
+                .sorted(Comparator.comparing((UserItem ui) -> ui.getItem().getCategory())
+                        .thenComparing(UserItem::getEquippedAt, Comparator.nullsLast(Comparator.naturalOrder())))
+                .map(ItemConverter::toEquippedItemResponseDTO)
+                .toList();
+        ItemRarity highest = owned.stream()
+                .map(ui -> ui.getItem().getRarity())
+                .max(Comparator.naturalOrder())
+                .orElse(null);
+        return new QuestyResponseDTO(equipped, owned.size(), highest);
     }
 
     @Transactional

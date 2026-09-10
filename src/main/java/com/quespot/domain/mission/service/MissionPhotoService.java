@@ -7,6 +7,7 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.global.file.enums.UploadPurpose;
 import com.quespot.global.file.service.FileService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class MissionPhotoService {
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionPhotoRepository missionPhotoRepository;
     private final FileService fileService;
+    private final AchievementService achievementService;
 
     @Transactional
     public MissionPhoto registerPhoto(
@@ -58,9 +60,12 @@ public class MissionPhotoService {
 
         fileService.validateOwnedObjectKey(userId, UploadPurpose.MISSION, objectKey);
 
-        return missionPhotoRepository.save(
+        MissionPhoto photo = missionPhotoRepository.save(
                 MissionPhoto.record(attempt, objectKey, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
+        // 사진작가 배지 판정(#50) — 같은 트랜잭션에 합류한다.
+        achievementService.onPhotoRegistered(userId);
+        return photo;
     }
 
     @Transactional(readOnly = true)

@@ -6,6 +6,8 @@ import com.quespot.domain.reward.entity.PointTransaction;
 import com.quespot.domain.reward.entity.RewardActivity;
 import com.quespot.domain.reward.entity.UserPoint;
 import com.quespot.domain.reward.enums.ActivityType;
+import com.quespot.domain.reward.exception.RewardException;
+import com.quespot.domain.reward.exception.code.RewardErrorCode;
 import com.quespot.domain.reward.repository.PointTransactionRepository;
 import com.quespot.domain.reward.repository.RewardActivityRepository;
 import com.quespot.domain.reward.repository.UserPointRepository;
@@ -51,5 +53,34 @@ public class PointService {
         rewardActivityRepository.save(
                 RewardActivity.of(userId, ActivityType.POINT_EARNED, activityTitle, transaction, referenceType, referenceId)
         );
+    }
+
+    // 차감도 credit처럼 호출부(ItemPurchaseService) 트랜잭션에 합류한다 — 아이템
+    // 지급과 포인트 차감은 하나의 사건이다. 같은 (type, reference)로 두 번 차감되는
+    // 건 point_transactions UNIQUE가 막는다. 반환값은 차감 후 잔액.
+    @Transactional
+    public int debit(
+            Long userId,
+            int amount,
+            String type,
+            String referenceType,
+            Long referenceId,
+            String activityTitle
+    ) {
+        // 0·음수 차감은 호출부 버그다(음수면 잔액이 늘어난다). 원장에 0원 행도 남기지 않는다.
+        if (amount <= 0) {
+            throw new IllegalArgumentException("차감 금액은 양수여야 합니다: " + amount);
+        }
+        if (userPointRepository.debitBalance(userId, amount) == 0) {
+            throw new RewardException(RewardErrorCode.INSUFFICIENT_POINT);
+        }
+        UserPoint userPoint = userPointRepository.findById(userId).orElseThrow();
+        PointTransaction transaction = pointTransactionRepository.save(
+                PointTransaction.spend(userId, amount, type, referenceType, referenceId, userPoint.getBalance())
+        );
+        rewardActivityRepository.save(
+                RewardActivity.of(userId, ActivityType.POINT_SPENT, activityTitle, transaction, referenceType, referenceId)
+        );
+        return userPoint.getBalance();
     }
 }

@@ -20,7 +20,13 @@ public enum ItemSuccessCode implements BaseCode {
 
     ITEM_UNEQUIPPED(HttpStatus.OK,
             "ITEM_200_004",
-            "아이템이 해제되었습니다.");
+            "아이템이 해제되었습니다."),
+    ITEM_PURCHASED(HttpStatus.OK,
+            "ITEM_200_005",
+            "아이템을 구매했습니다."),
+    QUESTY_FOUND(HttpStatus.OK,
+            "ITEM_200_006",
+            "퀘스티 정보를 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
