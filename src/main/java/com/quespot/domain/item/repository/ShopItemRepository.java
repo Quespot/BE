@@ -5,6 +5,7 @@ import com.quespot.domain.item.enums.ItemCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ShopItemRepository extends JpaRepository<ShopItem, Long> {
 
@@ -13,4 +14,6 @@ public interface ShopItemRepository extends JpaRepository<ShopItem, Long> {
     List<ShopItem> findByCategoryAndIsActiveTrueOrderBySortOrderAsc(ItemCategory category);
 
     boolean existsByCode(String code);
+
+    Optional<ShopItem> findByIdAndIsActiveTrue(Long id);
 }

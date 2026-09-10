@@ -8,7 +8,13 @@ public enum ItemErrorCode implements BaseErrorCode {
 
     ITEM_NOT_OWNED(HttpStatus.NOT_FOUND,
             "ITEM_404_001",
-            "보유하지 않은 아이템입니다.");
+            "보유하지 않은 아이템입니다."),
+    ITEM_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "ITEM_404_002",
+            "판매 중인 아이템을 찾을 수 없습니다."),
+    ITEM_ALREADY_OWNED(HttpStatus.BAD_REQUEST,
+            "ITEM_400_001",
+            "이미 보유한 아이템입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
