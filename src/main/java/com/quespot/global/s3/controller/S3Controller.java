@@ -27,7 +27,18 @@ public class S3Controller {
     private final S3Service s3Service;
 
     @PostMapping("/presigned-url")
-    @Operation(summary = "S3 Presigned 업로드 URL 발급")
+    @Operation(
+            summary = "S3 Presigned 업로드 URL 발급",
+            description = """
+                    파일 업로드는 3단계로 이루어진다. 버킷이 비공개(Public Access Block 유지)라
+                    URL이 아니라 objectKey로 주고받는다.
+                    1) 이 API로 presigned URL을 발급받는다(응답의 objectKey를 기억해 둔다).
+                    2) 응답의 uploadUrl로 파일을 S3에 직접 PUT한다(requiredHeaders를 그대로 포함).
+                    3) 업로드가 끝나면 최종 목적지 API(예: 미션 사진 등록)에 1)에서 받은
+                       objectKey를 그대로 제출한다. 조회 시에는 서버가 매번 새로 서명한
+                       presigned GET URL로 응답한다.
+                    """
+    )
     public ApiResponse<PresignedUploadResponseDTO> createPresignedUploadUrl(
             @Valid @RequestBody CreatePresignedUploadRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal

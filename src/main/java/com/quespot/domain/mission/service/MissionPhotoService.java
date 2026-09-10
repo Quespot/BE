@@ -7,6 +7,9 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.global.s3.enums.UploadPurpose;
+import com.quespot.global.s3.service.S3ObjectKeyValidator;
+import com.quespot.global.s3.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +24,14 @@ public class MissionPhotoService {
 
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionPhotoRepository missionPhotoRepository;
+    private final S3ObjectKeyValidator s3ObjectKeyValidator;
+    private final S3Service s3Service;
 
     @Transactional
     public MissionPhoto registerPhoto(
             Long userId,
             Long attemptId,
-            String imageUrl,
+            String objectKey,
             String caption,
             BigDecimal latitude,
             BigDecimal longitude,
@@ -53,13 +58,24 @@ public class MissionPhotoService {
         BigDecimal effectiveLatitude = latitude != null ? latitude : attempt.getMission().getSnapshotLatitude();
         BigDecimal effectiveLongitude = longitude != null ? longitude : attempt.getMission().getSnapshotLongitude();
 
+        // missions/ 아래인지, 업로드한 본인이 맞는지 검증한다. S3 API 호출
+        // (headObject 등)은 하지 않는다 — key 패턴 검증만(#45 결정 사항).
+        s3ObjectKeyValidator.validate(objectKey, userId, UploadPurpose.MISSION);
+
         return missionPhotoRepository.save(
-                MissionPhoto.record(attempt, imageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
+                MissionPhoto.record(attempt, objectKey, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
     }
 
     @Transactional(readOnly = true)
     public Optional<MissionPhoto> findByAttemptId(Long attemptId) {
         return missionPhotoRepository.findByAttemptId(attemptId);
+    }
+
+    // 저장된 objectKey를 매번 새로 서명한 presigned GET URL로 바꿔서 돌려준다
+    // (버킷이 비공개라 저장된 값 그대로는 렌더링할 수 없다, #45). presign은
+    // 로컬 서명 계산이라 외부 API 호출이 아니다 — 트랜잭션 안에서 호출해도 된다.
+    public String resolveViewUrl(MissionPhoto photo) {
+        return photo == null ? null : s3Service.createPresignedDownloadUrl(photo.getImageKey());
     }
 }

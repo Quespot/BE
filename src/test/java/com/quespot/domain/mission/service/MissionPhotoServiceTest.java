@@ -12,6 +12,10 @@ import com.quespot.domain.mission.repository.MissionPhotoRepository;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
+import com.quespot.global.s3.exception.S3Exception;
+import com.quespot.global.s3.exception.code.S3ErrorCode;
+import com.quespot.global.s3.service.S3ObjectKeyValidator;
+import com.quespot.global.s3.service.S3Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -26,15 +30,23 @@ import static org.mockito.Mockito.when;
 
 class MissionPhotoServiceTest {
 
+    private static final String VALID_OBJECT_KEY = "missions/1/abc.jpg";
+
     private MissionAttemptRepository missionAttemptRepository;
     private MissionPhotoRepository missionPhotoRepository;
+    private S3Service s3Service;
     private MissionPhotoService missionPhotoService;
 
     @BeforeEach
     void setUp() {
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         missionPhotoRepository = mock(MissionPhotoRepository.class);
-        missionPhotoService = new MissionPhotoService(missionAttemptRepository, missionPhotoRepository);
+        s3Service = mock(S3Service.class);
+        // 실제 인스턴스 — key 패턴 검증은 순수 로직이라 목킹 없이 그대로 검증 가능.
+        S3ObjectKeyValidator s3ObjectKeyValidator = new S3ObjectKeyValidator();
+        missionPhotoService = new MissionPhotoService(
+                missionAttemptRepository, missionPhotoRepository, s3ObjectKeyValidator, s3Service
+        );
         when(missionPhotoRepository.save(any(MissionPhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -57,10 +69,11 @@ class MissionPhotoServiceTest {
         when(missionPhotoRepository.existsByAttemptId(100L)).thenReturn(false);
 
         MissionPhoto photo = missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", "좋았다",
+                1L, 100L, VALID_OBJECT_KEY, "좋았다",
                 new BigDecimal("37.6"), new BigDecimal("127.0"), null
         );
 
+        assertThat(photo.getImageKey()).isEqualTo(VALID_OBJECT_KEY);
         assertThat(photo.getLatitude()).isEqualByComparingTo("37.6");
         assertThat(photo.getLongitude()).isEqualByComparingTo("127.0");
     }
@@ -74,7 +87,7 @@ class MissionPhotoServiceTest {
         when(missionPhotoRepository.existsByAttemptId(100L)).thenReturn(false);
 
         MissionPhoto photo = missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, null, null, null
+                1L, 100L, VALID_OBJECT_KEY, null, null, null, null
         );
 
         assertThat(photo.getLatitude()).isEqualByComparingTo("37.5665");
@@ -88,7 +101,7 @@ class MissionPhotoServiceTest {
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, null, null, null
+                1L, 100L, "profiles/1/a.jpg", null, null, null, null
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.PHOTO_ATTEMPT_NOT_COMPLETED);
@@ -102,7 +115,7 @@ class MissionPhotoServiceTest {
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, new BigDecimal("37.6"), null, null
+                1L, 100L, "profiles/1/a.jpg", null, new BigDecimal("37.6"), null, null
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.INVALID_LOCATION);
@@ -116,7 +129,7 @@ class MissionPhotoServiceTest {
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, null, new BigDecimal("127.0"), null
+                1L, 100L, "profiles/1/a.jpg", null, null, new BigDecimal("127.0"), null
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.INVALID_LOCATION);
@@ -130,7 +143,7 @@ class MissionPhotoServiceTest {
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, null, null, null
+                1L, 100L, "profiles/1/a.jpg", null, null, null, null
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.ATTEMPT_NOT_FOUND);
@@ -145,9 +158,58 @@ class MissionPhotoServiceTest {
         when(missionPhotoRepository.existsByAttemptId(100L)).thenReturn(true);
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
-                1L, 100L, "https://example.com/a.jpg", null, null, null, null
+                1L, 100L, VALID_OBJECT_KEY, null, null, null, null
         )).isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.PHOTO_ALREADY_EXISTS);
+    }
+
+    @Test
+    void throwsWhenObjectKeyIsWrongPurpose() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        attempt.complete(new BigDecimal("37.5665"), new BigDecimal("126.9780"), mission.getRewardPoint());
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionPhotoRepository.existsByAttemptId(100L)).thenReturn(false);
+
+        assertThatThrownBy(() -> missionPhotoService.registerPhoto(
+                1L, 100L, "profiles/1/abc.jpg", null, null, null, null
+        )).isInstanceOf(S3Exception.class)
+                .extracting(e -> ((S3Exception) e).getErrorCode())
+                .isEqualTo(S3ErrorCode.OBJECT_KEY_WRONG_PURPOSE);
+    }
+
+    @Test
+    void throwsWhenObjectKeyBelongsToDifferentUser() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        attempt.complete(new BigDecimal("37.5665"), new BigDecimal("126.9780"), mission.getRewardPoint());
+        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionPhotoRepository.existsByAttemptId(100L)).thenReturn(false);
+
+        assertThatThrownBy(() -> missionPhotoService.registerPhoto(
+                1L, 100L, "missions/2/abc.jpg", null, null, null, null
+        )).isInstanceOf(S3Exception.class)
+                .extracting(e -> ((S3Exception) e).getErrorCode())
+                .isEqualTo(S3ErrorCode.OBJECT_KEY_OWNER_MISMATCH);
+    }
+
+    @Test
+    void resolveViewUrlReturnsNullWhenPhotoIsNull() {
+        assertThat(missionPhotoService.resolveViewUrl(null)).isNull();
+    }
+
+    @Test
+    void resolveViewUrlDelegatesToS3ServiceWithStoredKey() {
+        Mission mission = missionAt("37.5665", "126.9780");
+        MissionAttempt attempt = MissionAttempt.start(1L, mission);
+        MissionPhoto photo = MissionPhoto.record(
+                attempt, VALID_OBJECT_KEY, null, new BigDecimal("37.5665"), new BigDecimal("126.9780"), null
+        );
+        when(s3Service.createPresignedDownloadUrl(VALID_OBJECT_KEY)).thenReturn("https://presigned-url");
+
+        String viewUrl = missionPhotoService.resolveViewUrl(photo);
+
+        assertThat(viewUrl).isEqualTo("https://presigned-url");
     }
 }

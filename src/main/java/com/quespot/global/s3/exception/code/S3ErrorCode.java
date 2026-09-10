@@ -36,7 +36,15 @@ public enum S3ErrorCode implements BaseErrorCode {
 
     PRESIGNED_DOWNLOAD_URL_GENERATION_FAILED(HttpStatus.BAD_GATEWAY,
             "S3_502_003",
-            "파일 조회 URL 생성에 실패했습니다.");
+            "파일 조회 URL 생성에 실패했습니다."),
+
+    OBJECT_KEY_WRONG_PURPOSE(HttpStatus.BAD_REQUEST,
+            "S3_400_006",
+            "잘못된 업로드 경로의 파일입니다."),
+
+    OBJECT_KEY_OWNER_MISMATCH(HttpStatus.BAD_REQUEST,
+            "S3_400_007",
+            "본인이 업로드한 파일만 등록할 수 있습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
