@@ -9,6 +9,9 @@ import com.quespot.domain.item.service.ShopItemService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,15 @@ public class ShopItemController {
                     + "이미 보유한 아이템은 400, 잔액 부족은 400, 판매 중이 아니면 404. "
                     + "가격 0인 아이템은 차감·원장 기록 없이 지급된다."
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", useReturnTypeSchema = true),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
+                    description = "ITEM_400_001 이미 보유 — 구매 버튼 대신 장착 버튼 / REWARD_400_001 포인트 부족 — 부족 안내 + 현재 잔액 표시",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+                    description = "ITEM_404_002 판매 중이 아닌 아이템 — 상점 목록 새로고침",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
     public ApiResponse<PurchaseItemResponseDTO> purchase(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @PathVariable @Positive Long itemId

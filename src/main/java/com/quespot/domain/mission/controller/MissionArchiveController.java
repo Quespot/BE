@@ -12,6 +12,9 @@ import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
@@ -60,9 +63,15 @@ public class MissionArchiveController {
                     먼저 POST /api/files/presigned-upload-url(purpose=ARCHIVE)로 objectKey와 uploadUrl을
                     발급받아 파일을 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다(저장소가 비공개라 URL이
                     아니라 objectKey를 제출한다). archives/ 아래이고 본인이 발급받은 objectKey가 아니면
-                    거부된다.
+                    거부된다. 같은 objectKey를 다시 제출하면(재시도 등) 새로 만들지 않고 기존 사진을 200으로 돌려준다.
                     """
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", useReturnTypeSchema = true),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400",
+                    description = "FILE_400_004 objectKey 형식 오류 / FILE_400_005 archives/ 아래가 아님(purpose 불일치) / FILE_400_006 본인이 업로드한 파일이 아님 — 업로드 1단계부터 다시",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
     public ApiResponse<MissionArchiveItemResponseDTO> registerArchivePhoto(
             @Valid @RequestBody RegisterArchivePhotoRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal

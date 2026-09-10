@@ -7,6 +7,9 @@ import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +32,16 @@ public class LikeController {
     private final LikeService likeService;
 
     @PostMapping("/api/missions/{missionId}/like")
-    @Operation(summary = "미션 좋아요", description = "이미 좋아요 상태여도 200. 잠긴 미션은 409, 비활성 미션은 404.")
+    @Operation(summary = "미션 좋아요", description = "이미 좋아요 상태여도 200(멱등, 토글 아님). 잠긴 미션은 409, 비활성 미션은 404.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", useReturnTypeSchema = true),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+                    description = "MISSION_404_003 미션 없음·비활성 — 목록 새로고침",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409",
+                    description = "MISSION_409_011 잠긴 미션 — 하트 비활성 처리",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
     public ApiResponse<Void> likeMission(
             @PathVariable @Positive Long missionId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
@@ -49,7 +61,13 @@ public class LikeController {
     }
 
     @PostMapping("/api/mission-courses/{courseId}/like")
-    @Operation(summary = "코스 좋아요", description = "본인이 생성한 ACTIVE 코스만. 아니면 404. 이미 좋아요 상태여도 200.")
+    @Operation(summary = "코스 좋아요", description = "본인이 생성한 ACTIVE 코스만. 아니면 404. 이미 좋아요 상태여도 200(멱등, 토글 아님).")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", useReturnTypeSchema = true),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+                    description = "MISSION_404_005 코스 없음·비활성 또는 남의 코스",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
     public ApiResponse<Void> likeCourse(
             @PathVariable @Positive Long courseId,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
