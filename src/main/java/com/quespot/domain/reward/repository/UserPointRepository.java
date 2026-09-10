@@ -26,4 +26,16 @@ public interface UserPointRepository extends JpaRepository<UserPoint, Long> {
                 updated_at = NOW()
             """, nativeQuery = true)
     void creditBalance(@Param("userId") Long userId, @Param("amount") int amount);
+
+    // 조회 후 검사가 아니라 조건부 UPDATE로 차감한다(CLAUDE.md). 갱신 0행이면
+    // 잔액 부족(행이 없는 신규 사용자 포함) — 호출부가 INSUFFICIENT_POINT로 바꾼다.
+    @Modifying(clearAutomatically = true)
+    @Query(value = """
+            UPDATE user_points
+               SET balance = balance - :amount,
+                   total_spent = total_spent + :amount,
+                   updated_at = NOW()
+             WHERE user_id = :userId AND balance >= :amount
+            """, nativeQuery = true)
+    int debitBalance(@Param("userId") Long userId, @Param("amount") int amount);
 }
