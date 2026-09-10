@@ -1,5 +1,6 @@
 package com.quespot.domain.reward.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCandidate;
@@ -71,6 +72,7 @@ class AchievementIntegrationTest {
     @Autowired private UserStampRepository userStampRepository;
     @Autowired private RewardActivityRepository rewardActivityRepository;
     @Autowired private DataSource dataSource;
+    @Autowired private ObjectMapper objectMapper;
 
     @BeforeEach
     void applyGeneratedColumn() throws SQLException {
@@ -101,9 +103,15 @@ class AchievementIntegrationTest {
     }
 
     @Test
-    void seederLeavesFiveActiveBadgesAndEightStamps() {
+    void seederLeavesFiveActiveBadgesAndEightStamps() throws Exception {
         assertThat(badgeRepository.countByIsActiveTrue()).isEqualTo(5);
         assertThat(stampRepository.count()).isEqualTo(8);
+        // MySQL JSON 컬럼은 저장값을 정규화해(키 순서·공백) 돌려주므로 문자열이 아니라
+        // 의미로 비교한다 — 시더의 needsUpdate가 같은 기준을 쓴다.
+        String stored = badgeRepository.findByCode("EXPLORER").orElseThrow().getConditionJson();
+        assertThat(objectMapper.readTree(stored)).isEqualTo(objectMapper.readTree(
+                "{\"metric\":\"MISSION_COMPLETED_DISTINCT_DISTRICT\",\"scope\":{\"regionCode\":\"11\"},\"threshold\":5}"
+        ));
     }
 
     @Test

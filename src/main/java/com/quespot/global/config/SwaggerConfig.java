@@ -178,7 +178,7 @@ public class SwaggerConfig {
     }
 
     /**
-     * 좋아요·저장 장소 API 그룹입니다.
+     * 좋아요(미션·코스) 등록·해제와 목록 조회 API 그룹입니다.
      */
     @Bean
     public GroupedOpenApi likeApi() {

@@ -34,11 +34,11 @@ public class ItemPurchaseService {
         }
         int price = item.getPrice();
         // 가격 0(기본 아이템 등)은 원장에 0원 행을 남기지 않는다(CLAUDE.md) —
-        // 활동 기록도 없이 지급만 하고, 잔액 변동이 없으므로 응답 balance는 0으로 둔다.
-        int balance = 0;
-        if (price > 0) {
-            balance = pointService.debit(userId, price, "ITEM_PURCHASE", "SHOP_ITEM", itemId, item.getName() + " 구매");
-        }
+        // 활동 기록도 없이 지급만 한다. 응답 balance는 화면이 바로 반영하는 값이라
+        // 무료여도 실제 잔액을 돌려준다(0으로 고정하면 잔액이 0으로 보이는 버그).
+        int balance = price > 0
+                ? pointService.debit(userId, price, "ITEM_PURCHASE", "SHOP_ITEM", itemId, item.getName() + " 구매")
+                : pointService.getPoints(userId).balance();
         userItemRepository.save(UserItem.acquire(userId, item));
         return new PurchaseItemResponseDTO(itemId, price, balance);
     }

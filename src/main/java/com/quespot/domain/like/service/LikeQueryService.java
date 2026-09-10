@@ -36,11 +36,9 @@ public class LikeQueryService {
 
         // 코스당 이 유저의 CourseAttempt는 최대 1건(비공개 코스, 재시작 경로 없음)이라
         // courseId → status 맵으로 한 번에 채운다(MissionCourseQueryService와 같은 방식).
-        // 코스 좋아요는 소유자만 가능하지만 userId 필터를 한 번 더 건다.
         Map<Long, CourseAttemptStatus> statusByCourseId = new HashMap<>();
         if (!courseIds.isEmpty()) {
-            courseAttemptRepository.findByCourseIdIn(courseIds).stream()
-                    .filter(ca -> ca.getUserId().equals(userId))
+            courseAttemptRepository.findByUserIdAndCourseIdIn(userId, courseIds)
                     .forEach(ca -> statusByCourseId.put(ca.getCourse().getId(), ca.getStatus()));
         }
         return LikeConverter.toLikedCourseList(rows, statusByCourseId);

@@ -1,5 +1,6 @@
 package com.quespot.domain.reward.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quespot.domain.reward.entity.Badge;
 import com.quespot.domain.reward.repository.BadgeRepository;
 import com.quespot.domain.reward.repository.StampRepository;
@@ -28,7 +29,22 @@ class RewardMasterDataSeederTest {
     void setUp() {
         badgeRepository = mock(BadgeRepository.class);
         stampRepository = mock(StampRepository.class);
-        seeder = new RewardMasterDataSeeder(badgeRepository, stampRepository);
+        seeder = new RewardMasterDataSeeder(badgeRepository, stampRepository, new ObjectMapper());
+    }
+
+    @Test
+    void treatsMysqlNormalizedJsonAsUnchanged() throws Exception {
+        // MySQL JSON 컬럼이 돌려주는 형태(키 순서 변경 + 공백)가 시드 문자열과 의미상 같으면 갱신하지 않는다.
+        Badge stored = Badge.seed("EXPLORER", "탐험가", "서울의 서로 다른 구에서 미션 5개를 완료했어요",
+                "{\"scope\": {\"regionCode\": \"11\"}, \"metric\": \"MISSION_COMPLETED_DISTINCT_DISTRICT\", \"threshold\": 5}", 2);
+        when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
+        when(badgeRepository.findByCode("EXPLORER")).thenReturn(Optional.of(stored));
+        when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of(stored));
+        when(stampRepository.existsByCode(anyString())).thenReturn(true);
+
+        seeder.run();
+
+        assertThat(stored.getConditionJson()).startsWith("{\"scope\"");   // 원문 그대로 — updateMaster 안 불림
     }
 
     @Test

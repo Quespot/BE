@@ -1,5 +1,7 @@
 package com.quespot.domain.reward.config;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quespot.domain.reward.entity.Badge;
 import com.quespot.domain.reward.entity.Stamp;
 import com.quespot.domain.reward.repository.BadgeRepository;
@@ -26,6 +28,7 @@ public class RewardMasterDataSeeder implements CommandLineRunner {
 
     private final BadgeRepository badgeRepository;
     private final StampRepository stampRepository;
+    private final ObjectMapper objectMapper;
 
     private record BadgeDefinition(String code, String name, String description, String conditionJson, int sortOrder) {
     }
@@ -71,11 +74,24 @@ public class RewardMasterDataSeeder implements CommandLineRunner {
     }
 
     private boolean needsUpdate(Badge badge, BadgeDefinition def) {
-        return !def.conditionJson().equals(badge.getConditionJson())
+        return !sameJson(def.conditionJson(), badge.getConditionJson())
                 || !def.name().equals(badge.getName())
                 || !def.description().equals(badge.getDescription())
                 || def.sortOrder() != badge.getSortOrder()
                 || !Boolean.TRUE.equals(badge.getIsActive());
+    }
+
+    // MySQL JSON 컬럼은 저장값을 정규화해서(키 순서·공백 변경) 돌려주므로 문자열
+    // 비교는 매 부팅마다 "다르다"가 된다(통합 테스트로 확인). 의미 비교로 한다.
+    private boolean sameJson(String expected, String stored) {
+        if (stored == null) {
+            return false;
+        }
+        try {
+            return objectMapper.readTree(expected).equals(objectMapper.readTree(stored));
+        } catch (JsonProcessingException e) {
+            return false;
+        }
     }
 
     private void seedStamps() {

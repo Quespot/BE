@@ -9,6 +9,7 @@ import com.quespot.domain.item.exception.ItemException;
 import com.quespot.domain.item.exception.code.ItemErrorCode;
 import com.quespot.domain.item.repository.ShopItemRepository;
 import com.quespot.domain.item.repository.UserItemRepository;
+import com.quespot.domain.reward.dto.res.PointResponseDTO;
 import com.quespot.domain.reward.service.PointService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,14 +68,16 @@ class ItemPurchaseServiceTest {
     }
 
     @Test
-    void purchaseOfFreeItemSkipsLedger() {
+    void purchaseOfFreeItemSkipsLedgerButReturnsCurrentBalance() {
         when(shopItemRepository.findByIdAndIsActiveTrue(5L)).thenReturn(Optional.of(item(5L, 0)));
         when(userItemRepository.existsByUserIdAndItem_Id(7L, 5L)).thenReturn(false);
+        when(pointService.getPoints(7L)).thenReturn(new PointResponseDTO(500, 500, 0));
 
         PurchaseItemResponseDTO result = service.purchase(7L, 5L);
 
         assertThat(result.paidPoint()).isZero();
-        verifyNoInteractions(pointService);
+        assertThat(result.balance()).isEqualTo(500);   // 0으로 고정하면 화면 잔액이 0으로 보인다
+        verify(pointService, never()).debit(anyLong(), anyInt(), anyString(), anyString(), any(), anyString());
         verify(userItemRepository).save(any(UserItem.class));
     }
 

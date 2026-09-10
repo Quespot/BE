@@ -79,15 +79,14 @@ class LikeQueryServiceTest {
     }
 
     @Test
-    void likedCoursesCarryMyAttemptStatusAndIgnoreOtherUsersAttempts() {
+    void likedCoursesCarryMyAttemptStatus() {
         MissionCourse liked = course(5L, 7L);
         when(likeRepository.findLikedCourses(7L)).thenReturn(List.of(
                 new LikedCourseRowDTO(liked, LocalDateTime.now())
         ));
         CourseAttempt mine = CourseAttempt.start(7L, liked);
         mine.complete(100);
-        CourseAttempt someoneElses = CourseAttempt.start(99L, liked);
-        when(courseAttemptRepository.findByCourseIdIn(List.of(5L))).thenReturn(List.of(someoneElses, mine));
+        when(courseAttemptRepository.findByUserIdAndCourseIdIn(7L, List.of(5L))).thenReturn(List.of(mine));
 
         LikedCourseListResponseDTO result = service.getLikedCourses(7L);
 
