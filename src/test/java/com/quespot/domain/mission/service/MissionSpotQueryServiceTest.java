@@ -4,6 +4,7 @@ import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.repository.MissionRepository;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.repository.projection.MissionSpotSummaryProjection;
+import com.quespot.domain.mission.repository.projection.NearbyMissionSpotProjection;
 import com.quespot.domain.spot.model.AdministrativeDistrict;
 import com.quespot.domain.spot.service.AdministrativeDistrictResolver;
 import org.junit.jupiter.api.BeforeEach;
@@ -87,6 +88,31 @@ class MissionSpotQueryServiceTest {
         assertThat(response.hasNext()).isFalse();
     }
 
+    @Test
+    void excludesNearbyMissionSpotsWithUnsupportedDistrictCodes() {
+        AdministrativeDistrict jongno = district("11110", "종로구");
+        NearbyMissionSpotProjection supported = nearbySummary("11110", 2L, 1L, 1200.0);
+        NearbyMissionSpotProjection unsupported = nearbySummary("99999", 1L, 0L, 1500.0);
+        when(missionRepository.findNearbyMissionSpots(
+                1L,
+                new BigDecimal("37.5"),
+                new BigDecimal("127.0"),
+                20
+        )).thenReturn(List.of(supported, unsupported));
+        when(districtResolver.findByCode("11110")).thenReturn(Optional.of(jongno));
+        when(districtResolver.findByCode("99999")).thenReturn(Optional.empty());
+
+        var response = service.getNearbyMissionSpots(
+                1L,
+                new BigDecimal("37.5"),
+                new BigDecimal("127.0"),
+                20
+        );
+
+        assertThat(response.missionSpots()).hasSize(1);
+        assertThat(response.missionSpots().get(0).districtCode()).isEqualTo("11110");
+    }
+
     private AdministrativeDistrict district(String code, String name) {
         return new AdministrativeDistrict(
                 "11",
@@ -116,6 +142,20 @@ class MissionSpotQueryServiceTest {
         when(projection.getTitle()).thenReturn("미션");
         when(projection.getCategory()).thenReturn("HISTORY");
         when(projection.getSortValue()).thenReturn(sortValue);
+        return projection;
+    }
+
+    private NearbyMissionSpotProjection nearbySummary(
+            String code,
+            Long missionCount,
+            Long completedMissionCount,
+            Double distanceMeters
+    ) {
+        NearbyMissionSpotProjection projection = mock(NearbyMissionSpotProjection.class);
+        when(projection.getDistrictCode()).thenReturn(code);
+        when(projection.getMissionCount()).thenReturn(missionCount);
+        when(projection.getCompletedMissionCount()).thenReturn(completedMissionCount);
+        when(projection.getDistanceMeters()).thenReturn(distanceMeters);
         return projection;
     }
 }

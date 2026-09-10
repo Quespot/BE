@@ -25,6 +25,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -83,6 +84,7 @@ public class MissionSpotQueryService {
                 .findNearbyMissionSpots(userId, latitude, longitude, limit)
                 .stream()
                 .map(this::toNearbyItem)
+                .flatMap(Optional::stream)
                 .toList();
         return new NearbyMissionSpotListResponseDTO(missionSpots);
     }
@@ -171,11 +173,14 @@ public class MissionSpotQueryService {
         );
     }
 
-    private MissionSpotItemResponseDTO toNearbyItem(NearbyMissionSpotProjection row) {
-        AdministrativeDistrict district = administrativeDistrictResolver.findByCode(row.getDistrictCode())
-                .orElseThrow(() -> new MissionException(MissionErrorCode.DISTRICT_NOT_FOUND));
-        Long distanceMeters = row.getDistanceMeters() == null ? null : Math.round(row.getDistanceMeters());
-        return toItem(row, district, distanceMeters);
+    private Optional<MissionSpotItemResponseDTO> toNearbyItem(NearbyMissionSpotProjection row) {
+        return administrativeDistrictResolver.findByCode(row.getDistrictCode())
+                .map(district -> {
+                    Long distanceMeters = row.getDistanceMeters() == null
+                            ? null
+                            : Math.round(row.getDistanceMeters());
+                    return toItem(row, district, distanceMeters);
+                });
     }
 
     private MissionSpotItemResponseDTO toItem(
