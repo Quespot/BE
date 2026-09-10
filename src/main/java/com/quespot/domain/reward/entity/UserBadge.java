@@ -41,4 +41,14 @@ public class UserBadge {
 
     @Column(name = "acquired_at", nullable = false)
     private LocalDateTime acquiredAt;
+
+    private UserBadge(Long userId, Badge badge) {
+        this.userId = userId;
+        this.badge = badge;
+        this.acquiredAt = LocalDateTime.now();
+    }
+
+    public static UserBadge acquire(Long userId, Badge badge) {
+        return new UserBadge(userId, badge);
+    }
 }

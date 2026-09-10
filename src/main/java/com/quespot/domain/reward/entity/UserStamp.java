@@ -41,4 +41,14 @@ public class UserStamp {
 
     @Column(name = "acquired_at", nullable = false)
     private LocalDateTime acquiredAt;
+
+    private UserStamp(Long userId, Stamp stamp) {
+        this.userId = userId;
+        this.stamp = stamp;
+        this.acquiredAt = LocalDateTime.now();
+    }
+
+    public static UserStamp acquire(Long userId, Stamp stamp) {
+        return new UserStamp(userId, stamp);
+    }
 }
