@@ -7,7 +7,6 @@ import com.quespot.domain.user.enums.TravelStyle;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import org.hibernate.validator.constraints.URL;
 
 import java.time.LocalDate;
 import java.util.Set;
@@ -20,8 +19,8 @@ public record UpdateProfileRequestDTO(
         )
         String nickname,
 
-        @URL(protocol = "https", message = "프로필 이미지 URL은 올바른 HTTPS URL이어야 합니다.")
-        String profileImageUrl,
+        @Size(max = 1024, message = "프로필 이미지 객체 키는 1024자 이하여야 합니다.")
+        String profileImageObjectKey,
 
         Gender gender,
 
@@ -37,8 +36,8 @@ public record UpdateProfileRequestDTO(
 ) {
 
     public UpdateProfileRequestDTO {
-        if (profileImageUrl != null) {
-            profileImageUrl = profileImageUrl.trim();
+        if (profileImageObjectKey != null) {
+            profileImageObjectKey = profileImageObjectKey.trim();
         }
     }
 }

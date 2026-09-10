@@ -103,6 +103,22 @@ public class S3Service {
         }
     }
 
+    public void validateOwnedObjectKey(
+            Long userId,
+            UploadPurpose purpose,
+            String objectKey
+    ) {
+        validateObjectKey(objectKey);
+        if (userId == null || userId <= 0 || purpose == null) {
+            throw new S3Exception(S3ErrorCode.INVALID_OBJECT_KEY);
+        }
+
+        String expectedPrefix = "%s/%d/".formatted(purpose.getDirectory(), userId);
+        if (!objectKey.startsWith(expectedPrefix)) {
+            throw new S3Exception(S3ErrorCode.INVALID_OBJECT_KEY);
+        }
+    }
+
     public void deleteObject(String objectKey) {
         validateConfiguration();
         validateObjectKey(objectKey);
