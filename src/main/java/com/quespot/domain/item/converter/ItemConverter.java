@@ -1,5 +1,6 @@
 package com.quespot.domain.item.converter;
 
+import com.quespot.domain.item.dto.res.EquippedItemResponseDTO;
 import com.quespot.domain.item.dto.res.ShopItemResponseDTO;
 import com.quespot.domain.item.dto.res.UserItemResponseDTO;
 import com.quespot.domain.item.entity.ShopItem;
@@ -26,7 +27,6 @@ public class ItemConverter {
 
     public static UserItemResponseDTO toUserItemResponseDTO(UserItem userItem) {
         ShopItem item = userItem.getItem();
-
         return new UserItemResponseDTO(
                 item.getId(),
                 item.getName(),
@@ -36,6 +36,17 @@ public class ItemConverter {
                 userItem.getIsEquipped(),
                 userItem.getPurchasedAt(),
                 userItem.getEquippedAt()
+        );
+    }
+
+    public static EquippedItemResponseDTO toEquippedItemResponseDTO(UserItem userItem) {
+        ShopItem item = userItem.getItem();
+        return new EquippedItemResponseDTO(
+                item.getId(),
+                item.getCategory(),
+                item.getName(),
+                item.getImageUrl(),
+                item.getRarity()
         );
     }
 }

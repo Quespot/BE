@@ -20,7 +20,10 @@ public enum RewardSuccessCode implements BaseCode {
 
     STAMPS_FOUND(HttpStatus.OK,
             "REWARD_200_004",
-            "스탬프 목록을 조회했습니다.");
+            "스탬프 목록을 조회했습니다."),
+    ACHIEVEMENTS_FOUND(HttpStatus.OK,
+            "REWARD_200_005",
+            "달성 현황을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

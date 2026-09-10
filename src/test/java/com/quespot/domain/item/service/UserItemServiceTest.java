@@ -10,6 +10,8 @@ import com.quespot.domain.item.exception.ItemException;
 import com.quespot.domain.item.exception.code.ItemErrorCode;
 import com.quespot.domain.item.repository.EquipSlotLimitRepository;
 import com.quespot.domain.item.repository.UserItemRepository;
+import com.quespot.domain.item.dto.res.EquippedItemResponseDTO;
+import com.quespot.domain.item.dto.res.QuestyResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -139,5 +141,39 @@ class UserItemServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).itemId()).isEqualTo(10L);
+    }
+
+    @Test
+    void questyReturnsOnlyEquippedItemsWithOwnedCountAndHighestRarity() {
+        ShopItem hat = ShopItem.seed("HAT", "탐험가 모자", ItemCategory.HAT, ItemRarity.NORMAL, 0, true, false);
+        ReflectionTestUtils.setField(hat, "id", 1L);
+        ShopItem crown = ShopItem.seed("CROWN", "황금 왕관", ItemCategory.HAT, ItemRarity.LEGENDARY, 300, false, false);
+        ReflectionTestUtils.setField(crown, "id", 2L);
+        ShopItem scarf = ShopItem.seed("SCARF", "파란 스카프", ItemCategory.ACCESSORY, ItemRarity.RARE, 0, true, false);
+        ReflectionTestUtils.setField(scarf, "id", 3L);
+        UserItem ownedHat = UserItem.acquire(1L, hat);
+        ownedHat.equip();
+        UserItem ownedCrown = UserItem.acquire(1L, crown);          // 미장착
+        UserItem ownedScarf = UserItem.acquire(1L, scarf);
+        ownedScarf.equip();
+        when(userItemRepository.findAllByUserIdWithItem(1L)).thenReturn(List.of(ownedScarf, ownedCrown, ownedHat));
+
+        QuestyResponseDTO result = userItemService.getQuesty(1L);
+
+        assertThat(result.ownedItemCount()).isEqualTo(3);
+        assertThat(result.highestRarity()).isEqualTo(ItemRarity.LEGENDARY);
+        assertThat(result.equippedItems()).extracting(EquippedItemResponseDTO::itemId).containsExactly(1L, 3L); // HAT -> ACCESSORY
+        assertThat(result.equippedItems().get(0).name()).isEqualTo("탐험가 모자");
+    }
+
+    @Test
+    void questyOfUserWithNoItemsHasNullHighestRarity() {
+        when(userItemRepository.findAllByUserIdWithItem(1L)).thenReturn(List.of());
+
+        QuestyResponseDTO result = userItemService.getQuesty(1L);
+
+        assertThat(result.equippedItems()).isEmpty();
+        assertThat(result.ownedItemCount()).isZero();
+        assertThat(result.highestRarity()).isNull();
     }
 }

@@ -1,5 +1,6 @@
 package com.quespot.domain.reward.service;
 
+import com.quespot.domain.reward.exception.RewardException;
 import com.quespot.domain.reward.repository.PointTransactionRepository;
 import com.quespot.domain.reward.repository.UserPointRepository;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,8 @@ class PointServiceIntegrationTest {
 
         assertThat(userPointRepository.findById(9001L)).isPresent();
         assertThat(userPointRepository.findById(9001L).get().getBalance()).isEqualTo(100);
-        assertThat(pointTransactionRepository.findAll()).hasSize(1);
+        // 같은 컨테이너를 다른 테스트가 공유하므로 이 사용자 행만 센다.
+        assertThat(pointTransactionRepository.findAll()).filteredOn(t -> t.getUserId().equals(9001L)).hasSize(1);
 
         assertThatThrownBy(() ->
                 pointService.credit(9001L, 100, "MISSION_REWARD", "MISSION_ATTEMPT", 1L, "미션 완료 보상")
@@ -64,6 +66,29 @@ class PointServiceIntegrationTest {
         // 제약이 예외를 던진다"만 확인할 뿐, upsert까지 함께 롤백되는
         // 원자성은 검증하지 못한다.
         assertThat(userPointRepository.findById(9001L).get().getBalance()).isEqualTo(100);
-        assertThat(pointTransactionRepository.findAll()).hasSize(1);
+        // 같은 컨테이너를 다른 테스트가 공유하므로 이 사용자 행만 센다.
+        assertThat(pointTransactionRepository.findAll()).filteredOn(t -> t.getUserId().equals(9001L)).hasSize(1);
+    }
+
+    @Test
+    void debitIsConditionalAndFailsWithoutTouchingBalanceWhenInsufficient() {
+        pointService.credit(9005L, 100, "MISSION_REWARD", "MISSION_ATTEMPT", 50L, "보상");
+
+        assertThatThrownBy(() -> pointService.debit(9005L, 150, "ITEM_PURCHASE", "SHOP_ITEM", 1L, "구매"))
+                .isInstanceOf(RewardException.class);
+        assertThat(userPointRepository.findById(9005L).get().getBalance()).isEqualTo(100);
+
+        int balance = pointService.debit(9005L, 100, "ITEM_PURCHASE", "SHOP_ITEM", 1L, "구매");
+
+        assertThat(balance).isZero();
+        assertThat(userPointRepository.findById(9005L).get().getTotalSpent()).isEqualTo(100);
+        assertThat(userPointRepository.findById(9005L).get().getTotalEarned()).isEqualTo(100);
+    }
+
+    @Test
+    void debitForUserWithoutPointRowIsInsufficient() {
+        assertThatThrownBy(() -> pointService.debit(9006L, 1, "ITEM_PURCHASE", "SHOP_ITEM", 1L, "구매"))
+                .isInstanceOf(RewardException.class);
+        assertThat(userPointRepository.findById(9006L)).isEmpty();
     }
 }

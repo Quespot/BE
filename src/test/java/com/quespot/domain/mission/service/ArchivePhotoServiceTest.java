@@ -2,6 +2,7 @@ package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.entity.ArchivePhoto;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
+import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.global.s3.exception.S3Exception;
 import com.quespot.global.s3.exception.code.S3ErrorCode;
 import com.quespot.global.s3.service.S3ObjectKeyValidator;
@@ -13,6 +14,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ArchivePhotoServiceTest {
@@ -21,15 +25,19 @@ class ArchivePhotoServiceTest {
 
     private ArchivePhotoRepository archivePhotoRepository;
     private S3Service s3Service;
+    private AchievementService achievementService;
     private ArchivePhotoService archivePhotoService;
 
     @BeforeEach
     void setUp() {
         archivePhotoRepository = mock(ArchivePhotoRepository.class);
         s3Service = mock(S3Service.class);
+        achievementService = mock(AchievementService.class);
         // 실제 인스턴스 — key 패턴 검증은 순수 로직이라 목킹 없이 그대로 검증 가능.
         S3ObjectKeyValidator s3ObjectKeyValidator = new S3ObjectKeyValidator();
-        archivePhotoService = new ArchivePhotoService(archivePhotoRepository, s3ObjectKeyValidator, s3Service);
+        archivePhotoService = new ArchivePhotoService(
+                archivePhotoRepository, s3ObjectKeyValidator, s3Service, achievementService
+        );
         when(archivePhotoRepository.save(any(ArchivePhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
@@ -40,6 +48,7 @@ class ArchivePhotoServiceTest {
         assertThat(photo.getUserId()).isEqualTo(1L);
         assertThat(photo.getImageKey()).isEqualTo(VALID_OBJECT_KEY);
         assertThat(photo.getCaption()).isEqualTo("혼자 찍음");
+        verify(achievementService).onPhotoRegistered(1L);
     }
 
     @Test
@@ -50,7 +59,9 @@ class ArchivePhotoServiceTest {
         ArchivePhoto photo = archivePhotoService.registerPhoto(1L, VALID_OBJECT_KEY, "재시도로 다시 옴");
 
         assertThat(photo).isSameAs(existing);
-        org.mockito.Mockito.verify(archivePhotoRepository, org.mockito.Mockito.never()).save(any(ArchivePhoto.class));
+        verify(archivePhotoRepository, never()).save(any(ArchivePhoto.class));
+        // 재제출은 사진 수가 안 늘어나므로 배지 판정도 안 돈다(#50).
+        verifyNoInteractions(achievementService);
     }
 
     @Test

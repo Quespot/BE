@@ -18,6 +18,8 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
 
     Optional<UserItem> findByUserIdAndItem_Id(Long userId, Long itemId);
 
+    boolean existsByUserIdAndItem_Id(Long userId, Long itemId);
+
     // 같은 유저·카테고리의 UserItem 전체를 잠가 장착 슬롯 한도 위반을 막는다 (동시 장착 요청 대비)
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select ui from UserItem ui where ui.userId = :userId and ui.item.category = :category")

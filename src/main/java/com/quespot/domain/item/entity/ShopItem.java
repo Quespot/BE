@@ -73,6 +73,11 @@ public class ShopItem extends BaseEntity {
             Boolean isDefault,
             Boolean isFeatured
     ) {
+        // 음수 가격은 차감 없이 지급되는 경로가 된다(ItemPurchaseService는 price > 0일 때만 차감).
+        // DB CHECK는 ddl-auto: update가 기존 테이블에 안 붙이므로 Flyway 도입 때 같이 건다.
+        if (price == null || price < 0) {
+            throw new IllegalArgumentException("아이템 가격은 0 이상이어야 합니다: " + price);
+        }
         this.code = code;
         this.name = name;
         this.category = category;

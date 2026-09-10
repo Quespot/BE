@@ -39,9 +39,8 @@ public class Badge {
     @Column(name = "icon_url", columnDefinition = "TEXT")
     private String iconUrl;
 
-    // 획득 조건 판정은 미션 완료 로직이 선행되어야 하므로 이번 범위 밖.
-    // NOT NULL 제약을 맞추기 위한 {metric, scope, threshold} 형태의 placeholder이며,
-    // 실제 값은 미션 도메인에서 판정 로직을 만들 때 재정의해야 한다.
+    // {metric, scope?: {regionCode}, threshold} — AchievementService가 BadgeCondition으로
+    // 파싱해 판정한다(#50). 마스터 정의는 RewardMasterDataSeeder가 코드 기준으로 맞춘다.
     @Column(name = "condition_json", nullable = false, columnDefinition = "json")
     private String conditionJson;
 
@@ -74,5 +73,20 @@ public class Badge {
             int sortOrder
     ) {
         return new Badge(code, name, description, conditionJson, sortOrder);
+    }
+
+    // 시더가 기동 시 마스터 정의(condition_json 등)를 코드 기준으로 맞출 때 쓴다.
+    public void updateMaster(String name, String description, String conditionJson, int sortOrder) {
+        this.name = name;
+        this.description = description;
+        this.conditionJson = conditionJson;
+        this.sortOrder = sortOrder;
+        this.isActive = true;
+    }
+
+    // 마스터 목록에서 빠진 배지(부산 탐험 보류 등)는 user_badges FK 때문에
+    // 삭제하지 않고 비활성으로 내린다. 판정·분모는 is_active=true만 본다.
+    public void deactivate() {
+        this.isActive = false;
     }
 }

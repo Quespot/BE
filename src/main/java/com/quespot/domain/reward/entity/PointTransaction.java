@@ -68,4 +68,16 @@ public class PointTransaction {
         transaction.createdAt = LocalDateTime.now();
         return transaction;
     }
+
+    // 사용은 음수 amount로 원장에 남긴다. balanceAfter는 차감 직후 잔액.
+    public static PointTransaction spend(
+            Long userId,
+            int amount,
+            String type,
+            String referenceType,
+            Long referenceId,
+            int balanceAfter
+    ) {
+        return earn(userId, -amount, type, referenceType, referenceId, balanceAfter);
+    }
 }
