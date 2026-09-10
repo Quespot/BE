@@ -104,7 +104,8 @@ public class SwaggerConfig {
                         "/api/users/me/points/**",
                         "/api/users/me/reward-activities/**",
                         "/api/users/me/badges/**",
-                        "/api/users/me/stamps/**"
+                        "/api/users/me/stamps/**",
+                        "/api/users/me/achievements/**"
                 )
                 .build();
     }
