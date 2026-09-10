@@ -1,8 +1,6 @@
 package com.quespot.domain.like.service;
 
 import com.quespot.domain.like.enums.LikeTargetType;
-import com.quespot.domain.like.exception.LikeException;
-import com.quespot.domain.like.exception.code.LikeErrorCode;
 import com.quespot.domain.like.repository.LikeRepository;
 import com.quespot.domain.mission.enums.MissionCourseStatus;
 import com.quespot.domain.mission.enums.MissionStatus;
@@ -11,23 +9,21 @@ import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionCourseRepository;
 import com.quespot.domain.mission.repository.MissionRepository;
 import com.quespot.domain.mission.service.CourseLockPolicy;
-import com.quespot.domain.spot.repository.SpotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-// 등록은 리소스마다 검증이 다르고(잠긴 미션, 비표출 스팟, 남의 코스) 저장은
-// 공통 upsert 하나다. 해제는 검증 없이 항상 성공 — 대상이 나중에 비활성으로
-// 바뀌어도 사용자는 좋아요를 풀 수 있어야 한다.
+// 등록은 리소스마다 검증이 다르고(잠긴 미션, 남의 코스) 저장은 공통 upsert 하나다.
+// 해제는 검증 없이 항상 성공 — 대상이 나중에 비활성으로 바뀌어도 사용자는
+// 좋아요를 풀 수 있어야 한다.
 @Service
 @RequiredArgsConstructor
 public class LikeService {
 
     private final LikeRepository likeRepository;
     private final MissionRepository missionRepository;
-    private final SpotRepository spotRepository;
     private final MissionCourseRepository missionCourseRepository;
     private final CourseLockPolicy courseLockPolicy;
 
@@ -40,14 +36,6 @@ public class LikeService {
             throw new MissionException(MissionErrorCode.MISSION_LOCKED);
         }
         likeRepository.upsert(userId, LikeTargetType.MISSION.name(), missionId);
-    }
-
-    @Transactional
-    public void likeSpot(Long userId, Long spotId) {
-        spotRepository.findById(spotId)
-                .filter(spot -> Boolean.TRUE.equals(spot.getShowFlag()))
-                .orElseThrow(() -> new LikeException(LikeErrorCode.SPOT_NOT_FOUND));
-        likeRepository.upsert(userId, LikeTargetType.SPOT.name(), spotId);
     }
 
     @Transactional

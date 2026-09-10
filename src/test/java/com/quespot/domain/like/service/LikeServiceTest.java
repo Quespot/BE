@@ -1,8 +1,6 @@
 package com.quespot.domain.like.service;
 
 import com.quespot.domain.like.enums.LikeTargetType;
-import com.quespot.domain.like.exception.LikeException;
-import com.quespot.domain.like.exception.code.LikeErrorCode;
 import com.quespot.domain.like.repository.LikeRepository;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionCourse;
@@ -13,8 +11,6 @@ import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionCourseRepository;
 import com.quespot.domain.mission.repository.MissionRepository;
 import com.quespot.domain.mission.service.CourseLockPolicy;
-import com.quespot.domain.spot.entity.Spot;
-import com.quespot.domain.spot.repository.SpotRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +30,6 @@ class LikeServiceTest {
 
     private LikeRepository likeRepository;
     private MissionRepository missionRepository;
-    private SpotRepository spotRepository;
     private MissionCourseRepository missionCourseRepository;
     private CourseLockPolicy courseLockPolicy;
     private LikeService likeService;
@@ -43,12 +38,9 @@ class LikeServiceTest {
     void setUp() {
         likeRepository = mock(LikeRepository.class);
         missionRepository = mock(MissionRepository.class);
-        spotRepository = mock(SpotRepository.class);
         missionCourseRepository = mock(MissionCourseRepository.class);
         courseLockPolicy = mock(CourseLockPolicy.class);
-        likeService = new LikeService(
-                likeRepository, missionRepository, spotRepository, missionCourseRepository, courseLockPolicy
-        );
+        likeService = new LikeService(likeRepository, missionRepository, missionCourseRepository, courseLockPolicy);
     }
 
     @Test
@@ -85,30 +77,6 @@ class LikeServiceTest {
     }
 
     @Test
-    void likeSpotThrowsWhenSpotHiddenByShowFlag() {
-        Spot hidden = mock(Spot.class);
-        when(hidden.getShowFlag()).thenReturn(false);
-        when(spotRepository.findById(3L)).thenReturn(Optional.of(hidden));
-
-        assertThatThrownBy(() -> likeService.likeSpot(7L, 3L))
-                .isInstanceOf(LikeException.class)
-                .extracting(e -> ((LikeException) e).getErrorCode())
-                .isEqualTo(LikeErrorCode.SPOT_NOT_FOUND);
-        verifyNoInteractions(likeRepository);
-    }
-
-    @Test
-    void likeSpotUpsertsWhenSpotVisible() {
-        Spot visible = mock(Spot.class);
-        when(visible.getShowFlag()).thenReturn(true);
-        when(spotRepository.findById(3L)).thenReturn(Optional.of(visible));
-
-        likeService.likeSpot(7L, 3L);
-
-        verify(likeRepository).upsert(7L, "SPOT", 3L);
-    }
-
-    @Test
     void likeCourseThrowsWhenCourseOwnedByAnotherUser() {
         MissionCourse course = mock(MissionCourse.class);
         when(course.getCreatedByUserId()).thenReturn(99L);
@@ -137,6 +105,6 @@ class LikeServiceTest {
         likeService.unlike(7L, LikeTargetType.MISSION, 1L);
 
         verify(likeRepository).deleteByUserIdAndTargetTypeAndTargetId(7L, LikeTargetType.MISSION, 1L);
-        verifyNoInteractions(missionRepository, spotRepository, missionCourseRepository, courseLockPolicy);
+        verifyNoInteractions(missionRepository, missionCourseRepository, courseLockPolicy);
     }
 }

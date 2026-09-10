@@ -19,8 +19,9 @@ import java.time.LocalDateTime;
 
 // target_type + target_id 다형성 참조라 FK가 없다 — 의도된 설계(CLAUDE.md).
 // 등록은 LikeRepository.upsert(네이티브 ON DUPLICATE KEY UPDATE)로만 한다.
-// 이 엔티티는 조회·삭제 매핑과 DDL 생성용이다.
-@Entity
+// JPQL 엔티티명은 UserLike — "Like"는 HQL 키워드(LIKE)와 겹쳐 `from Like l`이
+// 파싱 오류를 낼 수 있어서다. 테이블명(likes)과 클래스명은 그대로 둔다.
+@Entity(name = "UserLike")
 @Table(
         name = "likes",
         uniqueConstraints = {

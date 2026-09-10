@@ -11,12 +11,12 @@ public enum LikeSuccessCode implements BaseCode {
     UNLIKED(HttpStatus.OK,
             "LIKE_200_002",
             "좋아요를 해제했습니다."),
-    SPOT_SAVED(HttpStatus.OK,
+    LIKED_MISSIONS_FOUND(HttpStatus.OK,
             "LIKE_200_003",
-            "장소를 저장했습니다."),
-    SPOT_UNSAVED(HttpStatus.OK,
+            "좋아요한 미션 목록을 조회했습니다."),
+    LIKED_COURSES_FOUND(HttpStatus.OK,
             "LIKE_200_004",
-            "저장을 해제했습니다.");
+            "좋아요한 코스 목록을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
