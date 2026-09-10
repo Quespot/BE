@@ -46,10 +46,12 @@ class MissionSpotQueryServiceTest {
     void returnsOnlyDistrictsHavingActiveMissionsAndCountsCompletedDistricts() {
         AdministrativeDistrict jongno = district("11110", "종로구");
         AdministrativeDistrict gangnam = district("11680", "강남구");
+        MissionSpotSummaryProjection jongnoSummary = summary("11110", 2L, 2L);
+        MissionSpotSummaryProjection gangnamSummary = summary("11680", 3L, 1L);
         when(districtResolver.findByRegionCode("11")).thenReturn(List.of(jongno, gangnam));
         when(missionRepository.findMissionSpotSummaries(1L, "11")).thenReturn(List.of(
-                summary("11110", 2L, 2L),
-                summary("11680", 3L, 1L)
+                jongnoSummary,
+                gangnamSummary
         ));
 
         var response = service.getMissionSpots(1L, "11");
