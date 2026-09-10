@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record RegisterMissionPhotoRequestDTO(
-        @NotBlank String imageUrl,
+        @NotBlank String objectKey,
         @Size(max = 255) String caption,
         @DecimalMin("-90") @DecimalMax("90") BigDecimal latitude,
         @DecimalMin("-180") @DecimalMax("180") BigDecimal longitude,

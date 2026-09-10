@@ -114,24 +114,35 @@ public class MissionAttemptController {
     ) {
         MissionAttempt attempt = missionAttemptService.getAttempt(principal.userId(), attemptId);
         var photo = missionPhotoService.findByAttemptId(attemptId).orElse(null);
+        String photoViewUrl = missionPhotoService.resolveViewUrl(photo);
         return ApiResponse.of(
                 MissionSuccessCode.MISSION_ATTEMPT_RESULT_FOUND,
-                MissionConverter.toAttemptResultResponse(attempt, photo)
+                MissionConverter.toAttemptResultResponse(attempt, photoViewUrl)
         );
     }
 
     @PostMapping("/api/mission-attempts/{attemptId}/photos")
-    @Operation(summary = "완료 후 사진 기록")
+    @Operation(
+            summary = "완료 후 사진 기록",
+            description = """
+                    업로드 3단계 흐름의 마지막 단계. 먼저 POST /api/files/presigned-upload-url(purpose=MISSION)로
+                    objectKey와 uploadUrl을 발급받아 파일을 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다
+                    (버킷이 비공개라 URL이 아니라 objectKey를 제출한다 — 조회 시 서버가 매번 새로 서명한
+                    presigned GET URL로 응답한다). missions/ 아래이고 본인이 발급받은 objectKey가 아니면
+                    거부된다.
+                    """
+    )
     public ApiResponse<MissionPhotoResponseDTO> registerPhoto(
             @PathVariable @Positive Long attemptId,
             @Valid @RequestBody RegisterMissionPhotoRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
         var photo = missionPhotoService.registerPhoto(
-                principal.userId(), attemptId, request.imageUrl(), request.caption(),
+                principal.userId(), attemptId, request.objectKey(), request.caption(),
                 request.latitude(), request.longitude(), request.takenAt()
         );
-        return ApiResponse.of(MissionSuccessCode.MISSION_PHOTO_REGISTERED, MissionConverter.toPhotoResponse(photo));
+        String photoViewUrl = missionPhotoService.resolveViewUrl(photo);
+        return ApiResponse.of(MissionSuccessCode.MISSION_PHOTO_REGISTERED, MissionConverter.toPhotoResponse(photo, photoViewUrl));
     }
 
     @PostMapping("/api/mission-attempts/{attemptId}/reflection")

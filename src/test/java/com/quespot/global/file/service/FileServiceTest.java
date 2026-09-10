@@ -113,13 +113,20 @@ class FileServiceTest {
     void rejectsObjectKeyOwnedByAnotherUser() {
         assertFileError(() -> fileService.validateOwnedObjectKey(
                 1L, UploadPurpose.PROFILE, "profiles/2/profile.jpg"
-        ), FileErrorCode.INVALID_OBJECT_KEY);
+        ), FileErrorCode.OBJECT_KEY_OWNER_MISMATCH);
     }
 
     @Test
     void rejectsObjectKeyForAnotherPurpose() {
         assertFileError(() -> fileService.validateOwnedObjectKey(
                 1L, UploadPurpose.PROFILE, "archives/1/archive.jpg"
+        ), FileErrorCode.OBJECT_KEY_WRONG_PURPOSE);
+    }
+
+    @Test
+    void rejectsObjectKeyWithExtraPathSegment() {
+        assertFileError(() -> fileService.validateOwnedObjectKey(
+                1L, UploadPurpose.PROFILE, "profiles/1/extra/profile.jpg"
         ), FileErrorCode.INVALID_OBJECT_KEY);
     }
 

@@ -90,7 +90,8 @@ public class SwaggerConfig {
                         "/api/mission-spots/**",
                         "/api/mission-attempts/**",
                         "/api/mission-courses/**",
-                        "/api/photo-verifications/**"
+                        "/api/photo-verifications/**",
+                        "/api/users/me/archives/**"
                 )
                 .build();
     }

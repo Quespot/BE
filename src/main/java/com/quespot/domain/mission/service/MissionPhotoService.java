@@ -7,6 +7,8 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
+import com.quespot.global.file.enums.UploadPurpose;
+import com.quespot.global.file.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +23,13 @@ public class MissionPhotoService {
 
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionPhotoRepository missionPhotoRepository;
+    private final FileService fileService;
 
     @Transactional
     public MissionPhoto registerPhoto(
             Long userId,
             Long attemptId,
-            String imageUrl,
+            String objectKey,
             String caption,
             BigDecimal latitude,
             BigDecimal longitude,
@@ -53,13 +56,22 @@ public class MissionPhotoService {
         BigDecimal effectiveLatitude = latitude != null ? latitude : attempt.getMission().getSnapshotLatitude();
         BigDecimal effectiveLongitude = longitude != null ? longitude : attempt.getMission().getSnapshotLongitude();
 
+        fileService.validateOwnedObjectKey(userId, UploadPurpose.MISSION, objectKey);
+
         return missionPhotoRepository.save(
-                MissionPhoto.record(attempt, imageUrl, caption, effectiveLatitude, effectiveLongitude, takenAt)
+                MissionPhoto.record(attempt, objectKey, caption, effectiveLatitude, effectiveLongitude, takenAt)
         );
     }
 
     @Transactional(readOnly = true)
     public Optional<MissionPhoto> findByAttemptId(Long attemptId) {
         return missionPhotoRepository.findByAttemptId(attemptId);
+    }
+
+    // 저장된 objectKey를 매번 새로 서명한 presigned GET URL로 바꿔서 돌려준다
+    // (버킷이 비공개라 저장된 값 그대로는 렌더링할 수 없다, #45). presign은
+    // 로컬 서명 계산이라 외부 API 호출이 아니다 — 트랜잭션 안에서 호출해도 된다.
+    public String resolveViewUrl(MissionPhoto photo) {
+        return photo == null ? null : fileService.createPresignedDownloadUrl(photo.getImageKey());
     }
 }

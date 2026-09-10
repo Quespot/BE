@@ -18,6 +18,11 @@ import java.time.LocalDateTime;
 
 // 미션당 1장 제약은 unique=true로 DB UNIQUE(attempt_id)를 건다.
 // score/phash/ai_provider 같은 AI 판정용 컬럼은 넣지 않는다 — 순수 기록용.
+//
+// image_url 컬럼(스키마는 안 바꿈, #45)엔 실제로는 URL이 아니라 S3 objectKey를
+// 저장한다 — 버킷이 비공개(Public Access Block 유지, 이슈 #42)라 저장 시점엔
+// 아직 렌더링 가능한 URL이 없고, 조회 시점에 FileService.createPresignedDownloadUrl로
+// 매번 새로 만든다. 그래서 자바 필드/게터는 imageKey로 정직하게 이름 붙인다.
 @Entity
 @Table(name = "mission_photos")
 @Getter
@@ -34,7 +39,7 @@ public class MissionPhoto {
     private MissionAttempt attempt;
 
     @Column(name = "image_url", nullable = false, columnDefinition = "TEXT")
-    private String imageUrl;
+    private String imageKey;
 
     @Column(name = "caption")
     private String caption;
@@ -55,14 +60,14 @@ public class MissionPhoto {
 
     private MissionPhoto(
             MissionAttempt attempt,
-            String imageUrl,
+            String imageKey,
             String caption,
             BigDecimal latitude,
             BigDecimal longitude,
             LocalDateTime takenAt
     ) {
         this.attempt = attempt;
-        this.imageUrl = imageUrl;
+        this.imageKey = imageKey;
         this.caption = caption;
         this.latitude = latitude;
         this.longitude = longitude;
@@ -72,12 +77,12 @@ public class MissionPhoto {
 
     public static MissionPhoto record(
             MissionAttempt attempt,
-            String imageUrl,
+            String imageKey,
             String caption,
             BigDecimal latitude,
             BigDecimal longitude,
             LocalDateTime takenAt
     ) {
-        return new MissionPhoto(attempt, imageUrl, caption, latitude, longitude, takenAt);
+        return new MissionPhoto(attempt, imageKey, caption, latitude, longitude, takenAt);
     }
 }

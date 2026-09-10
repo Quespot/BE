@@ -5,6 +5,8 @@ import com.quespot.domain.mission.dto.res.ArrivalResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
@@ -14,9 +16,12 @@ import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
 import com.quespot.domain.mission.entity.MissionCandidate;
+import com.quespot.domain.mission.entity.ArchivePhoto;
 import com.quespot.domain.mission.entity.MissionPhoto;
+import com.quespot.domain.mission.enums.ArchivePhotoSource;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.UserMissionStatus;
+import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.spot.entity.Spot;
@@ -145,19 +150,22 @@ public class MissionConverter {
         );
     }
 
-    public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, MissionPhoto photo) {
+    // photoViewUrl은 서비스 레이어가 MissionPhotoService.resolveViewUrl(photo)로
+    // 미리 만들어 넘긴다 — MissionConverter는 static 유틸이라 FileService를 주입받을
+    // 수 없다(엔티티→DTO 변환은 static Converter로 한다는 컨벤션 유지, #45).
+    public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, String photoViewUrl) {
         return new MissionAttemptResultResponseDTO(
                 attempt.getId(),
                 attempt.getMission().getTitle(),
                 attempt.getEarnedPoint(),
                 attempt.getCompletedAt(),
-                photo == null ? null : photo.getImageUrl()
+                photoViewUrl
         );
     }
 
-    public static MissionPhotoResponseDTO toPhotoResponse(MissionPhoto photo) {
+    public static MissionPhotoResponseDTO toPhotoResponse(MissionPhoto photo, String photoViewUrl) {
         return new MissionPhotoResponseDTO(
-                photo.getId(), photo.getImageUrl(), photo.getCaption(),
+                photo.getId(), photoViewUrl, photo.getCaption(),
                 photo.getLatitude(), photo.getLongitude(), photo.getTakenAt()
         );
     }
@@ -217,6 +225,32 @@ public class MissionConverter {
     ) {
         return new com.quespot.domain.mission.dto.res.CourseAttemptListResponseDTO(
                 attempts.stream().map(MissionConverter::toCourseAttemptResponse).toList()
+        );
+    }
+
+    public static MissionArchiveItemResponseDTO toArchiveItem(ArchivePhoto photo, String photoViewUrl) {
+        return new MissionArchiveItemResponseDTO(
+                photo.getId(), ArchivePhotoSource.ARCHIVE, photoViewUrl, photo.getCaption(),
+                null, null, null,
+                null, photo.getCreatedAt()
+        );
+    }
+
+    public static MissionArchiveItemResponseDTO toArchiveItem(ArchiveFeedRowProjection row, String photoViewUrl) {
+        MissionCategory category = row.getMissionCategory() == null
+                ? null : MissionCategory.valueOf(row.getMissionCategory());
+        return new MissionArchiveItemResponseDTO(
+                row.getId(), ArchivePhotoSource.valueOf(row.getSource()), photoViewUrl, row.getCaption(),
+                row.getMissionId(), row.getMissionTitle(), category,
+                row.getCompletedAt(), row.getCreatedAt()
+        );
+    }
+
+    public static MissionArchiveListResponseDTO toArchiveListResponse(
+            List<MissionArchiveItemResponseDTO> items, String nextCursor, boolean hasNext
+    ) {
+        return new MissionArchiveListResponseDTO(
+                items, nextCursor, hasNext
         );
     }
 

@@ -66,9 +66,15 @@ public class FileService {
             throw new FileException(FileErrorCode.INVALID_OBJECT_KEY);
         }
 
-        String expectedPrefix = "%s/%d/".formatted(purpose.getDirectory(), userId);
-        if (!objectKey.startsWith(expectedPrefix)) {
+        String[] segments = objectKey.split("/", -1);
+        if (segments.length != 3 || segments[2].isBlank()) {
             throw new FileException(FileErrorCode.INVALID_OBJECT_KEY);
+        }
+        if (!purpose.getDirectory().equals(segments[0])) {
+            throw new FileException(FileErrorCode.OBJECT_KEY_WRONG_PURPOSE);
+        }
+        if (!userId.toString().equals(segments[1])) {
+            throw new FileException(FileErrorCode.OBJECT_KEY_OWNER_MISMATCH);
         }
     }
 
