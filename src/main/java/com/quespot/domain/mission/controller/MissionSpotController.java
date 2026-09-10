@@ -63,7 +63,14 @@ public class MissionSpotController {
     }
 
     @GetMapping("/{districtCode}/missions")
-    @Operation(summary = "행정구역 미션 목록 조회")
+    @Operation(
+            summary = "행정구역 미션 목록 조회",
+            description = """
+                    미션 목록(GET /api/missions)과 같은 커서 규칙이다: 첫 요청은 cursor 없이, nextCursor를 그대로 넣고,
+                    hasNext=false면 nextCursor는 null, 빈 결과는 빈 배열. 커서에 좌표 유무와 정렬 모드가 묶여 있고 랜덤순(좌표 없음)
+                    커서는 날짜(KST)가 바뀌면 MISSION_400_002로 거부되니 그때는 cursor 없이 처음부터 다시 요청한다.
+                    """
+    )
     public ApiResponse<MissionListResponseDTO> getDistrictMissions(
             @PathVariable @Pattern(regexp = "\\d{5}") String districtCode,
             @RequestParam(required = false) BigDecimal latitude,

@@ -68,7 +68,12 @@ public class AuthController {
     @SecurityRequirements
     @Operation(
             summary = "일반 로그인",
-            description = "이메일과 비밀번호를 검증하고 Access Token을 응답하며, Refresh Token은 쿠키로 발급합니다."
+            description = """
+                    이메일과 비밀번호를 검증합니다. accessToken은 응답 body로 오고 Authorization: Bearer 헤더에 넣습니다.
+                    Refresh Token은 body에 없고 `refreshToken` 이름의 HttpOnly 쿠키(Set-Cookie)로 내려가므로 클라이언트가
+                    직접 읽거나 저장할 필요가 없습니다 — 쿠키를 보내는 설정(credentials 포함)만 켜 두면 됩니다.
+                    profileCompleted=false면 프로필 생성 화면으로 보냅니다.
+                    """
     )
     public ResponseEntity<ApiResponse<LoginResponseDTO>> login(
             @Valid @RequestBody LoginRequestDTO request
@@ -90,7 +95,10 @@ public class AuthController {
     @SecurityRequirements
     @Operation(
             summary = "소셜 로그인 코드 교환",
-            description = "OAuth2 로그인 완료 후 발급된 일회용 코드를 Quespot Access Token과 Refresh Token으로 교환합니다."
+            description = """
+                    OAuth2 로그인 완료 후 프론트로 리다이렉트된 일회용 코드를 토큰으로 교환합니다. 응답 형태는 일반 로그인과 같습니다 —
+                    accessToken은 body, Refresh Token은 HttpOnly 쿠키(refreshToken). 코드는 1회용이라 재사용하면 AUTH_401_006입니다.
+                    """
     )
     public ResponseEntity<ApiResponse<LoginResponseDTO>> exchangeOAuth2LoginCode(
             @Valid @RequestBody OAuth2LoginCodeExchangeRequestDTO request
@@ -112,7 +120,11 @@ public class AuthController {
     @SecurityRequirements
     @Operation(
             summary = "토큰 재발급",
-            description = "쿠키의 Refresh Token을 검증하고 새로운 Access Token을 응답하며, Refresh Token 쿠키를 갱신합니다."
+            description = """
+                    **요청 body가 없습니다.** 쿠키의 refreshToken만 읽습니다(쿠키를 함께 보내는 설정 필요). 새 accessToken을 body로
+                    돌려주고 Refresh Token 쿠키도 응답에서 함께 갱신됩니다. AUTH_401_003(Access Token 만료)을 받았을 때 이 API로
+                    재발급한 뒤 원 요청을 1회 재시도하고, 재발급마저 AUTH_401_004면 로그아웃 처리합니다.
+                    """
     )
     public ResponseEntity<ApiResponse<TokenReissueResponseDTO>> reissueToken(
             @Parameter(hidden = true)

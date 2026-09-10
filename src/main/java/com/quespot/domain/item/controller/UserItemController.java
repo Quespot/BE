@@ -6,6 +6,9 @@ import com.quespot.domain.item.service.UserItemService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -43,6 +46,12 @@ public class UserItemController {
             description = "보유한 아이템을 장착한다. 이미 장착 중이면 그대로 200을 반환한다. "
                     + "같은 카테고리 슬롯이 가득 차면 가장 오래 장착한 아이템부터 자동 해제한다."
     )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "성공", useReturnTypeSchema = true),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404",
+                    description = "ITEM_404_001 보유하지 않은 아이템 — 구매 유도",
+                    content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+    })
     public ApiResponse<Void> equip(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @PathVariable Long itemId

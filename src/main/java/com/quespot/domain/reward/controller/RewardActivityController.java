@@ -29,7 +29,12 @@ public class RewardActivityController {
     @GetMapping
     @Operation(
             summary = "보상 활동 내역 조회",
-            description = "로그인한 사용자의 포인트 적립/사용, 배지·스탬프 획득 내역을 최신순 커서 페이지네이션으로 조회한다."
+            description = """
+                    포인트 적립/사용, 배지·스탬프 획득 내역을 최신순으로 돌려준다. 커서 페이징: 첫 요청은 cursor 없이,
+                    응답의 nextCursor(숫자 id)를 다음 요청의 cursor에 그대로 넣는다. hasNext=false면 마지막 페이지이고
+                    nextCursor는 null. 결과가 없으면 activities는 빈 배열이다.
+                    amount는 포인트 변동량(적립 +, 사용 -)이며 배지·스탬프 획득처럼 포인트 변동이 없는 활동이면 null이다.
+                    """
     )
     public ApiResponse<RewardActivityListResponseDTO> getActivities(
             @AuthenticationPrincipal AuthenticatedUser principal,

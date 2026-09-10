@@ -1,5 +1,6 @@
 package com.quespot.domain.like.dto.res;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import com.quespot.domain.mission.enums.MissionCategory;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ public record LikedMissionResponseDTO(
         String title,
         MissionCategory category,
         String spotName,
+        @Schema(description = "없으면 null", nullable = true)
         String imageUrl,
         Integer rewardPoint,
         Integer estimatedMinutes,
