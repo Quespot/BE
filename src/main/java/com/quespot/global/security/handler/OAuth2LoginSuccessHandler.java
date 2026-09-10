@@ -7,10 +7,10 @@ import com.quespot.domain.user.service.OAuth2LoginService;
 import com.quespot.domain.user.service.OAuth2ProviderToken;
 import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
+import com.quespot.global.security.oauth2.OAuth2FrontendRedirectRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.dao.DataAccessException;
 import org.springframework.security.core.Authentication;
@@ -32,16 +32,16 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final OAuth2LoginService oAuth2LoginService;
     private final ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider;
-    private final String frontendRedirectUri;
+    private final OAuth2FrontendRedirectRepository frontendRedirectRepository;
 
     public OAuth2LoginSuccessHandler(
             OAuth2LoginService oAuth2LoginService,
             ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider,
-            @Value("${app.oauth2.frontend-redirect-uri}") String frontendRedirectUri
+            OAuth2FrontendRedirectRepository frontendRedirectRepository
     ) {
         this.oAuth2LoginService = oAuth2LoginService;
         this.authorizedClientServiceProvider = authorizedClientServiceProvider;
-        this.frontendRedirectUri = frontendRedirectUri;
+        this.frontendRedirectRepository = frontendRedirectRepository;
     }
 
     @Override
@@ -50,9 +50,14 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             HttpServletResponse response,
             Authentication authentication
     ) throws IOException, ServletException {
+        String frontendRedirectUri = frontendRedirectRepository.takeFrontendRedirectUri(request);
         try {
             if (!(authentication instanceof OAuth2AuthenticationToken token)) {
-                redirectWithError(response, AuthErrorCode.OAUTH2_LOGIN_FAILED.getReason().getCode());
+                redirectWithError(
+                        response,
+                        frontendRedirectUri,
+                        AuthErrorCode.OAUTH2_LOGIN_FAILED.getReason().getCode()
+                );
                 return;
             }
 
@@ -87,9 +92,13 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
                     .toUriString();
             response.sendRedirect(redirectUri);
         } catch (AuthException exception) {
-            redirectWithError(response, exception.getErrorReason().getCode());
+            redirectWithError(response, frontendRedirectUri, exception.getErrorReason().getCode());
         } catch (DataAccessException exception) {
-            redirectWithError(response, GeneralErrorCode.COMMON_503_001.getReason().getCode());
+            redirectWithError(
+                    response,
+                    frontendRedirectUri,
+                    GeneralErrorCode.COMMON_503_001.getReason().getCode()
+            );
         } finally {
             OAuth2LinkRequestFilter.clearLinkRequest(request);
             SecurityContextHolder.clearContext();
@@ -127,7 +136,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         );
     }
 
-    private void redirectWithError(HttpServletResponse response, String errorCode) throws IOException {
+    private void redirectWithError(
+            HttpServletResponse response,
+            String frontendRedirectUri,
+            String errorCode
+    ) throws IOException {
         String redirectUri = UriComponentsBuilder.fromUriString(frontendRedirectUri)
                 .queryParam("error", errorCode)
                 .build()

@@ -156,4 +156,35 @@ class S3ServiceTest {
 
         assertThat(result.objectKey()).startsWith("archives/1/").endsWith(".webp");
     }
+
+    @Test
+    void acceptsObjectKeyOwnedByUserForPurpose() {
+        s3Service.validateOwnedObjectKey(
+                1L,
+                UploadPurpose.PROFILE,
+                "profiles/1/profile.jpg"
+        );
+    }
+
+    @Test
+    void rejectsObjectKeyOwnedByAnotherUser() {
+        assertThatThrownBy(() -> s3Service.validateOwnedObjectKey(
+                1L,
+                UploadPurpose.PROFILE,
+                "profiles/2/profile.jpg"
+        )).isInstanceOf(S3Exception.class)
+                .extracting(exception -> ((S3Exception) exception).getErrorCode())
+                .isEqualTo(S3ErrorCode.INVALID_OBJECT_KEY);
+    }
+
+    @Test
+    void rejectsObjectKeyForAnotherPurpose() {
+        assertThatThrownBy(() -> s3Service.validateOwnedObjectKey(
+                1L,
+                UploadPurpose.PROFILE,
+                "archives/1/archive.jpg"
+        )).isInstanceOf(S3Exception.class)
+                .extracting(exception -> ((S3Exception) exception).getErrorCode())
+                .isEqualTo(S3ErrorCode.INVALID_OBJECT_KEY);
+    }
 }

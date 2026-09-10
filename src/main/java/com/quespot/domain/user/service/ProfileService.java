@@ -13,6 +13,8 @@ import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.exception.code.ProfileErrorCode;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserProfileRepository;
+import com.quespot.global.s3.enums.UploadPurpose;
+import com.quespot.global.s3.service.S3Service;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -24,15 +26,18 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
+    private final S3Service s3Service;
     private final String defaultProfileImageUrl;
 
     public ProfileService(
             UserRepository userRepository,
             UserProfileRepository userProfileRepository,
+            S3Service s3Service,
             @Value("${app.profile.default-image-url}") String defaultProfileImageUrl
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
+        this.s3Service = s3Service;
         this.defaultProfileImageUrl = defaultProfileImageUrl;
     }
 
@@ -51,7 +56,7 @@ public class ProfileService {
         UserProfile profile = UserProfile.create(
                 user,
                 request.nickname().trim(),
-                resolveProfileImageUrl(request.profileImageUrl()),
+                resolveProfileImageObjectKey(user.getId(), request.profileImageObjectKey()),
                 request.gender(),
                 request.birthDate(),
                 request.residenceRegion(),
@@ -60,7 +65,7 @@ public class ProfileService {
         );
 
         try {
-            return ProfileConverter.toProfileResponseDTO(userProfileRepository.saveAndFlush(profile));
+            return toProfileResponseDTO(userProfileRepository.saveAndFlush(profile));
         } catch (DataIntegrityViolationException exception) {
             throw new ProfileException(ProfileErrorCode.PROFILE_ALREADY_EXISTS);
         }
@@ -70,7 +75,7 @@ public class ProfileService {
     @Transactional(readOnly = true)
     public ProfileResponseDTO getProfile(AuthenticatedUser authenticatedUser) {
         User user = findActiveUser(authenticatedUser);
-        return ProfileConverter.toProfileResponseDTO(findProfile(user.getId()));
+        return toProfileResponseDTO(findProfile(user.getId()));
     }
 
     // 프로필 수정 로직
@@ -83,16 +88,19 @@ public class ProfileService {
         UserProfile profile = findProfile(user.getId());
         profile.update(
                 request.nickname(),
-                request.profileImageUrl() == null
-                        ? null
-                        : resolveProfileImageUrl(request.profileImageUrl()),
                 request.gender(),
                 request.birthDate(),
                 request.residenceRegion(),
                 request.travelCompanion(),
                 request.travelStyles()
         );
-        return ProfileConverter.toProfileResponseDTO(profile);
+        if (request.profileImageObjectKey() != null) {
+            profile.updateProfileImageObjectKey(resolveProfileImageObjectKey(
+                    user.getId(),
+                    request.profileImageObjectKey()
+            ));
+        }
+        return toProfileResponseDTO(profile);
     }
 
     private User findActiveUser(AuthenticatedUser authenticatedUser) {
@@ -122,10 +130,24 @@ public class ProfileService {
         }
     }
 
-    private String resolveProfileImageUrl(String profileImageUrl) {
-        if (profileImageUrl == null || profileImageUrl.isBlank()) {
-            return defaultProfileImageUrl;
+    private String resolveProfileImageObjectKey(Long userId, String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return null;
         }
-        return profileImageUrl.trim();
+
+        String normalized = objectKey.trim();
+        s3Service.validateOwnedObjectKey(userId, UploadPurpose.PROFILE, normalized);
+        return normalized;
+    }
+
+    private ProfileResponseDTO toProfileResponseDTO(UserProfile profile) {
+        String objectKey = profile.getProfileImageObjectKey();
+        String profileImageUrl;
+        if (objectKey == null || objectKey.isBlank()) {
+            profileImageUrl = defaultProfileImageUrl;
+        } else {
+            profileImageUrl = s3Service.createPresignedDownloadUrl(objectKey);
+        }
+        return ProfileConverter.toProfileResponseDTO(profile, profileImageUrl);
     }
 }

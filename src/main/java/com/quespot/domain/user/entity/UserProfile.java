@@ -50,8 +50,8 @@ public class UserProfile extends BaseEntity {
     @Column(name = "nickname", nullable = false, length = 10)
     private String nickname;
 
-    @Column(name = "profile_image_url", nullable = false, length = 2048)
-    private String profileImageUrl;
+    @Column(name = "profile_image_object_key", length = 1024)
+    private String profileImageObjectKey;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", nullable = false, length = 20)
@@ -86,7 +86,7 @@ public class UserProfile extends BaseEntity {
     private UserProfile(
             User user,
             String nickname,
-            String profileImageUrl,
+            String profileImageObjectKey,
             Gender gender,
             LocalDate birthDate,
             ResidenceRegion residenceRegion,
@@ -95,7 +95,7 @@ public class UserProfile extends BaseEntity {
     ) {
         this.user = user;
         this.nickname = nickname;
-        this.profileImageUrl = profileImageUrl;
+        this.profileImageObjectKey = profileImageObjectKey;
         this.gender = gender;
         this.birthDate = birthDate;
         this.residenceRegion = residenceRegion;
@@ -106,7 +106,7 @@ public class UserProfile extends BaseEntity {
     public static UserProfile create(
             User user,
             String nickname,
-            String profileImageUrl,
+            String profileImageObjectKey,
             Gender gender,
             LocalDate birthDate,
             ResidenceRegion residenceRegion,
@@ -116,7 +116,7 @@ public class UserProfile extends BaseEntity {
         return new UserProfile(
                 user,
                 nickname,
-                profileImageUrl,
+                profileImageObjectKey,
                 gender,
                 birthDate,
                 residenceRegion,
@@ -127,7 +127,6 @@ public class UserProfile extends BaseEntity {
 
     public void update(
             String nickname,
-            String profileImageUrl,
             Gender gender,
             LocalDate birthDate,
             ResidenceRegion residenceRegion,
@@ -136,9 +135,6 @@ public class UserProfile extends BaseEntity {
     ) {
         if (nickname != null) {
             this.nickname = nickname.trim();
-        }
-        if (profileImageUrl != null) {
-            this.profileImageUrl = profileImageUrl;
         }
         if (gender != null) {
             this.gender = gender;
@@ -156,6 +152,10 @@ public class UserProfile extends BaseEntity {
             this.travelStyles.clear();
             this.travelStyles.addAll(travelStyles);
         }
+    }
+
+    public void updateProfileImageObjectKey(String profileImageObjectKey) {
+        this.profileImageObjectKey = profileImageObjectKey;
     }
 
     private static Set<TravelStyle> resolveTravelStyles(Set<TravelStyle> travelStyles) {

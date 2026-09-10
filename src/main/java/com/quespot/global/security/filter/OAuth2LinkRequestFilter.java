@@ -3,6 +3,7 @@ package com.quespot.global.security.filter;
 import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.service.OAuth2LinkRequestService;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
+import com.quespot.global.security.oauth2.OAuth2FrontendRedirectService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,6 +24,7 @@ public class OAuth2LinkRequestFilter extends OncePerRequestFilter {
     private static final String AUTHORIZATION_BASE_URI = "/api/auth/login/";
 
     private final OAuth2LinkRequestService oAuth2LinkRequestService;
+    private final OAuth2FrontendRedirectService oAuth2FrontendRedirectService;
     private final SecurityErrorResponseWriter securityErrorResponseWriter;
 
     @Override
@@ -36,14 +38,16 @@ public class OAuth2LinkRequestFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        String linkNonce = getLinkRequest(request);
-        if (linkNonce == null) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         try {
-            oAuth2LinkRequestService.validate(linkNonce, resolveProvider(request));
+            String redirectUri = oAuth2FrontendRedirectService.resolve(
+                    request.getParameter("frontendRedirectUri")
+            );
+            request.setAttribute(OAuth2FrontendRedirectService.REQUEST_ATTRIBUTE, redirectUri);
+
+            String linkNonce = getLinkRequest(request);
+            if (linkNonce != null) {
+                oAuth2LinkRequestService.validate(linkNonce, resolveProvider(request));
+            }
             filterChain.doFilter(request, response);
         } catch (AuthException exception) {
             clearLinkRequest(request);
