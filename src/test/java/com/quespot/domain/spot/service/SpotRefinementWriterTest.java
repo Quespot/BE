@@ -33,9 +33,16 @@ class SpotRefinementWriterTest {
         categoryResolver = mock(CategoryResolver.class);
         when(categoryResolver.resolve(any(), any(), any())).thenReturn(AppCategory.CULTURE);
         when(categoryResolver.getCurrentVersion()).thenReturn(1);
+        AdministrativeDistrictResolver districtResolver = new AdministrativeDistrictResolver(new ObjectMapper());
+        districtResolver.loadBoundaries();
 
         spotRefinementWriter = new SpotRefinementWriter(
-                new SpotRowWriter(spotRepository, categoryResolver, new ObjectMapper())
+                new SpotRowWriter(
+                        spotRepository,
+                        categoryResolver,
+                        districtResolver,
+                        new ObjectMapper()
+                )
         );
 
         when(spotRepository.saveAndFlush(any(Spot.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -76,6 +83,7 @@ class SpotRefinementWriterTest {
         assertThat(captor.getValue().getShowFlag()).isTrue();
         assertThat(captor.getValue().getAppCategory()).isEqualTo(AppCategory.CULTURE);
         assertThat(captor.getValue().getCategoryMappingVersion()).isEqualTo(1);
+        assertThat(captor.getValue().getDistrictCode()).isNotBlank();
     }
 
     @Test

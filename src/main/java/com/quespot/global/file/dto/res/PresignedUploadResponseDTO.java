@@ -1,6 +1,6 @@
-package com.quespot.global.s3.dto.res;
+package com.quespot.global.file.dto.res;
 
-import com.quespot.global.s3.service.PresignedUploadResult;
+import com.quespot.global.file.model.PresignedUploadResult;
 
 import java.util.Map;
 

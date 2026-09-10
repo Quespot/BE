@@ -33,7 +33,8 @@ import java.math.BigDecimal;
         },
         indexes = {
                 @Index(name = "ix_missions_status_category", columnList = "status, category"),
-                @Index(name = "ix_missions_spot", columnList = "spot_id")
+                @Index(name = "ix_missions_spot", columnList = "spot_id"),
+                @Index(name = "ix_missions_status_district", columnList = "status, snapshot_district_code, id")
         }
 )
 @Getter
@@ -92,6 +93,9 @@ public class Mission extends BaseEntity {
     @Column(name = "snapshot_image_url", columnDefinition = "TEXT")
     private String snapshotImageUrl;
 
+    @Column(name = "snapshot_district_code", length = 10)
+    private String snapshotDistrictCode;
+
     private Mission(MissionCandidate candidate) {
         Spot spot = candidate.getSpot();
         this.spot = spot;
@@ -108,6 +112,7 @@ public class Mission extends BaseEntity {
         this.snapshotLatitude = spot.getLatitude();
         this.snapshotLongitude = spot.getLongitude();
         this.snapshotImageUrl = preferredImage(spot);
+        this.snapshotDistrictCode = spot.getDistrictCode();
     }
 
     public static Mission publish(MissionCandidate candidate) {

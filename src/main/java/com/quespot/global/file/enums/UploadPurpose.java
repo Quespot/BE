@@ -1,4 +1,4 @@
-package com.quespot.global.s3.enums;
+package com.quespot.global.file.enums;
 
 public enum UploadPurpose {
     PROFILE("profiles"),

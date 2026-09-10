@@ -36,9 +36,9 @@ CREATE DATABASE IF NOT EXISTS quespot
 - 소셜 계정 연결 요청은 `OAUTH2_LINK_REQUEST_EXPIRATION_SECONDS` 동안 유효하며, 기본값은 120초입니다.
 - 계정 연결 시 프론트는 쿠키를 포함해 `POST /api/users/me/login-methods/{provider}`를 호출한 뒤, 같은 브라우저 세션에서 반환된 URL로 이동합니다. 연결 완료 콜백에는 로그인 코드 대신 `linkedProvider` 쿼리 파라미터가 전달됩니다.
 
-## S3 파일 업로드
+## S3 파일 관리
 
-- S3 버킷은 비공개로 운영하며, 클라이언트는 `POST /api/uploads/presigned-url`에서 5분간 유효한 업로드 URL을 발급받아 파일을 직접 업로드합니다.
+- S3 버킷은 비공개로 운영하며, 클라이언트는 `POST /api/files/presigned-upload-url`에서 5분간 유효한 업로드 URL을 발급받아 파일을 직접 업로드합니다.
 - 지원 형식은 JPEG, PNG, WebP이고 기본 최대 크기는 10MB입니다. 업로드 요청에 사용한 `Content-Type`을 S3 PUT 요청에도 동일하게 전달해야 합니다.
 
 ## 실행

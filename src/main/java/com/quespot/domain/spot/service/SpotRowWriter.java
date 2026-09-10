@@ -37,15 +37,18 @@ public class SpotRowWriter {
 
     private final SpotRepository spotRepository;
     private final CategoryResolver categoryResolver;
+    private final AdministrativeDistrictResolver administrativeDistrictResolver;
     private final ObjectMapper objectMapper;
 
     public SpotRowWriter(
             SpotRepository spotRepository,
             CategoryResolver categoryResolver,
+            AdministrativeDistrictResolver administrativeDistrictResolver,
             ObjectMapper objectMapper
     ) {
         this.spotRepository = spotRepository;
         this.categoryResolver = categoryResolver;
+        this.administrativeDistrictResolver = administrativeDistrictResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -97,6 +100,13 @@ public class SpotRowWriter {
                 .lclsSystm3(item.lclsSystm3())
                 .ldongRegnCd(item.lDongRegnCd())
                 .ldongSignguCd(item.lDongSignguCd())
+                .districtCode(administrativeDistrictResolver.resolve(
+                                latitude,
+                                longitude,
+                                combineAddress(item.addr1(), item.addr2())
+                        )
+                        .map(district -> district.districtCode())
+                        .orElse(null))
                 .cpyrhtDivCd(item.cpyrhtDivCd())
                 .appCategory(categoryResolver.resolve(item.lclsSystm1(), item.lclsSystm2(), item.lclsSystm3()))
                 .categoryMappingVersion(categoryResolver.getCurrentVersion())

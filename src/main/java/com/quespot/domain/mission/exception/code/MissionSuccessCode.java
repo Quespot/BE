@@ -104,7 +104,19 @@ public enum MissionSuccessCode implements BaseCode {
 
     UNLOCK_CONDITION_FOUND(HttpStatus.OK,
             "MISSION_200_023",
-            "잠금 조건을 조회했습니다.");
+            "잠금 조건을 조회했습니다."),
+
+    MISSION_SPOTS_FOUND(HttpStatus.OK,
+            "MISSION_200_024",
+            "지역 미션 스팟을 조회했습니다."),
+
+    NEARBY_MISSION_SPOTS_FOUND(HttpStatus.OK,
+            "MISSION_200_025",
+            "주변 미션 스팟을 조회했습니다."),
+
+    DISTRICT_MISSIONS_FOUND(HttpStatus.OK,
+            "MISSION_200_026",
+            "미션 스팟의 미션 목록을 조회했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -11,15 +11,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class OAuth2FrontendRedirectService {
+public class OAuth2FrontendRedirectUriResolver {
 
     public static final String REQUEST_ATTRIBUTE =
-            OAuth2FrontendRedirectService.class.getName() + ".REDIRECT_URI";
+            OAuth2FrontendRedirectUriResolver.class.getName() + ".REDIRECT_URI";
 
     private final String defaultRedirectUri;
     private final Set<String> allowedRedirectUris;
 
-    public OAuth2FrontendRedirectService(
+    public OAuth2FrontendRedirectUriResolver(
             @Value("${app.oauth2.frontend-redirect-uri}") String defaultRedirectUri,
             @Value("${app.oauth2.allowed-frontend-redirect-uris}") String allowedRedirectUris
     ) {

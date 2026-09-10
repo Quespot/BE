@@ -1,6 +1,6 @@
-package com.quespot.global.s3.dto.req;
+package com.quespot.global.file.dto.req;
 
-import com.quespot.global.s3.enums.UploadPurpose;
+import com.quespot.global.file.enums.UploadPurpose;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

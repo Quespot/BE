@@ -14,13 +14,13 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class OAuth2FrontendRedirectRepository
+public class OAuth2AuthorizationRequestRepository
         implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
     private static final String REDIRECTS_SESSION_ATTRIBUTE =
-            OAuth2FrontendRedirectRepository.class.getName() + ".REDIRECTS";
+            OAuth2AuthorizationRequestRepository.class.getName() + ".REDIRECTS";
 
-    private final OAuth2FrontendRedirectService redirectService;
+    private final OAuth2FrontendRedirectUriResolver redirectUriResolver;
     private final HttpSessionOAuth2AuthorizationRequestRepository delegate =
             new HttpSessionOAuth2AuthorizationRequestRepository();
 
@@ -73,18 +73,18 @@ public class OAuth2FrontendRedirectRepository
             }
         }
 
-        Object requestValue = request.getAttribute(OAuth2FrontendRedirectService.REQUEST_ATTRIBUTE);
+        Object requestValue = request.getAttribute(OAuth2FrontendRedirectUriResolver.REQUEST_ATTRIBUTE);
         return requestValue instanceof String redirectUri
                 ? redirectUri
-                : redirectService.getDefaultRedirectUri();
+                : redirectUriResolver.getDefaultRedirectUri();
     }
 
     private String resolveRequestRedirectUri(HttpServletRequest request) {
-        Object requestValue = request.getAttribute(OAuth2FrontendRedirectService.REQUEST_ATTRIBUTE);
+        Object requestValue = request.getAttribute(OAuth2FrontendRedirectUriResolver.REQUEST_ATTRIBUTE);
         if (requestValue instanceof String redirectUri) {
             return redirectUri;
         }
-        return redirectService.resolve(request.getParameter("frontendRedirectUri"));
+        return redirectUriResolver.resolve(request.getParameter("frontendRedirectUri"));
     }
 
     @SuppressWarnings("unchecked")

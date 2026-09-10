@@ -1,11 +1,11 @@
-package com.quespot.global.s3.controller;
+package com.quespot.global.file.controller;
 
 import com.quespot.global.apiPayload.ApiResponse;
-import com.quespot.global.s3.dto.req.CreatePresignedUploadRequestDTO;
-import com.quespot.global.s3.dto.res.PresignedUploadResponseDTO;
-import com.quespot.global.s3.exception.code.S3SuccessCode;
-import com.quespot.global.s3.service.PresignedUploadResult;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.dto.req.CreatePresignedUploadRequestDTO;
+import com.quespot.global.file.dto.res.PresignedUploadResponseDTO;
+import com.quespot.global.file.exception.code.FileSuccessCode;
+import com.quespot.global.file.model.PresignedUploadResult;
+import com.quespot.global.file.service.FileService;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -20,19 +20,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/uploads")
-@Tag(name = "S3", description = "파일 업로드 API")
-public class S3Controller {
+@RequestMapping("/api/files")
+@Tag(name = "File", description = "파일 API")
+public class FileController {
 
-    private final S3Service s3Service;
+    private final FileService fileService;
 
-    @PostMapping("/presigned-url")
-    @Operation(summary = "S3 Presigned 업로드 URL 발급")
+    @PostMapping("/presigned-upload-url")
+    @Operation(summary = "파일 업로드용 Presigned URL 발급")
     public ApiResponse<PresignedUploadResponseDTO> createPresignedUploadUrl(
             @Valid @RequestBody CreatePresignedUploadRequestDTO request,
             @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        PresignedUploadResult result = s3Service.createPresignedUploadUrl(
+        PresignedUploadResult result = fileService.createPresignedUploadUrl(
                 principal.userId(),
                 request.purpose(),
                 request.originalFilename(),
@@ -40,7 +40,7 @@ public class S3Controller {
                 request.fileSize()
         );
         return ApiResponse.of(
-                S3SuccessCode.PRESIGNED_UPLOAD_URL_CREATED,
+                FileSuccessCode.PRESIGNED_UPLOAD_URL_CREATED,
                 PresignedUploadResponseDTO.from(result)
         );
     }

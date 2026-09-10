@@ -1,4 +1,4 @@
-package com.quespot.global.s3.service;
+package com.quespot.global.file.model;
 
 import java.util.Map;
 
