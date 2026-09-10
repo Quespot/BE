@@ -94,6 +94,15 @@ class PointServiceTest {
     }
 
     @Test
+    void debitRejectsNonPositiveAmountBeforeTouchingDatabase() {
+        assertThatThrownBy(() -> pointService.debit(7L, 0, "ITEM_PURCHASE", "SHOP_ITEM", 5L, "구매"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> pointService.debit(7L, -100, "ITEM_PURCHASE", "SHOP_ITEM", 5L, "구매"))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(userPointRepository, pointTransactionRepository, rewardActivityRepository);
+    }
+
+    @Test
     void debitThrowsInsufficientPointWhenConditionalUpdateAffectsNoRow() {
         when(userPointRepository.debitBalance(7L, 300)).thenReturn(0);
 

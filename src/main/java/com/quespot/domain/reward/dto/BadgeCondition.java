@@ -20,9 +20,14 @@ public record BadgeCondition(AchievementMetric metric, String regionCode, int th
                 return Optional.empty();
             }
             AchievementMetric metric = AchievementMetric.valueOf(metricNode.asText());
+            // threshold <= 0이면 다음 이벤트에서 무조건 충족돼 배지가 잘못 지급된다 — 마스터 오류로 취급.
+            int threshold = thresholdNode.asInt();
+            if (threshold <= 0) {
+                return Optional.empty();
+            }
             JsonNode scope = root.get("scope");
             String regionCode = scope != null && scope.hasNonNull("regionCode") ? scope.get("regionCode").asText() : null;
-            return Optional.of(new BadgeCondition(metric, regionCode, thresholdNode.asInt()));
+            return Optional.of(new BadgeCondition(metric, regionCode, threshold));
         } catch (Exception e) {
             return Optional.empty();
         }

@@ -46,7 +46,7 @@ class AchievementQueryServiceTest {
         when(point.getBalance()).thenReturn(350);
         when(metricRepository.countCompletedMissions(7L, null)).thenReturn(2L);
         when(userPointRepository.findById(7L)).thenReturn(Optional.of(point));
-        when(userBadgeRepository.countByUserId(7L)).thenReturn(2L);
+        when(userBadgeRepository.countByUserIdAndBadge_IsActiveTrue(7L)).thenReturn(2L);
         when(badgeRepository.countByIsActiveTrue()).thenReturn(5L);
         when(userStampRepository.countByUserId(7L)).thenReturn(1L);
         when(stampRepository.count()).thenReturn(8L);

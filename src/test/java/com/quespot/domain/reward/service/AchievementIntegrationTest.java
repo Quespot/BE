@@ -74,6 +74,8 @@ class AchievementIntegrationTest {
     @Autowired private DataSource dataSource;
     @Autowired private ObjectMapper objectMapper;
 
+    // MODIFY COLUMN ... GENERATED은 이미 생성 컬럼인 상태에서 다시 적용해도 성공하므로
+    // 예외를 삼키지 않는다 — 권한·문법·스키마 오류가 숨으면 테스트가 잘못된 스키마로 돈다.
     @BeforeEach
     void applyGeneratedColumn() throws SQLException {
         try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
@@ -83,8 +85,6 @@ class AchievementIntegrationTest {
                         CASE WHEN status = 'IN_PROGRESS' THEN CONCAT(user_id, ':', mission_id) END
                     ) STORED
                     """);
-        } catch (SQLException e) {
-            // 이미 적용된 컨테이너 재사용 시 무시
         }
     }
 
@@ -140,7 +140,7 @@ class AchievementIntegrationTest {
 
         missionArrivalService.arrive(userId, second.getId(), new BigDecimal("37.5665"), new BigDecimal("126.9780"));
 
-        assertThat(userBadgeRepository.countByUserId(userId)).isEqualTo(1);
+        assertThat(userBadgeRepository.countByUserIdAndBadge_IsActiveTrue(userId)).isEqualTo(1);
         assertThat(userStampRepository.countByUserId(userId)).isEqualTo(1);
     }
 }

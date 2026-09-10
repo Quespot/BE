@@ -39,4 +39,10 @@ class BadgeConditionTest {
         assertThat(BadgeCondition.parse(objectMapper, "not json")).isEmpty();
         assertThat(BadgeCondition.parse(objectMapper, "{\"metric\":\"COURSE_COMPLETED\"}")).isEmpty();
     }
+
+    @Test
+    void rejectsNonPositiveThreshold() {
+        assertThat(BadgeCondition.parse(objectMapper, "{\"metric\":\"COURSE_COMPLETED\",\"threshold\":0}")).isEmpty();
+        assertThat(BadgeCondition.parse(objectMapper, "{\"metric\":\"COURSE_COMPLETED\",\"threshold\":-1}")).isEmpty();
+    }
 }

@@ -29,7 +29,7 @@ public class AchievementQueryService {
         return new AchievementSummaryResponseDTO(
                 metricRepository.countCompletedMissions(userId, null),
                 userPointRepository.findById(userId).map(UserPoint::getBalance).orElse(0),
-                userBadgeRepository.countByUserId(userId),
+                userBadgeRepository.countByUserIdAndBadge_IsActiveTrue(userId),
                 badgeRepository.countByIsActiveTrue(),
                 userStampRepository.countByUserId(userId),
                 stampRepository.count()

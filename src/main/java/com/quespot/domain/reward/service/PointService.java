@@ -67,6 +67,10 @@ public class PointService {
             Long referenceId,
             String activityTitle
     ) {
+        // 0·음수 차감은 호출부 버그다(음수면 잔액이 늘어난다). 원장에 0원 행도 남기지 않는다.
+        if (amount <= 0) {
+            throw new IllegalArgumentException("차감 금액은 양수여야 합니다: " + amount);
+        }
         if (userPointRepository.debitBalance(userId, amount) == 0) {
             throw new RewardException(RewardErrorCode.INSUFFICIENT_POINT);
         }
