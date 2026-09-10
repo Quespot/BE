@@ -120,6 +120,7 @@ public class SwaggerConfig {
                 .displayName("04. 아이템·상점 API")
                 .pathsToMatch(
                         "/api/users/me/items/**",
+                        "/api/users/me/questy",
                         "/api/shop/items/**"
                 )
                 .build();
