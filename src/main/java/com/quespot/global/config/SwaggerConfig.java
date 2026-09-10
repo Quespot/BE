@@ -174,4 +174,21 @@ public class SwaggerConfig {
                 .pathsToMatch("/api/uploads/**")
                 .build();
     }
+
+    /**
+     * 좋아요·저장 장소 API 그룹입니다.
+     */
+    @Bean
+    public GroupedOpenApi likeApi() {
+        return GroupedOpenApi.builder()
+                .group("09-like")
+                .displayName("09. 좋아요·저장 API")
+                .pathsToMatch(
+                        "/api/missions/*/like",
+                        "/api/spots/*/like",
+                        "/api/spots/*/save",
+                        "/api/mission-courses/*/like"
+                )
+                .build();
+    }
 }
