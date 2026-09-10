@@ -13,8 +13,8 @@ import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.exception.code.ProfileErrorCode;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserProfileRepository;
-import com.quespot.global.s3.enums.UploadPurpose;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.enums.UploadPurpose;
+import com.quespot.global.file.service.FileService;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,18 +26,18 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
-    private final S3Service s3Service;
+    private final FileService fileService;
     private final String defaultProfileImageUrl;
 
     public ProfileService(
             UserRepository userRepository,
             UserProfileRepository userProfileRepository,
-            S3Service s3Service,
+            FileService fileService,
             @Value("${app.profile.default-image-url}") String defaultProfileImageUrl
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
-        this.s3Service = s3Service;
+        this.fileService = fileService;
         this.defaultProfileImageUrl = defaultProfileImageUrl;
     }
 
@@ -136,7 +136,7 @@ public class ProfileService {
         }
 
         String normalized = objectKey.trim();
-        s3Service.validateOwnedObjectKey(userId, UploadPurpose.PROFILE, normalized);
+        fileService.validateOwnedObjectKey(userId, UploadPurpose.PROFILE, normalized);
         return normalized;
     }
 
@@ -146,7 +146,7 @@ public class ProfileService {
         if (objectKey == null || objectKey.isBlank()) {
             profileImageUrl = defaultProfileImageUrl;
         } else {
-            profileImageUrl = s3Service.createPresignedDownloadUrl(objectKey);
+            profileImageUrl = fileService.createPresignedDownloadUrl(objectKey);
         }
         return ProfileConverter.toProfileResponseDTO(profile, profileImageUrl);
     }

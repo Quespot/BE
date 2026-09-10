@@ -7,7 +7,7 @@ import com.quespot.domain.user.service.OAuth2LoginService;
 import com.quespot.domain.user.service.OAuth2ProviderToken;
 import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
-import com.quespot.global.security.oauth2.OAuth2FrontendRedirectRepository;
+import com.quespot.global.security.oauth2.OAuth2AuthorizationRequestRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -32,16 +32,16 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
 
     private final OAuth2LoginService oAuth2LoginService;
     private final ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider;
-    private final OAuth2FrontendRedirectRepository frontendRedirectRepository;
+    private final OAuth2AuthorizationRequestRepository authorizationRequestRepository;
 
     public OAuth2LoginSuccessHandler(
             OAuth2LoginService oAuth2LoginService,
             ObjectProvider<OAuth2AuthorizedClientService> authorizedClientServiceProvider,
-            OAuth2FrontendRedirectRepository frontendRedirectRepository
+            OAuth2AuthorizationRequestRepository authorizationRequestRepository
     ) {
         this.oAuth2LoginService = oAuth2LoginService;
         this.authorizedClientServiceProvider = authorizedClientServiceProvider;
-        this.frontendRedirectRepository = frontendRedirectRepository;
+        this.authorizationRequestRepository = authorizationRequestRepository;
     }
 
     @Override
@@ -50,7 +50,7 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             HttpServletResponse response,
             Authentication authentication
     ) throws IOException, ServletException {
-        String frontendRedirectUri = frontendRedirectRepository.takeFrontendRedirectUri(request);
+        String frontendRedirectUri = authorizationRequestRepository.takeFrontendRedirectUri(request);
         try {
             if (!(authentication instanceof OAuth2AuthenticationToken token)) {
                 redirectWithError(

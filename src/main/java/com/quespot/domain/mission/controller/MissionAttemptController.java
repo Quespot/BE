@@ -125,8 +125,8 @@ public class MissionAttemptController {
     @Operation(
             summary = "완료 후 사진 기록",
             description = """
-                    업로드 3단계 흐름의 마지막 단계. 먼저 POST /api/uploads/presigned-url(purpose=MISSION)로
-                    objectKey와 uploadUrl을 발급받아 S3에 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다
+                    업로드 3단계 흐름의 마지막 단계. 먼저 POST /api/files/presigned-upload-url(purpose=MISSION)로
+                    objectKey와 uploadUrl을 발급받아 파일을 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다
                     (버킷이 비공개라 URL이 아니라 objectKey를 제출한다 — 조회 시 서버가 매번 새로 서명한
                     presigned GET URL로 응답한다). missions/ 아래이고 본인이 발급받은 objectKey가 아니면
                     거부된다.

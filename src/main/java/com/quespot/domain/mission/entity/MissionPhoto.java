@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 //
 // image_url 컬럼(스키마는 안 바꿈, #45)엔 실제로는 URL이 아니라 S3 objectKey를
 // 저장한다 — 버킷이 비공개(Public Access Block 유지, 이슈 #42)라 저장 시점엔
-// 아직 렌더링 가능한 URL이 없고, 조회 시점에 S3Service.createPresignedDownloadUrl로
+// 아직 렌더링 가능한 URL이 없고, 조회 시점에 FileService.createPresignedDownloadUrl로
 // 매번 새로 만든다. 그래서 자바 필드/게터는 imageKey로 정직하게 이름 붙인다.
 @Entity
 @Table(name = "mission_photos")

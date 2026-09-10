@@ -13,10 +13,10 @@ import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
-import com.quespot.global.s3.exception.S3Exception;
-import com.quespot.global.s3.exception.code.S3ErrorCode;
-import com.quespot.global.s3.service.S3ObjectKeyValidator;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.exception.FileException;
+import com.quespot.global.file.exception.code.FileErrorCode;
+import com.quespot.global.file.service.FileService;
+import com.quespot.global.file.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +37,8 @@ class MissionPhotoServiceTest {
 
     private MissionAttemptRepository missionAttemptRepository;
     private MissionPhotoRepository missionPhotoRepository;
-    private S3Service s3Service;
+    private FileStorage fileStorage;
+    private FileService fileService;
     private AchievementService achievementService;
     private MissionPhotoService missionPhotoService;
 
@@ -45,12 +46,11 @@ class MissionPhotoServiceTest {
     void setUp() {
         missionAttemptRepository = mock(MissionAttemptRepository.class);
         missionPhotoRepository = mock(MissionPhotoRepository.class);
-        s3Service = mock(S3Service.class);
+        fileStorage = mock(FileStorage.class);
+        fileService = new FileService(fileStorage);
         achievementService = mock(AchievementService.class);
-        // 실제 인스턴스 — key 패턴 검증은 순수 로직이라 목킹 없이 그대로 검증 가능.
-        S3ObjectKeyValidator s3ObjectKeyValidator = new S3ObjectKeyValidator();
         missionPhotoService = new MissionPhotoService(
-                missionAttemptRepository, missionPhotoRepository, s3ObjectKeyValidator, s3Service, achievementService
+                missionAttemptRepository, missionPhotoRepository, fileService, achievementService
         );
         when(missionPhotoRepository.save(any(MissionPhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -181,9 +181,9 @@ class MissionPhotoServiceTest {
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
                 1L, 100L, "profiles/1/abc.jpg", null, null, null, null
-        )).isInstanceOf(S3Exception.class)
-                .extracting(e -> ((S3Exception) e).getErrorCode())
-                .isEqualTo(S3ErrorCode.OBJECT_KEY_WRONG_PURPOSE);
+        )).isInstanceOf(FileException.class)
+                .extracting(e -> ((FileException) e).getErrorCode())
+                .isEqualTo(FileErrorCode.OBJECT_KEY_WRONG_PURPOSE);
     }
 
     @Test
@@ -196,9 +196,9 @@ class MissionPhotoServiceTest {
 
         assertThatThrownBy(() -> missionPhotoService.registerPhoto(
                 1L, 100L, "missions/2/abc.jpg", null, null, null, null
-        )).isInstanceOf(S3Exception.class)
-                .extracting(e -> ((S3Exception) e).getErrorCode())
-                .isEqualTo(S3ErrorCode.OBJECT_KEY_OWNER_MISMATCH);
+        )).isInstanceOf(FileException.class)
+                .extracting(e -> ((FileException) e).getErrorCode())
+                .isEqualTo(FileErrorCode.OBJECT_KEY_OWNER_MISMATCH);
     }
 
     @Test
@@ -207,13 +207,13 @@ class MissionPhotoServiceTest {
     }
 
     @Test
-    void resolveViewUrlDelegatesToS3ServiceWithStoredKey() {
+    void resolveViewUrlDelegatesToFileStorageWithStoredKey() {
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = MissionAttempt.start(1L, mission);
         MissionPhoto photo = MissionPhoto.record(
                 attempt, VALID_OBJECT_KEY, null, new BigDecimal("37.5665"), new BigDecimal("126.9780"), null
         );
-        when(s3Service.createPresignedDownloadUrl(VALID_OBJECT_KEY)).thenReturn("https://presigned-url");
+        when(fileStorage.createPresignedDownloadUrl(VALID_OBJECT_KEY)).thenReturn("https://presigned-url");
 
         String viewUrl = missionPhotoService.resolveViewUrl(photo);
 

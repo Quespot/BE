@@ -87,6 +87,10 @@ public class SwaggerConfig {
                 .displayName("02. 미션 API")
                 .pathsToMatch(
                         "/api/missions/**",
+                        "/api/mission-spots/**",
+                        "/api/mission-attempts/**",
+                        "/api/mission-courses/**",
+                        "/api/photo-verifications/**",
                         "/api/users/me/archives/**"
                 )
                 .build();
@@ -142,38 +146,26 @@ public class SwaggerConfig {
     }
 
     /**
-     * 관리자 미션 후보 생성, 검수, 발행 API 그룹입니다.
+     * 관리자 API 그룹입니다.
      */
     @Bean
-    public GroupedOpenApi adminMissionCandidateApi() {
+    public GroupedOpenApi adminApi() {
         return GroupedOpenApi.builder()
-                .group("06-admin-mission-candidate")
-                .displayName("06. 관리자 미션 후보 API")
-                .pathsToMatch("/api/admin/mission-candidates/**")
+                .group("06-admin")
+                .displayName("06. 관리자 API")
+                .pathsToMatch("/api/admin/**")
                 .build();
     }
 
     /**
-     * 관리자 TourAPI 동기화 API 그룹입니다.
+     * 파일 API 그룹입니다.
      */
     @Bean
-    public GroupedOpenApi adminTourSyncApi() {
+    public GroupedOpenApi fileApi() {
         return GroupedOpenApi.builder()
-                .group("07-admin-tour-sync")
-                .displayName("07. 관리자 TourAPI 동기화 API")
-                .pathsToMatch("/api/admin/tour-sync/**")
-                .build();
-    }
-
-    /**
-     * S3 파일 업로드 API 그룹입니다.
-     */
-    @Bean
-    public GroupedOpenApi storageApi() {
-        return GroupedOpenApi.builder()
-                .group("08-storage")
-                .displayName("08. 파일 업로드 API")
-                .pathsToMatch("/api/uploads/**")
+                .group("07-file")
+                .displayName("07. 파일 API")
+                .pathsToMatch("/api/files/**")
                 .build();
     }
 

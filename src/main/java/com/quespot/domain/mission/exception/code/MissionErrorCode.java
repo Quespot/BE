@@ -84,7 +84,15 @@ public enum MissionErrorCode implements BaseErrorCode {
 
     MISSION_LOCKED(HttpStatus.CONFLICT,
             "MISSION_409_011",
-            "아직 잠금 해제되지 않은 미션입니다. 이전 미션을 먼저 완료해 주세요.");
+            "아직 잠금 해제되지 않은 미션입니다. 이전 미션을 먼저 완료해 주세요."),
+
+    REGION_NOT_SUPPORTED(HttpStatus.BAD_REQUEST,
+            "MISSION_400_004",
+            "지원하지 않는 지역입니다."),
+
+    DISTRICT_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "MISSION_404_007",
+            "행정구역을 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

@@ -22,6 +22,7 @@ class MissionTest {
         when(spot.getLatitude()).thenReturn(new BigDecimal("37.579617"));
         when(spot.getLongitude()).thenReturn(new BigDecimal("126.977041"));
         when(spot.getImageUrl()).thenReturn("https://example.com/gyeongbokgung.jpg");
+        when(spot.getDistrictCode()).thenReturn("11110");
         MissionCandidate candidate = MissionCandidate.generate(spot, MissionTemplate.HISTORY_LOCATION, 1);
 
         Mission mission = Mission.publish(candidate);
@@ -33,6 +34,7 @@ class MissionTest {
         assertThat(mission.getSnapshotLatitude()).isEqualByComparingTo("37.579617");
         assertThat(mission.getSnapshotLongitude()).isEqualByComparingTo("126.977041");
         assertThat(mission.getSnapshotImageUrl()).isEqualTo("https://example.com/gyeongbokgung.jpg");
+        assertThat(mission.getSnapshotDistrictCode()).isEqualTo("11110");
         assertThat(mission.getStatus()).isEqualTo(MissionStatus.ACTIVE);
         assertThat(mission.getSource()).isEqualTo(MissionSource.TOUR_API);
     }

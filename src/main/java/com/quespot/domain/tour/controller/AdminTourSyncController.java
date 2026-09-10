@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/tour-sync")
-@Tag(name = "Admin Tour Sync", description = "관리자 TourAPI 동기화 API")
+@Tag(name = "Admin", description = "관리자 API")
 public class AdminTourSyncController {
 
     private final TourSyncOrchestrator tourSyncOrchestrator;

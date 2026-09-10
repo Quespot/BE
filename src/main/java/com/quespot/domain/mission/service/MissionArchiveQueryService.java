@@ -6,7 +6,7 @@ import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
 import com.quespot.domain.mission.enums.ArchivePhotoSource;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +24,7 @@ public class MissionArchiveQueryService {
 
     private final ArchivePhotoRepository archivePhotoRepository;
     private final ArchiveCursorCodec archiveCursorCodec;
-    private final S3Service s3Service;
+    private final FileService fileService;
 
     @Transactional(readOnly = true)
     public MissionArchiveListResponseDTO getArchives(Long userId, String cursorValue, int size) {
@@ -54,7 +54,7 @@ public class MissionArchiveQueryService {
         // 반복해도 외부 API 호출이 아니다.
         List<MissionArchiveItemResponseDTO> items = page.stream()
                 .map(row -> MissionConverter.toArchiveItem(
-                        row, s3Service.createPresignedDownloadUrl(row.getImageKey())
+                        row, fileService.createPresignedDownloadUrl(row.getImageKey())
                 ))
                 .toList();
 

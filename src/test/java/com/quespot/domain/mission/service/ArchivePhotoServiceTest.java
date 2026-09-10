@@ -3,10 +3,10 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.mission.entity.ArchivePhoto;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
 import com.quespot.domain.reward.service.AchievementService;
-import com.quespot.global.s3.exception.S3Exception;
-import com.quespot.global.s3.exception.code.S3ErrorCode;
-import com.quespot.global.s3.service.S3ObjectKeyValidator;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.exception.FileException;
+import com.quespot.global.file.exception.code.FileErrorCode;
+import com.quespot.global.file.service.FileService;
+import com.quespot.global.file.storage.FileStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,19 +24,19 @@ class ArchivePhotoServiceTest {
     private static final String VALID_OBJECT_KEY = "archives/1/abc.jpg";
 
     private ArchivePhotoRepository archivePhotoRepository;
-    private S3Service s3Service;
+    private FileStorage fileStorage;
+    private FileService fileService;
     private AchievementService achievementService;
     private ArchivePhotoService archivePhotoService;
 
     @BeforeEach
     void setUp() {
         archivePhotoRepository = mock(ArchivePhotoRepository.class);
-        s3Service = mock(S3Service.class);
+        fileStorage = mock(FileStorage.class);
+        fileService = new FileService(fileStorage);
         achievementService = mock(AchievementService.class);
-        // 실제 인스턴스 — key 패턴 검증은 순수 로직이라 목킹 없이 그대로 검증 가능.
-        S3ObjectKeyValidator s3ObjectKeyValidator = new S3ObjectKeyValidator();
         archivePhotoService = new ArchivePhotoService(
-                archivePhotoRepository, s3ObjectKeyValidator, s3Service, achievementService
+                archivePhotoRepository, fileService, achievementService
         );
         when(archivePhotoRepository.save(any(ArchivePhoto.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
@@ -74,17 +74,17 @@ class ArchivePhotoServiceTest {
     @Test
     void throwsWhenObjectKeyIsWrongPurpose() {
         assertThatThrownBy(() -> archivePhotoService.registerPhoto(1L, "missions/1/abc.jpg", null))
-                .isInstanceOf(S3Exception.class)
-                .extracting(e -> ((S3Exception) e).getErrorCode())
-                .isEqualTo(S3ErrorCode.OBJECT_KEY_WRONG_PURPOSE);
+                .isInstanceOf(FileException.class)
+                .extracting(e -> ((FileException) e).getErrorCode())
+                .isEqualTo(FileErrorCode.OBJECT_KEY_WRONG_PURPOSE);
     }
 
     @Test
     void throwsWhenObjectKeyBelongsToDifferentUser() {
         assertThatThrownBy(() -> archivePhotoService.registerPhoto(1L, "archives/2/abc.jpg", null))
-                .isInstanceOf(S3Exception.class)
-                .extracting(e -> ((S3Exception) e).getErrorCode())
-                .isEqualTo(S3ErrorCode.OBJECT_KEY_OWNER_MISMATCH);
+                .isInstanceOf(FileException.class)
+                .extracting(e -> ((FileException) e).getErrorCode())
+                .isEqualTo(FileErrorCode.OBJECT_KEY_OWNER_MISMATCH);
     }
 
     @Test
@@ -93,9 +93,9 @@ class ArchivePhotoServiceTest {
     }
 
     @Test
-    void resolveViewUrlDelegatesToS3ServiceWithStoredKey() {
+    void resolveViewUrlDelegatesToFileStorageWithStoredKey() {
         ArchivePhoto photo = ArchivePhoto.upload(1L, VALID_OBJECT_KEY, null);
-        when(s3Service.createPresignedDownloadUrl(VALID_OBJECT_KEY)).thenReturn("https://presigned-url");
+        when(fileStorage.createPresignedDownloadUrl(VALID_OBJECT_KEY)).thenReturn("https://presigned-url");
 
         String viewUrl = archivePhotoService.resolveViewUrl(photo);
 

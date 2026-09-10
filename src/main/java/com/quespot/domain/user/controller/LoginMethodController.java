@@ -7,7 +7,7 @@ import com.quespot.domain.user.service.LoginMethodService;
 import com.quespot.domain.user.service.OAuth2LinkRequestService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.filter.OAuth2LinkRequestFilter;
-import com.quespot.global.security.oauth2.OAuth2FrontendRedirectService;
+import com.quespot.global.security.oauth2.OAuth2FrontendRedirectUriResolver;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,7 +33,7 @@ import java.util.Locale;
 public class LoginMethodController {
 
     private final LoginMethodService loginMethodService;
-    private final OAuth2FrontendRedirectService oAuth2FrontendRedirectService;
+    private final OAuth2FrontendRedirectUriResolver frontendRedirectUriResolver;
 
     @GetMapping
     @Operation(summary = "연결 계정 목록 조회", description = "현재 사용자의 이메일 및 소셜 로그인 연결 상태를 조회합니다.")
@@ -60,7 +60,7 @@ public class LoginMethodController {
             @RequestParam(required = false) String frontendRedirectUri,
             HttpServletRequest httpServletRequest
     ) {
-        String resolvedRedirectUri = oAuth2FrontendRedirectService.resolve(frontendRedirectUri);
+        String resolvedRedirectUri = frontendRedirectUriResolver.resolve(frontendRedirectUri);
         OAuth2LinkRequestService.IssuedLinkRequest issued =
                 loginMethodService.startLink(authenticatedUser, provider);
         OAuth2LinkRequestFilter.storeLinkRequest(httpServletRequest, issued.nonce());

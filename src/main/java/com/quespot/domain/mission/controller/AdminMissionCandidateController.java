@@ -37,7 +37,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/mission-candidates")
-@Tag(name = "Admin Mission Candidate", description = "관리자 미션 후보 생성·검수·발행 API")
+@Tag(name = "Admin", description = "관리자 API")
 public class AdminMissionCandidateController {
 
     private final MissionCandidateGenerator missionCandidateGenerator;

@@ -7,10 +7,9 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.MissionPhotoRepository;
-import com.quespot.global.s3.enums.UploadPurpose;
-import com.quespot.global.s3.service.S3ObjectKeyValidator;
 import com.quespot.domain.reward.service.AchievementService;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.enums.UploadPurpose;
+import com.quespot.global.file.service.FileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +24,7 @@ public class MissionPhotoService {
 
     private final MissionAttemptRepository missionAttemptRepository;
     private final MissionPhotoRepository missionPhotoRepository;
-    private final S3ObjectKeyValidator s3ObjectKeyValidator;
-    private final S3Service s3Service;
+    private final FileService fileService;
     private final AchievementService achievementService;
 
     @Transactional
@@ -60,9 +58,7 @@ public class MissionPhotoService {
         BigDecimal effectiveLatitude = latitude != null ? latitude : attempt.getMission().getSnapshotLatitude();
         BigDecimal effectiveLongitude = longitude != null ? longitude : attempt.getMission().getSnapshotLongitude();
 
-        // missions/ 아래인지, 업로드한 본인이 맞는지 검증한다. S3 API 호출
-        // (headObject 등)은 하지 않는다 — key 패턴 검증만(#45 결정 사항).
-        s3ObjectKeyValidator.validate(objectKey, userId, UploadPurpose.MISSION);
+        fileService.validateOwnedObjectKey(userId, UploadPurpose.MISSION, objectKey);
 
         MissionPhoto photo = missionPhotoRepository.save(
                 MissionPhoto.record(attempt, objectKey, caption, effectiveLatitude, effectiveLongitude, takenAt)
@@ -81,6 +77,6 @@ public class MissionPhotoService {
     // (버킷이 비공개라 저장된 값 그대로는 렌더링할 수 없다, #45). presign은
     // 로컬 서명 계산이라 외부 API 호출이 아니다 — 트랜잭션 안에서 호출해도 된다.
     public String resolveViewUrl(MissionPhoto photo) {
-        return photo == null ? null : s3Service.createPresignedDownloadUrl(photo.getImageKey());
+        return photo == null ? null : fileService.createPresignedDownloadUrl(photo.getImageKey());
     }
 }

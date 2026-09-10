@@ -151,7 +151,7 @@ public class MissionConverter {
     }
 
     // photoViewUrl은 서비스 레이어가 MissionPhotoService.resolveViewUrl(photo)로
-    // 미리 만들어 넘긴다 — MissionConverter는 static 유틸이라 S3Service를 주입받을
+    // 미리 만들어 넘긴다 — MissionConverter는 static 유틸이라 FileService를 주입받을
     // 수 없다(엔티티→DTO 변환은 static Converter로 한다는 컨벤션 유지, #45).
     public static MissionAttemptResultResponseDTO toAttemptResultResponse(MissionAttempt attempt, String photoViewUrl) {
         return new MissionAttemptResultResponseDTO(

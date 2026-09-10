@@ -57,8 +57,8 @@ public class MissionArchiveController {
             summary = "아카이브 자유 업로드",
             description = """
                     미션과 무관하게 사진을 아카이브에 바로 등록한다. 업로드 3단계 흐름의 마지막 단계 —
-                    먼저 POST /api/uploads/presigned-url(purpose=ARCHIVE)로 objectKey와 uploadUrl을
-                    발급받아 S3에 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다(버킷이 비공개라 URL이
+                    먼저 POST /api/files/presigned-upload-url(purpose=ARCHIVE)로 objectKey와 uploadUrl을
+                    발급받아 파일을 직접 PUT한 뒤, 그 objectKey를 그대로 제출한다(저장소가 비공개라 URL이
                     아니라 objectKey를 제출한다). archives/ 아래이고 본인이 발급받은 objectKey가 아니면
                     거부된다.
                     """

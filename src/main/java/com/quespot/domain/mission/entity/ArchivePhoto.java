@@ -20,7 +20,7 @@ import java.time.LocalDateTime;
 // image_key는 mission_photos.image_url과 달리 TEXT가 아니라 길이를 정한다 —
 // (user_id, image_key) UNIQUE로 같은 objectKey 재제출(클라이언트 재시도 등)을
 // DB가 막아야 하는데, MySQL은 TEXT 컬럼에 프리픽스 길이 없이 UNIQUE를 걸 수 없다.
-// S3Service.createObjectKey가 만드는 키 형식("archives/{userId}/{uuid}.{ext}")은
+// FileService가 만드는 키 형식("archives/{userId}/{uuid}.{ext}")은
 // 255자를 한참 밑돈다.
 @Entity
 @Table(name = "archive_photos",

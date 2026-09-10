@@ -92,6 +92,9 @@ public class Spot extends BaseEntity {
     @Column(name = "ldong_signgu_cd", columnDefinition = "CHAR(3)")
     private String ldongSignguCd;
 
+    @Column(name = "district_code", length = 10)
+    private String districtCode;
+
     // Type3는 이미지 크롭·썸네일 재생성이 저작권 위반이라 firstimage2를 그대로 써야 한다.
     // 정제/이미지 처리 배치가 가공 가부를 판단할 때 이 값을 본다.
     @Column(name = "cpyrht_div_cd", length = 10)
@@ -133,6 +136,7 @@ public class Spot extends BaseEntity {
             String lclsSystm3,
             String ldongRegnCd,
             String ldongSignguCd,
+            String districtCode,
             String cpyrhtDivCd,
             AppCategory appCategory,
             Integer categoryMappingVersion,
@@ -155,6 +159,7 @@ public class Spot extends BaseEntity {
         this.lclsSystm3 = lclsSystm3;
         this.ldongRegnCd = ldongRegnCd;
         this.ldongSignguCd = ldongSignguCd;
+        this.districtCode = districtCode;
         this.cpyrhtDivCd = cpyrhtDivCd;
         this.appCategory = appCategory;
         this.categoryMappingVersion = categoryMappingVersion;
@@ -180,6 +185,7 @@ public class Spot extends BaseEntity {
         this.lclsSystm3 = freshData.lclsSystm3;
         this.ldongRegnCd = freshData.ldongRegnCd;
         this.ldongSignguCd = freshData.ldongSignguCd;
+        this.districtCode = freshData.districtCode;
         this.cpyrhtDivCd = freshData.cpyrhtDivCd;
         this.appCategory = freshData.appCategory;
         this.categoryMappingVersion = freshData.categoryMappingVersion;

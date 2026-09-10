@@ -6,7 +6,7 @@ import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
-import com.quespot.global.s3.service.S3Service;
+import com.quespot.global.file.service.FileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,16 +27,16 @@ class MissionArchiveQueryServiceTest {
 
     private ArchivePhotoRepository archivePhotoRepository;
     private ArchiveCursorCodec archiveCursorCodec;
-    private S3Service s3Service;
+    private FileService fileService;
     private MissionArchiveQueryService service;
 
     @BeforeEach
     void setUp() {
         archivePhotoRepository = mock(ArchivePhotoRepository.class);
         archiveCursorCodec = mock(ArchiveCursorCodec.class);
-        s3Service = mock(S3Service.class);
-        service = new MissionArchiveQueryService(archivePhotoRepository, archiveCursorCodec, s3Service);
-        when(s3Service.createPresignedDownloadUrl(org.mockito.ArgumentMatchers.anyString())).thenReturn("https://presigned-url");
+        fileService = mock(FileService.class);
+        service = new MissionArchiveQueryService(archivePhotoRepository, archiveCursorCodec, fileService);
+        when(fileService.createPresignedDownloadUrl(org.mockito.ArgumentMatchers.anyString())).thenReturn("https://presigned-url");
     }
 
     private ArchiveFeedRowProjection rowAt(Long id, ArchivePhotoSource source, LocalDateTime createdAt) {

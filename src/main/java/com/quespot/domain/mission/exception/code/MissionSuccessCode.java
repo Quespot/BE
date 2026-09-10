@@ -38,10 +38,6 @@ public enum MissionSuccessCode implements BaseCode {
             "MISSION_200_008",
             "미션을 조회했습니다."),
 
-    MISSIONS_PUBLISHED(HttpStatus.CREATED,
-            "MISSION_201_001",
-            "미션을 일괄 발행했습니다."),
-
     MISSION_ATTEMPT_STARTED(HttpStatus.OK,
             "MISSION_200_009",
             "미션을 시작했습니다."),
@@ -98,10 +94,6 @@ public enum MissionSuccessCode implements BaseCode {
             "MISSION_200_022",
             "코스를 포기했습니다."),
 
-    COURSE_GENERATED(HttpStatus.CREATED,
-            "MISSION_201_002",
-            "미션 코스를 생성했습니다."),
-
     UNLOCK_CONDITION_FOUND(HttpStatus.OK,
             "MISSION_200_023",
             "잠금 조건을 조회했습니다."),
@@ -109,6 +101,26 @@ public enum MissionSuccessCode implements BaseCode {
     ARCHIVES_FOUND(HttpStatus.OK,
             "MISSION_200_024",
             "아카이브 목록을 조회했습니다."),
+
+    MISSION_SPOTS_FOUND(HttpStatus.OK,
+            "MISSION_200_025",
+            "지역 미션 스팟을 조회했습니다."),
+
+    NEARBY_MISSION_SPOTS_FOUND(HttpStatus.OK,
+            "MISSION_200_026",
+            "주변 미션 스팟을 조회했습니다."),
+
+    DISTRICT_MISSIONS_FOUND(HttpStatus.OK,
+            "MISSION_200_027",
+            "미션 스팟의 미션 목록을 조회했습니다."),
+
+    MISSIONS_PUBLISHED(HttpStatus.CREATED,
+            "MISSION_201_001",
+            "미션을 일괄 발행했습니다."),
+
+    COURSE_GENERATED(HttpStatus.CREATED,
+            "MISSION_201_002",
+            "미션 코스를 생성했습니다."),
 
     ARCHIVE_PHOTO_REGISTERED(HttpStatus.CREATED,
             "MISSION_201_003",
