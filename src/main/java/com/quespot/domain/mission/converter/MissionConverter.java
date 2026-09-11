@@ -2,11 +2,14 @@ package com.quespot.domain.mission.converter;
 
 import com.quespot.domain.mission.dto.ArrivalResultDTO;
 import com.quespot.domain.mission.dto.res.ArrivalResponseDTO;
+import com.quespot.domain.mission.dto.res.CompletedMissionArchiveItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionAttemptResultResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveFootprintResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveMapResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionCandidateResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
@@ -22,12 +25,14 @@ import com.quespot.domain.mission.enums.ArchivePhotoSource;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
+import com.quespot.domain.mission.repository.projection.CompletedMissionArchiveProjection;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.spot.entity.Spot;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+import java.util.Objects;
 
 public class MissionConverter {
 
@@ -251,6 +256,30 @@ public class MissionConverter {
     ) {
         return new MissionArchiveListResponseDTO(
                 items, nextCursor, hasNext
+        );
+    }
+
+    public static CompletedMissionArchiveItemResponseDTO toCompletedMissionArchiveItem(
+            CompletedMissionArchiveProjection row
+    ) {
+        return new CompletedMissionArchiveItemResponseDTO(
+                row.getMissionId(), row.getSpotName(), row.getLatitude(), row.getLongitude(),
+                row.getCompletedAt(), row.getEarnedPoint()
+        );
+    }
+
+    public static MissionArchiveMapResponseDTO toArchiveMapResponse(
+            List<CompletedMissionArchiveItemResponseDTO> completedMissions
+    ) {
+        long totalEarnedPoint = completedMissions.stream()
+                .map(CompletedMissionArchiveItemResponseDTO::earnedPoint)
+                .filter(Objects::nonNull)
+                .mapToLong(Integer::longValue)
+                .sum();
+
+        return new MissionArchiveMapResponseDTO(
+                new MissionArchiveFootprintResponseDTO(completedMissions.size(), totalEarnedPoint),
+                completedMissions
         );
     }
 

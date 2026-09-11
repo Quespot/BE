@@ -2,14 +2,18 @@ package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
 import com.quespot.domain.mission.enums.ArchivePhotoSource;
+import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
+import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
+import com.quespot.domain.mission.repository.projection.CompletedMissionArchiveProjection;
 import com.quespot.global.file.service.FileService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -26,6 +30,7 @@ import static org.mockito.Mockito.when;
 class MissionArchiveQueryServiceTest {
 
     private ArchivePhotoRepository archivePhotoRepository;
+    private MissionAttemptRepository missionAttemptRepository;
     private ArchiveCursorCodec archiveCursorCodec;
     private FileService fileService;
     private MissionArchiveQueryService service;
@@ -33,9 +38,12 @@ class MissionArchiveQueryServiceTest {
     @BeforeEach
     void setUp() {
         archivePhotoRepository = mock(ArchivePhotoRepository.class);
+        missionAttemptRepository = mock(MissionAttemptRepository.class);
         archiveCursorCodec = mock(ArchiveCursorCodec.class);
         fileService = mock(FileService.class);
-        service = new MissionArchiveQueryService(archivePhotoRepository, archiveCursorCodec, fileService);
+        service = new MissionArchiveQueryService(
+                archivePhotoRepository, missionAttemptRepository, archiveCursorCodec, fileService
+        );
         when(fileService.createPresignedDownloadUrl(org.mockito.ArgumentMatchers.anyString())).thenReturn("https://presigned-url");
     }
 
@@ -110,5 +118,60 @@ class MissionArchiveQueryServiceTest {
                 .isInstanceOf(MissionException.class)
                 .extracting(e -> ((MissionException) e).getErrorCode())
                 .isEqualTo(MissionErrorCode.INVALID_CURSOR);
+    }
+
+    @Test
+    void getMapArchiveAppliesFiltersAndBuildsFootprintFromReturnedMissions() {
+        LocalDateTime startAt = LocalDateTime.of(2026, 7, 1, 0, 0);
+        LocalDateTime endAt = LocalDateTime.of(2026, 8, 1, 0, 0);
+        CompletedMissionArchiveProjection first = completedMissionRow(
+                1L, "경복궁", "37.5796", "126.9770", startAt.plusDays(4), 150
+        );
+        CompletedMissionArchiveProjection second = completedMissionRow(
+                2L, "북촌", "37.5826", "126.9831", startAt.plusDays(5), 200
+        );
+        when(missionAttemptRepository.findCompletedMissionArchive(
+                1L, startAt, endAt, "11", "HISTORY"
+        )).thenReturn(List.of(first, second));
+
+        var result = service.getMapArchive(1L, "2026-07", "11", MissionCategory.HISTORY);
+
+        assertThat(result.footprint().completedMissionCount()).isEqualTo(2);
+        assertThat(result.footprint().totalEarnedPoint()).isEqualTo(350);
+        assertThat(result.completedMissions()).extracting("missionId", "spotName")
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple(1L, "경복궁"),
+                        org.assertj.core.groups.Tuple.tuple(2L, "북촌")
+                );
+    }
+
+    @Test
+    void getMapArchiveUsesNoFiltersAndReturnsEmptyFootprintWhenNoMissionWasCompleted() {
+        when(missionAttemptRepository.findCompletedMissionArchive(1L, null, null, null, null))
+                .thenReturn(List.of());
+
+        var result = service.getMapArchive(1L, null, null, null);
+
+        assertThat(result.footprint().completedMissionCount()).isZero();
+        assertThat(result.footprint().totalEarnedPoint()).isZero();
+        assertThat(result.completedMissions()).isEmpty();
+    }
+
+    private CompletedMissionArchiveProjection completedMissionRow(
+            Long missionId,
+            String spotName,
+            String latitude,
+            String longitude,
+            LocalDateTime completedAt,
+            Integer earnedPoint
+    ) {
+        CompletedMissionArchiveProjection row = mock(CompletedMissionArchiveProjection.class);
+        when(row.getMissionId()).thenReturn(missionId);
+        when(row.getSpotName()).thenReturn(spotName);
+        when(row.getLatitude()).thenReturn(new BigDecimal(latitude));
+        when(row.getLongitude()).thenReturn(new BigDecimal(longitude));
+        when(row.getCompletedAt()).thenReturn(completedAt);
+        when(row.getEarnedPoint()).thenReturn(earnedPoint);
+        return row;
     }
 }

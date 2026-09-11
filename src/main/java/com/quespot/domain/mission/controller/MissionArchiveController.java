@@ -4,7 +4,9 @@ import com.quespot.domain.mission.converter.MissionConverter;
 import com.quespot.domain.mission.dto.req.RegisterArchivePhotoRequestDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveMapResponseDTO;
 import com.quespot.domain.mission.entity.ArchivePhoto;
+import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.exception.code.MissionSuccessCode;
 import com.quespot.domain.mission.service.ArchivePhotoService;
 import com.quespot.domain.mission.service.MissionArchiveQueryService;
@@ -19,6 +21,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,7 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController
 @RequiredArgsConstructor
-@Tag(name = "MissionArchive", description = "미션 사진 아카이브 API")
+@Tag(name = "MissionArchive", description = "미션 아카이브 API")
 public class MissionArchiveController {
 
     private final MissionArchiveQueryService missionArchiveQueryService;
@@ -40,7 +43,7 @@ public class MissionArchiveController {
 
     @GetMapping("/api/users/me/archives")
     @Operation(
-            summary = "내 아카이브 피드 조회",
+            summary = "아카이브 피드 조회",
             description = """
                     미션 완료 후 등록한 사진(source=MISSION)과 미션과 무관하게 POST /api/users/me/archives로 자유 업로드한
                     사진(source=ARCHIVE)을 하나의 최신순 피드로 합쳐 돌려준다. source=ARCHIVE면 missionId·missionTitle·
@@ -61,6 +64,34 @@ public class MissionArchiveController {
         return ApiResponse.of(
                 MissionSuccessCode.ARCHIVES_FOUND,
                 missionArchiveQueryService.getArchives(principal.userId(), cursor, size)
+        );
+    }
+
+    @GetMapping("/api/users/me/archives/map")
+    @Operation(
+            summary = "지도형 아카이브 조회",
+            description = """
+                    완료한 미션을 지도 표시용 데이터로 조회한다. yearMonth(YYYY-MM), regionCode(2자리),
+                    category는 모두 선택이며 함께 보내면 AND 조건으로 적용된다. footprint는 같은 조건으로
+                    조회된 completedMissions의 개수와 실제 획득 포인트 합계다. spotName은 별도 스냅샷을
+                    만들지 않고 미션 발행 시 저장된 Mission.snapshotName 값을 반환한다.
+                    """
+    )
+    public ApiResponse<MissionArchiveMapResponseDTO> getMapArchive(
+            @RequestParam(required = false)
+            @Pattern(regexp = "\\d{4}-(0[1-9]|1[0-2])", message = "yearMonth는 YYYY-MM 형식이어야 합니다.")
+            String yearMonth,
+            @RequestParam(required = false)
+            @Pattern(regexp = "\\d{2}", message = "regionCode는 2자리 숫자여야 합니다.")
+            String regionCode,
+            @RequestParam(required = false) MissionCategory category,
+            @Parameter(hidden = true) @AuthenticationPrincipal AuthenticatedUser principal
+    ) {
+        return ApiResponse.of(
+                MissionSuccessCode.ARCHIVE_MAP_FOUND,
+                missionArchiveQueryService.getMapArchive(
+                        principal.userId(), yearMonth, regionCode, category
+                )
         );
     }
 

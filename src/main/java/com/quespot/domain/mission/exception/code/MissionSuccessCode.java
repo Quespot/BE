@@ -114,6 +114,10 @@ public enum MissionSuccessCode implements BaseCode {
             "MISSION_200_027",
             "미션 스팟의 미션 목록을 조회했습니다."),
 
+    ARCHIVE_MAP_FOUND(HttpStatus.OK,
+            "MISSION_200_028",
+            "지도형 아카이브를 조회했습니다."),
+
     MISSIONS_PUBLISHED(HttpStatus.CREATED,
             "MISSION_201_001",
             "미션을 일괄 발행했습니다."),

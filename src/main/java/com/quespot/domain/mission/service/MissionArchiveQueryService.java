@@ -3,8 +3,11 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.mission.converter.MissionConverter;
 import com.quespot.domain.mission.dto.res.MissionArchiveItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionArchiveListResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionArchiveMapResponseDTO;
 import com.quespot.domain.mission.enums.ArchivePhotoSource;
+import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.repository.ArchivePhotoRepository;
+import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
 import com.quespot.global.file.service.FileService;
 import lombok.RequiredArgsConstructor;
@@ -12,17 +15,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
-// GPS 인증 후 등록한 미션 사진 + 아카이브 자유 업로드 사진을 하나의 최신순
-// 피드로 모아 보는 화면(#45 확장). 지도가 아니라 목록이라 좌표는 응답에 안
-// 넣는다(mission_photos.latitude/longitude는 나중에 지도 뷰가 생길 때를
-// 위해 컬럼은 그대로 둔다).
 @Service
 @RequiredArgsConstructor
 public class MissionArchiveQueryService {
 
     private final ArchivePhotoRepository archivePhotoRepository;
+    private final MissionAttemptRepository missionAttemptRepository;
     private final ArchiveCursorCodec archiveCursorCodec;
     private final FileService fileService;
 
@@ -59,5 +60,29 @@ public class MissionArchiveQueryService {
                 .toList();
 
         return MissionConverter.toArchiveListResponse(items, nextCursor, hasNext);
+    }
+
+    @Transactional(readOnly = true)
+    public MissionArchiveMapResponseDTO getMapArchive(
+            Long userId,
+            String yearMonthValue,
+            String regionCode,
+            MissionCategory category
+    ) {
+        YearMonth yearMonth = yearMonthValue == null ? null : YearMonth.parse(yearMonthValue);
+        LocalDateTime startAt = yearMonth == null ? null : yearMonth.atDay(1).atStartOfDay();
+        LocalDateTime endAt = yearMonth == null ? null : yearMonth.plusMonths(1).atDay(1).atStartOfDay();
+
+        var completedMissions = missionAttemptRepository.findCompletedMissionArchive(
+                        userId,
+                        startAt,
+                        endAt,
+                        regionCode,
+                        category == null ? null : category.name()
+                ).stream()
+                .map(MissionConverter::toCompletedMissionArchiveItem)
+                .toList();
+
+        return MissionConverter.toArchiveMapResponse(completedMissions);
     }
 }
