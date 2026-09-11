@@ -29,7 +29,7 @@ import java.math.BigDecimal;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/missions")
-@Tag(name = "Mission", description = "미션 API")
+@Tag(name = "MissionDiscovery", description = "미션 탐색 API")
 public class MissionController {
 
     private final MissionQueryService missionQueryService;
