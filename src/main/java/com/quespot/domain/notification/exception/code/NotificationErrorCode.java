@@ -8,7 +8,11 @@ public enum NotificationErrorCode implements BaseErrorCode {
 
     FCM_TOKEN_REGISTRATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,
             "NOTIFICATION_500_001",
-            "FCM 토큰 등록에 실패했습니다.");
+            "FCM 토큰 등록에 실패했습니다."),
+
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND,
+            "NOTIFICATION_404_001",
+            "알림을 찾을 수 없습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

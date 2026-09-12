@@ -15,6 +15,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
 @Entity
 @Table(
         name = "fcm_tokens",
@@ -41,6 +44,15 @@ public class FcmToken extends BaseEntity {
     @Column(name = "device_type", nullable = false, length = 20)
     private DeviceType deviceType;
 
+    @Column(name = "last_latitude", precision = 13, scale = 10)
+    private BigDecimal lastLatitude;
+
+    @Column(name = "last_longitude", precision = 13, scale = 10)
+    private BigDecimal lastLongitude;
+
+    @Column(name = "located_at")
+    private LocalDateTime locatedAt;
+
     private FcmToken(Long userId, String token, DeviceType deviceType) {
         this.userId = userId;
         this.token = token;
@@ -54,5 +66,19 @@ public class FcmToken extends BaseEntity {
     public void reassignTo(Long userId, DeviceType deviceType) {
         this.userId = userId;
         this.deviceType = deviceType;
+    }
+
+    // 위치는 스케줄러의 "주변 미션" 판정 기준. 없으면 이전 값을 유지한다(호출부가 결정).
+    public void updateLocation(BigDecimal latitude, BigDecimal longitude, LocalDateTime locatedAt) {
+        this.lastLatitude = latitude;
+        this.lastLongitude = longitude;
+        this.locatedAt = locatedAt;
+    }
+
+    // 소유자가 바뀌면 이전 소유자의 좌표가 새 소유자 추천에 쓰이면 안 되므로 지운다.
+    public void clearLocation() {
+        this.lastLatitude = null;
+        this.lastLongitude = null;
+        this.locatedAt = null;
     }
 }

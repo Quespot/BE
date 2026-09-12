@@ -97,6 +97,13 @@ app:
       redirect-uri: ${NAVER_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/login/oauth2/code/naver}
   firebase:
     credentials-path: ${FIREBASE_CREDENTIALS_PATH:}
+  notification:
+    recommendation:
+      enabled: ${NOTIFICATION_RECOMMENDATION_ENABLED:false}
+      cron: "${NOTIFICATION_RECOMMENDATION_CRON:0 0 11 * * *}"
+      zone: Asia/Seoul
+      radius-meters: ${NOTIFICATION_RECOMMENDATION_RADIUS_METERS:3000}
+      location-max-age-days: ${NOTIFICATION_RECOMMENDATION_LOCATION_MAX_AGE_DAYS:7}
   jwt:
     secret: ${JWT_SECRET}
     access-token-expiration-minutes: ${JWT_ACCESS_TOKEN_EXPIRATION_MINUTES:30}
