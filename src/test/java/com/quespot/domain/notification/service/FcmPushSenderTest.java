@@ -115,6 +115,28 @@ class FcmPushSenderTest {
     }
 
     @Test
+    void splitsTokensIntoMulticastChunksOf500AndAggregates() throws Exception {
+        when(provider.getIfAvailable()).thenReturn(messaging);
+        List<FcmToken> tokens = new java.util.ArrayList<>();
+        for (int i = 0; i < 1000; i++) {
+            tokens.add(token("t" + i));
+        }
+        List<SendResponse> chunkResponses = new java.util.ArrayList<>();
+        for (int i = 0; i < FcmPushSender.MULTICAST_LIMIT; i++) {
+            chunkResponses.add(i == 0 ? failure(MessagingErrorCode.UNREGISTERED) : success());
+        }
+        BatchResponse batch = mock(BatchResponse.class);
+        when(batch.getResponses()).thenReturn(chunkResponses);
+        when(messaging.sendEachForMulticast(any(MulticastMessage.class))).thenReturn(batch);
+
+        PushResult result = sender.send(tokens, "t", "b", Map.of());
+
+        verify(messaging, org.mockito.Mockito.times(2)).sendEachForMulticast(any(MulticastMessage.class));
+        assertThat(result.successCount()).isEqualTo(998);
+        assertThat(result.invalidTokens()).containsExactly("t0", "t500");
+    }
+
+    @Test
     void swallowsWholeBatchFailure() throws Exception {
         when(provider.getIfAvailable()).thenReturn(messaging);
         FirebaseMessagingException exception = mock(FirebaseMessagingException.class);

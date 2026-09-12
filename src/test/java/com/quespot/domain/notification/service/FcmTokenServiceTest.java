@@ -81,16 +81,32 @@ class FcmTokenServiceTest {
         RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-race", DeviceType.WEB, null, null);
         FcmToken raceWinnerToken = FcmToken.register(userId, request.token(), request.deviceType());
 
-        when(fcmTokenRepository.findByToken(request.token()))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(raceWinnerToken));
+        when(fcmTokenRepository.findByToken(request.token())).thenReturn(Optional.empty());
         when(fcmTokenWriter.saveNewToken(userId, request))
                 .thenThrow(new DataIntegrityViolationException("duplicate token"));
+        // 재조회는 같은 트랜잭션(옛 스냅샷)이 아니라 writer의 REQUIRES_NEW에서 한다.
+        when(fcmTokenWriter.reassignExisting(userId, request)).thenReturn(Optional.of(raceWinnerToken));
 
         RegisterFcmTokenResponseDTO response = fcmTokenService.registerToken(userId, request);
 
         assertThat(response.deviceType()).isEqualTo(DeviceType.WEB);
-        assertThat(raceWinnerToken.getUserId()).isEqualTo(userId);
+        verify(fcmTokenRepository, times(1)).findByToken(request.token());
+    }
+
+    @Test
+    void clearsPreviousLocationWhenOwnerChangesWithoutNewLocation() {
+        FcmToken existing = FcmToken.register(1L, "token-owner", DeviceType.ANDROID);
+        existing.updateLocation(new BigDecimal("37.1"), new BigDecimal("127.1"), LocalDateTime.of(2026, 9, 1, 10, 0));
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-owner", DeviceType.ANDROID, null, null);
+
+        when(fcmTokenRepository.findByToken("token-owner")).thenReturn(Optional.of(existing));
+
+        fcmTokenService.registerToken(2L, request);
+
+        assertThat(existing.getUserId()).isEqualTo(2L);
+        assertThat(existing.getLastLatitude()).isNull();
+        assertThat(existing.getLastLongitude()).isNull();
+        assertThat(existing.getLocatedAt()).isNull();
     }
 
     @Test

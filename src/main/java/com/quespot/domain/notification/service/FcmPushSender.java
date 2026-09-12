@@ -28,6 +28,10 @@ public class FcmPushSender {
         this.firebaseMessagingProvider = firebaseMessagingProvider;
     }
 
+    // MulticastMessage.build()는 토큰이 500개를 넘으면 IllegalArgumentException을 던진다(FCM 제한).
+    // 사용자당 토큰 수에 상한이 없으므로 500개씩 나눠 보내고 결과를 합산한다(PR #58 CodeRabbit 지적).
+    static final int MULTICAST_LIMIT = 500;
+
     public PushResult send(List<FcmToken> tokens, String title, String body, Map<String, String> data) {
         if (tokens.isEmpty()) {
             return PushResult.skipped();
@@ -38,9 +42,23 @@ public class FcmPushSender {
             return PushResult.skipped();
         }
 
+        Notification notification = Notification.builder().setTitle(title).setBody(body).build();
+        int successCount = 0;
+        List<String> invalidTokens = new ArrayList<>();
+        for (int from = 0; from < tokens.size(); from += MULTICAST_LIMIT) {
+            List<FcmToken> chunk = tokens.subList(from, Math.min(from + MULTICAST_LIMIT, tokens.size()));
+            PushResult partial = sendChunk(messaging, chunk, notification, data);
+            successCount += partial.successCount();
+            invalidTokens.addAll(partial.invalidTokens());
+        }
+        return new PushResult(successCount, invalidTokens);
+    }
+
+    private PushResult sendChunk(FirebaseMessaging messaging, List<FcmToken> chunk,
+                                 Notification notification, Map<String, String> data) {
         MulticastMessage message = MulticastMessage.builder()
-                .addAllTokens(tokens.stream().map(FcmToken::getToken).toList())
-                .setNotification(Notification.builder().setTitle(title).setBody(body).build())
+                .addAllTokens(chunk.stream().map(FcmToken::getToken).toList())
+                .setNotification(notification)
                 .putAllData(data)
                 .build();
 
@@ -49,16 +67,17 @@ public class FcmPushSender {
             batch = messaging.sendEachForMulticast(message);
         } catch (FirebaseMessagingException exception) {
             log.warn("FCM 일괄 발송 실패. tokenCount={}, code={}",
-                    tokens.size(), exception.getMessagingErrorCode(), exception);
+                    chunk.size(), exception.getMessagingErrorCode(), exception);
             return PushResult.skipped();
         }
 
         int successCount = 0;
         List<String> invalidTokens = new ArrayList<>();
         List<SendResponse> responses = batch.getResponses();
-        for (int i = 0; i < responses.size(); i++) {
+        int count = Math.min(responses.size(), chunk.size());
+        for (int i = 0; i < count; i++) {
             SendResponse response = responses.get(i);
-            FcmToken token = tokens.get(i);
+            FcmToken token = chunk.get(i);
             if (response.isSuccessful()) {
                 successCount++;
                 continue;

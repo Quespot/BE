@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -40,7 +41,9 @@ class FcmTokenServiceIntegrationTest {
     }
 
     @Autowired private FcmTokenService fcmTokenService;
+    @Autowired private FcmTokenWriter fcmTokenWriter;
     @Autowired private FcmTokenRepository fcmTokenRepository;
+    @Autowired private TransactionTemplate transactionTemplate;
 
     @Test
     void persistsLocationOnFirstRegistration() {
@@ -54,7 +57,7 @@ class FcmTokenServiceIntegrationTest {
     }
 
     @Test
-    void updatesLocationOnReRegistrationAndKeepsItWhenOmitted() {
+    void updatesLocationOnReRegistrationKeepsItWhenOmittedAndClearsItOnOwnerChange() {
         fcmTokenService.registerToken(9802L, new RegisterFcmTokenRequestDTO(
                 "re-9802", DeviceType.IOS, new BigDecimal("37.1"), new BigDecimal("127.1")));
 
@@ -63,11 +66,45 @@ class FcmTokenServiceIntegrationTest {
         FcmToken moved = fcmTokenRepository.findByToken("re-9802").orElseThrow();
         assertThat(moved.getLastLatitude()).isEqualByComparingTo("35.1");
 
+        fcmTokenService.registerToken(9802L, new RegisterFcmTokenRequestDTO(
+                "re-9802", DeviceType.IOS, null, null));
+        FcmToken kept = fcmTokenRepository.findByToken("re-9802").orElseThrow();
+        assertThat(kept.getLastLatitude()).isEqualByComparingTo("35.1");
+
         fcmTokenService.registerToken(9803L, new RegisterFcmTokenRequestDTO(
                 "re-9802", DeviceType.ANDROID, null, null));
         FcmToken reassigned = fcmTokenRepository.findByToken("re-9802").orElseThrow();
         assertThat(reassigned.getUserId()).isEqualTo(9803L);
         assertThat(reassigned.getDeviceType()).isEqualTo(DeviceType.ANDROID);
-        assertThat(reassigned.getLastLatitude()).isEqualByComparingTo("35.1");
+        assertThat(reassigned.getLastLatitude()).isNull();
+        assertThat(reassigned.getLocatedAt()).isNull();
+    }
+
+    // 따닥 등록의 진 쪽 상황을 재현한다: 바깥 트랜잭션이 빈 결과로 스냅샷을 잡은 뒤 이긴 쪽(REQUIRES_NEW)이
+    // 커밋하면, 같은 트랜잭션의 재조회는 REPEATABLE READ 때문에 그 행을 못 보지만
+    // writer.reassignExisting()(새 트랜잭션)은 본다 — registerToken()의 fallback이 후자를 쓰는 이유.
+    @Test
+    void raceLoserSeesWinnerRowOnlyThroughFreshTransaction() {
+        String token = "race-9804";
+        RegisterFcmTokenRequestDTO loserRequest = new RegisterFcmTokenRequestDTO(
+                token, DeviceType.ANDROID, new BigDecimal("37.5"), new BigDecimal("127.0"));
+
+        transactionTemplate.executeWithoutResult(status -> {
+            assertThat(fcmTokenRepository.findByToken(token)).isEmpty(); // 스냅샷 확정
+
+            fcmTokenWriter.saveNewToken(9805L, new RegisterFcmTokenRequestDTO(token, DeviceType.IOS, null, null));
+
+            assertThat(fcmTokenRepository.findByToken(token))
+                    .as("같은 트랜잭션의 재조회는 옛 스냅샷이라 이긴 쪽 행을 못 본다")
+                    .isEmpty();
+            assertThat(fcmTokenWriter.reassignExisting(9804L, loserRequest))
+                    .as("새 트랜잭션은 이긴 쪽 행을 보고 갱신한다")
+                    .isPresent();
+        });
+
+        FcmToken stored = fcmTokenRepository.findByToken(token).orElseThrow();
+        assertThat(stored.getUserId()).isEqualTo(9804L);
+        assertThat(stored.getDeviceType()).isEqualTo(DeviceType.ANDROID);
+        assertThat(stored.getLastLatitude()).isEqualByComparingTo("37.5");
     }
 }

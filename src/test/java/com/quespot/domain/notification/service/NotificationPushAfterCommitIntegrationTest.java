@@ -20,6 +20,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
@@ -84,13 +85,13 @@ class NotificationPushAfterCommitIntegrationTest {
         Long userId = 9702L;
         fcmTokenRepository.save(FcmToken.register(userId, "rb-9702", DeviceType.ANDROID));
 
-        try {
-            transactionTemplate.executeWithoutResult(status -> {
-                notificationService.notify(command(userId));
-                throw new IllegalStateException("force rollback");
-            });
-        } catch (IllegalStateException ignored) {
-        }
+        assertThatThrownBy(() ->
+                transactionTemplate.executeWithoutResult(status -> {
+                    notificationService.notify(command(userId));
+                    throw new IllegalStateException("force rollback");
+                }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("force rollback");
 
         verify(fcmPushSender, never()).send(anyList(), anyString(), any(), anyMap());
     }

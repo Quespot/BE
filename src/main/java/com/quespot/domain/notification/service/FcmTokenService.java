@@ -12,8 +12,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Service
 @RequiredArgsConstructor
 public class FcmTokenService {
@@ -28,7 +26,7 @@ public class FcmTokenService {
     @Transactional
     public RegisterFcmTokenResponseDTO registerToken(Long userId, RegisterFcmTokenRequestDTO request) {
         FcmToken fcmToken = fcmTokenRepository.findByToken(request.token())
-                .map(existing -> refresh(existing, userId, request))
+                .map(existing -> FcmTokenWriter.apply(existing, userId, request))
                 .orElseGet(() -> saveNewToken(userId, request));
 
         return NotificationConverter.toRegisterFcmTokenResponseDTO(fcmToken);
@@ -43,20 +41,12 @@ public class FcmTokenService {
         try {
             return fcmTokenWriter.saveNewToken(userId, request);
         } catch (DataIntegrityViolationException exception) {
-            // 따닥 요청에서 진 쪽: 이긴 쪽이 넣은 행을 이 컨텍스트로 읽어(관리 상태) 갱신한다.
-            return fcmTokenRepository.findByToken(request.token())
-                    .map(existing -> refresh(existing, userId, request))
+            // 따닥 요청에서 진 쪽. 이 트랜잭션의 스냅샷은 이긴 쪽 커밋 이전이라 여기서 재조회하면
+            // 못 본다 — writer의 REQUIRES_NEW(새 스냅샷)로 재조회·갱신한다.
+            return fcmTokenWriter.reassignExisting(userId, request)
                     .orElseThrow(() -> new NotificationException(
                             NotificationErrorCode.FCM_TOKEN_REGISTRATION_FAILED
                     ));
         }
-    }
-
-    private FcmToken refresh(FcmToken managed, Long userId, RegisterFcmTokenRequestDTO request) {
-        managed.reassignTo(userId, request.deviceType());
-        if (request.hasLocation()) {
-            managed.updateLocation(request.latitude(), request.longitude(), LocalDateTime.now());
-        }
-        return managed;
     }
 }

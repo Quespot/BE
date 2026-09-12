@@ -74,4 +74,11 @@ public class FcmToken extends BaseEntity {
         this.lastLongitude = longitude;
         this.locatedAt = locatedAt;
     }
+
+    // 소유자가 바뀌면 이전 소유자의 좌표가 새 소유자 추천에 쓰이면 안 되므로 지운다.
+    public void clearLocation() {
+        this.lastLatitude = null;
+        this.lastLongitude = null;
+        this.locatedAt = null;
+    }
 }
