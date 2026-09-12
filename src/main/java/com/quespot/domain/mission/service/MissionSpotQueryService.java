@@ -42,6 +42,7 @@ public class MissionSpotQueryService {
     private final MissionCursorCodec missionCursorCodec;
     private final MissionAttemptStatusResolver missionAttemptStatusResolver;
 
+    // 행정구역 미션 스팟 조회 로직
     @Transactional(readOnly = true)
     public MissionSpotMapResponseDTO getMissionSpots(Long userId, String regionCode) {
         List<AdministrativeDistrict> districts = administrativeDistrictResolver.findByRegionCode(regionCode);
@@ -72,6 +73,7 @@ public class MissionSpotQueryService {
         );
     }
 
+    // 주변 미션 스팟 조회 로직
     @Transactional(readOnly = true)
     public NearbyMissionSpotListResponseDTO getNearbyMissionSpots(
             Long userId,
@@ -89,6 +91,7 @@ public class MissionSpotQueryService {
         return new NearbyMissionSpotListResponseDTO(missionSpots);
     }
 
+    // 행정구역 미션 목록 조회 로직
     @Transactional(readOnly = true)
     public MissionListResponseDTO getDistrictMissions(
             Long userId,

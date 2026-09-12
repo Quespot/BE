@@ -87,6 +87,7 @@ public class OAuth2LinkRequestService {
         return parse(value);
     }
 
+    // 소셜 로그인 제공자 확인 로직
     public LoginProvider resolveSocialProvider(String providerValue) {
         if (providerValue == null || providerValue.isBlank()) {
             throw new AuthException(AuthErrorCode.UNSUPPORTED_LOGIN_PROVIDER);

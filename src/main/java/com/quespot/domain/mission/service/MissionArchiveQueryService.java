@@ -62,6 +62,7 @@ public class MissionArchiveQueryService {
         return MissionConverter.toArchiveListResponse(items, nextCursor, hasNext);
     }
 
+    // 지도형 아카이브 조회 로직
     @Transactional(readOnly = true)
     public MissionArchiveMapResponseDTO getMapArchive(
             Long userId,

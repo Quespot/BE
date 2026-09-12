@@ -33,6 +33,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    secrets:
+      - firebase-service-account
     environment:
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -163,6 +165,10 @@ configs:
               proxy_send_timeout 60s;
           }
       }
+
+secrets:
+  firebase-service-account:
+    file: /opt/quespot/secrets/firebase-service-account.json
 
 volumes:
   redis-data:
