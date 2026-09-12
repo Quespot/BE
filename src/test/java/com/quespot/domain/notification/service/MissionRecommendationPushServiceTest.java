@@ -18,14 +18,14 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MissionRecommendationServiceTest {
+class MissionRecommendationPushServiceTest {
 
     private final FcmTokenRepository fcmTokenRepository = mock(FcmTokenRepository.class);
     private final MissionRecommendationNotifier notifier = mock(MissionRecommendationNotifier.class);
     private final NotificationRecommendationProperties properties =
             new NotificationRecommendationProperties(true, "0 0 11 * * *", "Asia/Seoul", 3000, 7);
-    private final MissionRecommendationService service =
-            new MissionRecommendationService(fcmTokenRepository, notifier, properties);
+    private final MissionRecommendationPushService service =
+            new MissionRecommendationPushService(fcmTokenRepository, notifier, properties);
 
     private static FcmToken located(Long userId, String token, String lat, String lng, LocalDateTime at) {
         FcmToken fcmToken = FcmToken.register(userId, token, DeviceType.ANDROID);
