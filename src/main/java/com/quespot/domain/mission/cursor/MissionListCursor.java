@@ -1,13 +1,13 @@
-package com.quespot.domain.mission.service;
+package com.quespot.domain.mission.cursor;
 
-record MissionCursor(
+public record MissionListCursor(
         SortMode sortMode,
         long seed,
         double sortValue,
         long missionId,
         String querySignature
 ) {
-    enum SortMode {
+    public enum SortMode {
         DISTANCE,
         RANDOM
     }

@@ -4,7 +4,7 @@ import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
-// MissionQueryService(#35)에 동일한 하버사인 공식이 이미 private 메서드로
+// MissionDiscoveryQueryService(#35)에 동일한 하버사인 공식이 이미 private 메서드로
 // 있지만, 건우 소유 클래스의 private 메서드라 재사용할 권한이 없다. 이거
 // 하나 때문에 그 클래스를 리팩토링하는 건 "건우 코드 건드리지 않는다"는
 // 범위를 넘어서므로, 15줄짜리 공식을 의도적으로 중복 구현한다.

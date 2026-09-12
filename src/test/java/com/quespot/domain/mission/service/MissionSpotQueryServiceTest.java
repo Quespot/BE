@@ -1,7 +1,8 @@
 package com.quespot.domain.mission.service;
 
+import com.quespot.domain.mission.cursor.MissionListCursorCodec;
 import com.quespot.domain.mission.enums.UserMissionStatus;
-import com.quespot.domain.mission.repository.MissionRepository;
+import com.quespot.domain.mission.repository.MissionSpotQueryRepository;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.repository.projection.MissionSpotSummaryProjection;
 import com.quespot.domain.mission.repository.projection.NearbyMissionSpotProjection;
@@ -25,20 +26,20 @@ import static org.mockito.Mockito.when;
 
 class MissionSpotQueryServiceTest {
 
-    private MissionRepository missionRepository;
+    private MissionSpotQueryRepository missionSpotQueryRepository;
     private AdministrativeDistrictResolver districtResolver;
     private MissionAttemptStatusResolver statusResolver;
     private MissionSpotQueryService service;
 
     @BeforeEach
     void setUp() {
-        missionRepository = mock(MissionRepository.class);
+        missionSpotQueryRepository = mock(MissionSpotQueryRepository.class);
         districtResolver = mock(AdministrativeDistrictResolver.class);
         statusResolver = mock(MissionAttemptStatusResolver.class);
         service = new MissionSpotQueryService(
-                missionRepository,
+                missionSpotQueryRepository,
                 districtResolver,
-                new MissionCursorCodec("mission-spot-cursor-secret"),
+                new MissionListCursorCodec("mission-spot-cursor-secret"),
                 statusResolver
         );
     }
@@ -50,7 +51,7 @@ class MissionSpotQueryServiceTest {
         MissionSpotSummaryProjection jongnoSummary = summary("11110", 2L, 2L);
         MissionSpotSummaryProjection gangnamSummary = summary("11680", 3L, 1L);
         when(districtResolver.findByRegionCode("11")).thenReturn(List.of(jongno, gangnam));
-        when(missionRepository.findMissionSpotSummaries(1L, "11")).thenReturn(List.of(
+        when(missionSpotQueryRepository.findMissionSpotSummaries(1L, "11")).thenReturn(List.of(
                 jongnoSummary,
                 gangnamSummary
         ));
@@ -68,7 +69,7 @@ class MissionSpotQueryServiceTest {
         AdministrativeDistrict jongno = district("11110", "종로구");
         MissionListProjection mission = mission(10L, 100.0);
         when(districtResolver.findByCode("11110")).thenReturn(Optional.of(jongno));
-        when(missionRepository.findDistrictMissionsRandomly(
+        when(missionSpotQueryRepository.findDistrictMissionsRandomly(
                 eq("11110"),
                 anyLong(),
                 isNull(),
@@ -93,7 +94,7 @@ class MissionSpotQueryServiceTest {
         AdministrativeDistrict jongno = district("11110", "종로구");
         NearbyMissionSpotProjection supported = nearbySummary("11110", 2L, 1L, 1200.0);
         NearbyMissionSpotProjection unsupported = nearbySummary("99999", 1L, 0L, 1500.0);
-        when(missionRepository.findNearbyMissionSpots(
+        when(missionSpotQueryRepository.findNearbyMissionSpots(
                 1L,
                 new BigDecimal("37.5"),
                 new BigDecimal("127.0"),

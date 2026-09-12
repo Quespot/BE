@@ -2,10 +2,11 @@ package com.quespot.domain.mission.service;
 
 import com.quespot.domain.like.enums.LikeTargetType;
 import com.quespot.domain.like.repository.LikeRepository;
+import com.quespot.domain.mission.cursor.MissionRecommendationCursorCodec;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
-import com.quespot.domain.mission.repository.MissionRepository;
+import com.quespot.domain.mission.repository.MissionRecommendationQueryRepository;
 import com.quespot.domain.mission.repository.projection.RecommendedMissionProjection;
 import com.quespot.domain.user.entity.UserProfile;
 import com.quespot.domain.user.enums.TravelStyle;
@@ -33,7 +34,7 @@ import static org.mockito.Mockito.when;
 
 class MissionRecommendationServiceTest {
 
-    private MissionRepository missionRepository;
+    private MissionRecommendationQueryRepository missionRecommendationQueryRepository;
     private UserProfileRepository userProfileRepository;
     private MissionAttemptStatusResolver missionAttemptStatusResolver;
     private LikeRepository likeRepository;
@@ -41,16 +42,16 @@ class MissionRecommendationServiceTest {
 
     @BeforeEach
     void setUp() {
-        missionRepository = mock(MissionRepository.class);
+        missionRecommendationQueryRepository = mock(MissionRecommendationQueryRepository.class);
         userProfileRepository = mock(UserProfileRepository.class);
         missionAttemptStatusResolver = mock(MissionAttemptStatusResolver.class);
         likeRepository = mock(LikeRepository.class);
         service = new MissionRecommendationService(
-                missionRepository,
+                missionRecommendationQueryRepository,
                 userProfileRepository,
                 missionAttemptStatusResolver,
                 likeRepository,
-                new RecommendationCursorCodec("recommendation-service-test-secret")
+                new MissionRecommendationCursorCodec("recommendation-service-test-secret")
         );
         when(missionAttemptStatusResolver.resolveStatuses(anyLong(), any())).thenReturn(Map.of());
     }
@@ -66,7 +67,7 @@ class MissionRecommendationServiceTest {
         RecommendedMissionProjection food = projection(1L, MissionCategory.FOOD, 0, 1, 10, 1200.4);
         RecommendedMissionProjection nature = projection(2L, MissionCategory.NATURE, 0, 1, 20, 1800.0);
         RecommendedMissionProjection fallback = projection(3L, MissionCategory.HISTORY, 1, 1, 30, 2300.0);
-        when(missionRepository.findRecommendedMissions(
+        when(missionRecommendationQueryRepository.findRecommendedMissions(
                 eq(10L),
                 eq("FOOD,NATURE"),
                 eq(latitude),
@@ -93,7 +94,7 @@ class MissionRecommendationServiceTest {
         when(userProfileRepository.findByUserId(10L)).thenReturn(Optional.empty());
         RecommendedMissionProjection locked = projection(1L, MissionCategory.FOOD, 0, 1, 10, 100.0);
         RecommendedMissionProjection available = projection(2L, MissionCategory.HISTORY, 0, 1, 20, 200.0);
-        when(missionRepository.findRecommendedMissions(
+        when(missionRecommendationQueryRepository.findRecommendedMissions(
                 eq(10L),
                 eq(""),
                 isNull(),
@@ -117,7 +118,7 @@ class MissionRecommendationServiceTest {
     @Test
     void returnsEmptyResultWithoutQueryingLikesWhenNoCandidateExists() {
         when(userProfileRepository.findByUserId(10L)).thenReturn(Optional.empty());
-        when(missionRepository.findRecommendedMissions(
+        when(missionRecommendationQueryRepository.findRecommendedMissions(
                 eq(10L), eq(""), isNull(), isNull(), anyLong(),
                 isNull(), isNull(), isNull(), isNull(), isNull(), anyInt()
         )).thenReturn(List.of());

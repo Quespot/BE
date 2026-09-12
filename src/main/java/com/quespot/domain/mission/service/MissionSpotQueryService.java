@@ -1,6 +1,8 @@
 package com.quespot.domain.mission.service;
 
 import com.quespot.domain.mission.converter.MissionConverter;
+import com.quespot.domain.mission.cursor.MissionListCursor;
+import com.quespot.domain.mission.cursor.MissionListCursorCodec;
 import com.quespot.domain.mission.dto.res.MissionListItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionListResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionSpotItemResponseDTO;
@@ -10,7 +12,7 @@ import com.quespot.domain.mission.enums.MissionSpotCompletionStatus;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
-import com.quespot.domain.mission.repository.MissionRepository;
+import com.quespot.domain.mission.repository.MissionSpotQueryRepository;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import com.quespot.domain.mission.repository.projection.MissionSpotSummaryProjection;
 import com.quespot.domain.mission.repository.projection.NearbyMissionSpotProjection;
@@ -37,9 +39,9 @@ public class MissionSpotQueryService {
     private static final BigDecimal MAX_LONGITUDE = new BigDecimal("180");
     private static final ZoneId SERVICE_ZONE_ID = ZoneId.of("Asia/Seoul");
 
-    private final MissionRepository missionRepository;
+    private final MissionSpotQueryRepository missionSpotQueryRepository;
     private final AdministrativeDistrictResolver administrativeDistrictResolver;
-    private final MissionCursorCodec missionCursorCodec;
+    private final MissionListCursorCodec missionListCursorCodec;
     private final MissionAttemptStatusResolver missionAttemptStatusResolver;
 
     // 행정구역 미션 스팟 조회 로직
@@ -55,7 +57,7 @@ public class MissionSpotQueryService {
                         AdministrativeDistrict::districtCode,
                         district -> district
                 ));
-        List<MissionSpotItemResponseDTO> missionSpots = missionRepository
+        List<MissionSpotItemResponseDTO> missionSpots = missionSpotQueryRepository
                 .findMissionSpotSummaries(userId, regionCode)
                 .stream()
                 .filter(row -> districtByCode.containsKey(row.getDistrictCode()))
@@ -82,7 +84,7 @@ public class MissionSpotQueryService {
             int limit
     ) {
         validateRequiredLocation(latitude, longitude);
-        List<MissionSpotItemResponseDTO> missionSpots = missionRepository
+        List<MissionSpotItemResponseDTO> missionSpots = missionSpotQueryRepository
                 .findNearbyMissionSpots(userId, latitude, longitude, limit)
                 .stream()
                 .map(this::toNearbyItem)
@@ -104,17 +106,17 @@ public class MissionSpotQueryService {
         administrativeDistrictResolver.findByCode(districtCode)
                 .orElseThrow(() -> new MissionException(MissionErrorCode.DISTRICT_NOT_FOUND));
         boolean hasLocation = validateOptionalLocation(latitude, longitude);
-        MissionCursor.SortMode sortMode = hasLocation
-                ? MissionCursor.SortMode.DISTANCE
-                : MissionCursor.SortMode.RANDOM;
-        String querySignature = missionCursorCodec.querySignature(
+        MissionListCursor.SortMode sortMode = hasLocation
+                ? MissionListCursor.SortMode.DISTANCE
+                : MissionListCursor.SortMode.RANDOM;
+        String querySignature = missionListCursorCodec.querySignature(
                 userId,
                 null,
                 "district:" + districtCode,
                 latitude,
                 longitude
         );
-        MissionCursor cursor = resolveCursor(cursorValue, sortMode, querySignature);
+        MissionListCursor cursor = resolveCursor(cursorValue, sortMode, querySignature);
         long seed = cursor == null
                 ? initialSeed(sortMode, userId)
                 : cursor.seed();
@@ -151,14 +153,14 @@ public class MissionSpotQueryService {
             String districtCode,
             BigDecimal latitude,
             BigDecimal longitude,
-            MissionCursor cursor,
+            MissionListCursor cursor,
             long seed,
             int limit
     ) {
         Double cursorSortValue = cursor == null ? null : cursor.sortValue();
         Long cursorMissionId = cursor == null ? null : cursor.missionId();
         if (latitude != null) {
-            return missionRepository.findDistrictMissionsByDistance(
+            return missionSpotQueryRepository.findDistrictMissionsByDistance(
                     districtCode,
                     latitude,
                     longitude,
@@ -167,7 +169,7 @@ public class MissionSpotQueryService {
                     limit
             );
         }
-        return missionRepository.findDistrictMissionsRandomly(
+        return missionSpotQueryRepository.findDistrictMissionsRandomly(
                 districtCode,
                 seed,
                 cursorSortValue,
@@ -209,17 +211,17 @@ public class MissionSpotQueryService {
         );
     }
 
-    private MissionCursor resolveCursor(
+    private MissionListCursor resolveCursor(
             String cursorValue,
-            MissionCursor.SortMode sortMode,
+            MissionListCursor.SortMode sortMode,
             String querySignature
     ) {
         if (cursorValue == null || cursorValue.isBlank()) {
             return null;
         }
-        MissionCursor cursor = missionCursorCodec.decode(cursorValue);
+        MissionListCursor cursor = missionListCursorCodec.decode(cursorValue);
         if (cursor.sortMode() != sortMode
-                || (sortMode == MissionCursor.SortMode.DISTANCE && cursor.seed() != 0)
+                || (sortMode == MissionListCursor.SortMode.DISTANCE && cursor.seed() != 0)
                 || !cursor.querySignature().equals(querySignature)) {
             throw new MissionException(MissionErrorCode.INVALID_CURSOR);
         }
@@ -228,11 +230,11 @@ public class MissionSpotQueryService {
 
     private String nextCursor(
             MissionListProjection lastMission,
-            MissionCursor.SortMode sortMode,
+            MissionListCursor.SortMode sortMode,
             long seed,
             String querySignature
     ) {
-        return missionCursorCodec.encode(new MissionCursor(
+        return missionListCursorCodec.encode(new MissionListCursor(
                 sortMode,
                 seed,
                 lastMission.getSortValue(),
@@ -267,8 +269,8 @@ public class MissionSpotQueryService {
         return item.completionStatus() == MissionSpotCompletionStatus.COMPLETED;
     }
 
-    private long initialSeed(MissionCursor.SortMode sortMode, Long userId) {
-        if (sortMode == MissionCursor.SortMode.DISTANCE) {
+    private long initialSeed(MissionListCursor.SortMode sortMode, Long userId) {
+        if (sortMode == MissionListCursor.SortMode.DISTANCE) {
             return 0;
         }
         return 31 * userId + LocalDate.now(SERVICE_ZONE_ID).toEpochDay();

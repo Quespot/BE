@@ -1,6 +1,6 @@
-package com.quespot.domain.mission.service;
+package com.quespot.domain.mission.cursor;
 
-record RecommendationCursor(
+public record MissionRecommendationCursor(
         SortMode sortMode,
         long seed,
         int preferenceRank,
@@ -10,7 +10,7 @@ record RecommendationCursor(
         long missionId,
         String querySignature
 ) {
-    enum SortMode {
+    public enum SortMode {
         DISTANCE,
         RANDOM
     }

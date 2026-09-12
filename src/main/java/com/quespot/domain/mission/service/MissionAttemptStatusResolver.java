@@ -13,10 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// MissionQueryService.getMissions()가 미션 목록 한 페이지를 확정한 뒤
+// MissionDiscoveryQueryService.getMissions()가 미션 목록 한 페이지를 확정한 뒤
 // 이 클래스를 한 번만 호출해서 N+1을 피한다 — 미션마다 따로 조회하지 않는다.
 // #39 재설계로 CourseLockPolicy를 통한 LOCKED 오버레이가 추가됐지만, 시그니처는
-// 그대로라 MissionQueryService.java는 변경이 필요 없다.
+// 그대로라 MissionDiscoveryQueryService.java는 변경이 필요 없다.
 @Component
 @RequiredArgsConstructor
 public class MissionAttemptStatusResolver {

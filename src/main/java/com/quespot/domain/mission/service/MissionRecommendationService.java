@@ -3,12 +3,14 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.like.enums.LikeTargetType;
 import com.quespot.domain.like.repository.LikeRepository;
 import com.quespot.domain.mission.converter.MissionConverter;
+import com.quespot.domain.mission.cursor.MissionRecommendationCursor;
+import com.quespot.domain.mission.cursor.MissionRecommendationCursorCodec;
 import com.quespot.domain.mission.dto.res.RecommendedMissionItemResponseDTO;
 import com.quespot.domain.mission.dto.res.RecommendedMissionListResponseDTO;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
-import com.quespot.domain.mission.repository.MissionRepository;
+import com.quespot.domain.mission.repository.MissionRecommendationQueryRepository;
 import com.quespot.domain.mission.repository.projection.RecommendedMissionProjection;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,11 +38,11 @@ public class MissionRecommendationService {
     private static final int MIN_SCAN_BATCH_SIZE = 30;
     private static final int MAX_SCAN_BATCH_SIZE = 300;
 
-    private final MissionRepository missionRepository;
+    private final MissionRecommendationQueryRepository missionRecommendationQueryRepository;
     private final UserProfileRepository userProfileRepository;
     private final MissionAttemptStatusResolver missionAttemptStatusResolver;
     private final LikeRepository likeRepository;
-    private final RecommendationCursorCodec recommendationCursorCodec;
+    private final MissionRecommendationCursorCodec missionRecommendationCursorCodec;
 
     // 추천 미션 목록 조회 로직
     @Transactional(readOnly = true)
@@ -54,13 +56,13 @@ public class MissionRecommendationService {
         boolean hasLocation = validateLocation(latitude, longitude);
         String preferredCategories = preferredCategories(userId);
         long seed = dailySeed(userId);
-        RecommendationCursor.SortMode sortMode = hasLocation
-                ? RecommendationCursor.SortMode.DISTANCE
-                : RecommendationCursor.SortMode.RANDOM;
-        String querySignature = recommendationCursorCodec.querySignature(
+        MissionRecommendationCursor.SortMode sortMode = hasLocation
+                ? MissionRecommendationCursor.SortMode.DISTANCE
+                : MissionRecommendationCursor.SortMode.RANDOM;
+        String querySignature = missionRecommendationCursorCodec.querySignature(
                 userId, preferredCategories, latitude, longitude
         );
-        RecommendationCursor requestedCursor = resolveCursor(
+        MissionRecommendationCursor requestedCursor = resolveCursor(
                 cursorValue, sortMode, seed, querySignature
         );
 
@@ -86,7 +88,7 @@ public class MissionRecommendationService {
                 ))
                 .toList();
         String nextCursor = hasNext
-                ? recommendationCursorCodec.encode(toCursor(
+                ? missionRecommendationCursorCodec.encode(toCursor(
                         page.get(page.size() - 1), sortMode, seed, querySignature
                 ))
                 : null;
@@ -99,10 +101,10 @@ public class MissionRecommendationService {
             String preferredCategories,
             BigDecimal latitude,
             BigDecimal longitude,
-            RecommendationCursor.SortMode sortMode,
+            MissionRecommendationCursor.SortMode sortMode,
             long seed,
             String querySignature,
-            RecommendationCursor requestedCursor,
+            MissionRecommendationCursor requestedCursor,
             int requiredCount
     ) {
         int batchSize = Math.min(
@@ -110,22 +112,23 @@ public class MissionRecommendationService {
                 Math.max(MIN_SCAN_BATCH_SIZE, requiredCount * 3)
         );
         List<RecommendedMissionProjection> availableRows = new ArrayList<>(requiredCount);
-        RecommendationCursor scanCursor = requestedCursor;
+        MissionRecommendationCursor scanCursor = requestedCursor;
 
         while (availableRows.size() < requiredCount) {
-            List<RecommendedMissionProjection> rows = missionRepository.findRecommendedMissions(
-                    userId,
-                    preferredCategories,
-                    latitude,
-                    longitude,
-                    seed,
-                    scanCursor == null ? null : scanCursor.preferenceRank(),
-                    scanCursor == null ? null : scanCursor.categoryRank(),
-                    scanCursor == null ? null : scanCursor.categoryOrder(),
-                    scanCursor == null ? null : scanCursor.sortValue(),
-                    scanCursor == null ? null : scanCursor.missionId(),
-                    batchSize
-            );
+            List<RecommendedMissionProjection> rows = missionRecommendationQueryRepository
+                    .findRecommendedMissions(
+                            userId,
+                            preferredCategories,
+                            latitude,
+                            longitude,
+                            seed,
+                            scanCursor == null ? null : scanCursor.preferenceRank(),
+                            scanCursor == null ? null : scanCursor.categoryRank(),
+                            scanCursor == null ? null : scanCursor.categoryOrder(),
+                            scanCursor == null ? null : scanCursor.sortValue(),
+                            scanCursor == null ? null : scanCursor.missionId(),
+                            batchSize
+                    );
             if (rows.isEmpty()) {
                 break;
             }
@@ -174,16 +177,16 @@ public class MissionRecommendationService {
                 .orElse("");
     }
 
-    private RecommendationCursor resolveCursor(
+    private MissionRecommendationCursor resolveCursor(
             String cursorValue,
-            RecommendationCursor.SortMode sortMode,
+            MissionRecommendationCursor.SortMode sortMode,
             long seed,
             String querySignature
     ) {
         if (cursorValue == null || cursorValue.isBlank()) {
             return null;
         }
-        RecommendationCursor cursor = recommendationCursorCodec.decode(cursorValue);
+        MissionRecommendationCursor cursor = missionRecommendationCursorCodec.decode(cursorValue);
         if (cursor.sortMode() != sortMode
                 || cursor.seed() != seed
                 || !cursor.querySignature().equals(querySignature)) {
@@ -192,13 +195,13 @@ public class MissionRecommendationService {
         return cursor;
     }
 
-    private RecommendationCursor toCursor(
+    private MissionRecommendationCursor toCursor(
             RecommendedMissionProjection row,
-            RecommendationCursor.SortMode sortMode,
+            MissionRecommendationCursor.SortMode sortMode,
             long seed,
             String querySignature
     ) {
-        return new RecommendationCursor(
+        return new MissionRecommendationCursor(
                 sortMode,
                 seed,
                 row.getPreferenceRank(),

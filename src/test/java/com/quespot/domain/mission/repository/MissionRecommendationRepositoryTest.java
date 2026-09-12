@@ -52,6 +52,9 @@ class MissionRecommendationRepositoryTest {
     private MissionRepository missionRepository;
 
     @Autowired
+    private MissionRecommendationQueryRepository missionRecommendationQueryRepository;
+
+    @Autowired
     private MissionAttemptRepository missionAttemptRepository;
 
     @Autowired
@@ -88,7 +91,7 @@ class MissionRecommendationRepositoryTest {
         missionAttemptRepository.save(completedAttempt);
         missionAttemptRepository.save(MissionAttempt.start(USER_ID, inProgress));
 
-        List<RecommendedMissionProjection> rows = missionRepository.findRecommendedMissions(
+        List<RecommendedMissionProjection> rows = missionRecommendationQueryRepository.findRecommendedMissions(
                 USER_ID,
                 "FOOD,NATURE",
                 new BigDecimal("37.5665"),

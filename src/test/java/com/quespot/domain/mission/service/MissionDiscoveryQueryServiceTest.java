@@ -1,5 +1,7 @@
 package com.quespot.domain.mission.service;
 
+import com.quespot.domain.mission.cursor.MissionListCursor;
+import com.quespot.domain.mission.cursor.MissionListCursorCodec;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionListResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
@@ -7,6 +9,7 @@ import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.MissionStatus;
 import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
+import com.quespot.domain.mission.repository.MissionDiscoveryQueryRepository;
 import com.quespot.domain.mission.repository.MissionRepository;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,23 +31,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MissionQueryServiceTest {
+class MissionDiscoveryQueryServiceTest {
 
     private static final String CURSOR_SECRET = "mission-cursor-test-secret";
 
     private MissionRepository missionRepository;
+    private MissionDiscoveryQueryRepository missionDiscoveryQueryRepository;
     private MissionAttemptStatusResolver missionAttemptStatusResolver;
-    private MissionQueryService missionQueryService;
+    private MissionDiscoveryQueryService missionDiscoveryQueryService;
 
     @BeforeEach
     void setUp() {
         missionRepository = mock(MissionRepository.class);
+        missionDiscoveryQueryRepository = mock(MissionDiscoveryQueryRepository.class);
         missionAttemptStatusResolver = mock(MissionAttemptStatusResolver.class);
         when(missionAttemptStatusResolver.resolveStatuses(anyLong(), any())).thenReturn(java.util.Map.of());
         when(missionAttemptStatusResolver.resolveStatus(anyLong(), anyLong())).thenReturn(UserMissionStatus.AVAILABLE);
-        missionQueryService = new MissionQueryService(
+        missionDiscoveryQueryService = new MissionDiscoveryQueryService(
                 missionRepository,
-                new MissionCursorCodec(CURSOR_SECRET),
+                missionDiscoveryQueryRepository,
+                new MissionListCursorCodec(CURSOR_SECRET),
                 missionAttemptStatusResolver
         );
     }
@@ -53,7 +59,7 @@ class MissionQueryServiceTest {
     void returnsDistanceOrderedMissionPageWithCursor() {
         MissionListProjection first = projection(1L, MissionCategory.HISTORY, 1200.4);
         MissionListProjection second = projection(2L, MissionCategory.HISTORY, 2300.0);
-        when(missionRepository.findMissionListByDistance(
+        when(missionDiscoveryQueryRepository.findMissionListByDistance(
                 eq("HISTORY"),
                 eq("경복궁"),
                 any(BigDecimal.class),
@@ -63,7 +69,7 @@ class MissionQueryServiceTest {
                 eq(2)
         )).thenReturn(List.of(first, second));
 
-        MissionListResponseDTO response = missionQueryService.getMissions(
+        MissionListResponseDTO response = missionDiscoveryQueryService.getMissions(
                 10L,
                 MissionCategory.HISTORY,
                 " 경복궁 ",
@@ -84,7 +90,7 @@ class MissionQueryServiceTest {
     @Test
     void returnsStableRandomOrderWithoutLocation() {
         MissionListProjection mission = projection(1L, MissionCategory.FOOD, 1234.0);
-        when(missionRepository.findMissionListRandomly(
+        when(missionDiscoveryQueryRepository.findMissionListRandomly(
                 isNull(),
                 isNull(),
                 anyLong(),
@@ -93,7 +99,7 @@ class MissionQueryServiceTest {
                 eq(21)
         )).thenReturn(List.of(mission));
 
-        MissionListResponseDTO response = missionQueryService.getMissions(
+        MissionListResponseDTO response = missionDiscoveryQueryService.getMissions(
                 10L,
                 null,
                 null,
@@ -111,17 +117,17 @@ class MissionQueryServiceTest {
 
     @Test
     void rejectsCursorWhenSearchConditionChanges() {
-        MissionCursorCodec codec = new MissionCursorCodec(CURSOR_SECRET);
+        MissionListCursorCodec codec = new MissionListCursorCodec(CURSOR_SECRET);
         String signature = codec.querySignature(10L, MissionCategory.HISTORY, null, null, null);
-        String cursor = codec.encode(new MissionCursor(
-                MissionCursor.SortMode.RANDOM,
+        String cursor = codec.encode(new MissionListCursor(
+                MissionListCursor.SortMode.RANDOM,
                 10L,
                 100,
                 1L,
                 signature
         ));
 
-        assertThatThrownBy(() -> missionQueryService.getMissions(
+        assertThatThrownBy(() -> missionDiscoveryQueryService.getMissions(
                 10L,
                 MissionCategory.FOOD,
                 null,
@@ -134,10 +140,10 @@ class MissionQueryServiceTest {
 
     @Test
     void rejectsCursorWhenPayloadIsTampered() {
-        MissionCursorCodec codec = new MissionCursorCodec(CURSOR_SECRET);
+        MissionListCursorCodec codec = new MissionListCursorCodec(CURSOR_SECRET);
         String signature = codec.querySignature(10L, MissionCategory.HISTORY, null, null, null);
-        String cursor = codec.encode(new MissionCursor(
-                MissionCursor.SortMode.RANDOM,
+        String cursor = codec.encode(new MissionListCursor(
+                MissionListCursor.SortMode.RANDOM,
                 10L,
                 100,
                 1L,
@@ -171,7 +177,7 @@ class MissionQueryServiceTest {
         when(missionRepository.findByIdAndStatus(1L, MissionStatus.ACTIVE))
                 .thenReturn(Optional.of(mission));
 
-        MissionDetailResponseDTO response = missionQueryService.getMission(
+        MissionDetailResponseDTO response = missionDiscoveryQueryService.getMission(
                 10L,
                 1L,
                 new BigDecimal("37.5665"),
@@ -188,7 +194,7 @@ class MissionQueryServiceTest {
 
     @Test
     void rejectsLocationWhenOnlyLatitudeIsProvided() {
-        assertThatThrownBy(() -> missionQueryService.getMissions(
+        assertThatThrownBy(() -> missionDiscoveryQueryService.getMissions(
                 10L,
                 null,
                 null,
@@ -204,7 +210,7 @@ class MissionQueryServiceTest {
         when(missionRepository.findByIdAndStatus(1L, MissionStatus.ACTIVE))
                 .thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> missionQueryService.getMission(10L, 1L, null, null))
+        assertThatThrownBy(() -> missionDiscoveryQueryService.getMission(10L, 1L, null, null))
                 .isInstanceOf(MissionException.class);
     }
 

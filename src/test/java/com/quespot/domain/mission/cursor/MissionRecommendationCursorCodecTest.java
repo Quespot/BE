@@ -1,4 +1,4 @@
-package com.quespot.domain.mission.service;
+package com.quespot.domain.mission.cursor;
 
 import com.quespot.domain.mission.exception.MissionException;
 import org.junit.jupiter.api.Test;
@@ -10,16 +10,16 @@ import java.util.Base64;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class RecommendationCursorCodecTest {
+class MissionRecommendationCursorCodecTest {
 
     private static final String SECRET = "recommendation-cursor-test-secret";
 
-    private final RecommendationCursorCodec codec = new RecommendationCursorCodec(SECRET);
+    private final MissionRecommendationCursorCodec codec = new MissionRecommendationCursorCodec(SECRET);
 
     @Test
     void roundTripsSignedCursor() {
-        RecommendationCursor cursor = new RecommendationCursor(
-                RecommendationCursor.SortMode.DISTANCE,
+        MissionRecommendationCursor cursor = new MissionRecommendationCursor(
+                MissionRecommendationCursor.SortMode.DISTANCE,
                 123L,
                 0,
                 2L,
@@ -29,15 +29,15 @@ class RecommendationCursorCodecTest {
                 "query-signature"
         );
 
-        RecommendationCursor decoded = codec.decode(codec.encode(cursor));
+        MissionRecommendationCursor decoded = codec.decode(codec.encode(cursor));
 
         assertThat(decoded).isEqualTo(cursor);
     }
 
     @Test
     void rejectsTamperedCursorPayload() {
-        RecommendationCursor cursor = new RecommendationCursor(
-                RecommendationCursor.SortMode.RANDOM,
+        MissionRecommendationCursor cursor = new MissionRecommendationCursor(
+                MissionRecommendationCursor.SortMode.RANDOM,
                 123L,
                 0,
                 1L,

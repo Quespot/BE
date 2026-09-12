@@ -5,7 +5,7 @@ import com.quespot.domain.mission.dto.res.MissionListResponseDTO;
 import com.quespot.domain.mission.dto.res.RecommendedMissionListResponseDTO;
 import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.exception.code.MissionSuccessCode;
-import com.quespot.domain.mission.service.MissionQueryService;
+import com.quespot.domain.mission.service.MissionDiscoveryQueryService;
 import com.quespot.domain.mission.service.MissionRecommendationService;
 import com.quespot.global.apiPayload.ApiResponse;
 import com.quespot.global.security.principal.AuthenticatedUser;
@@ -34,7 +34,7 @@ import java.math.BigDecimal;
 @Tag(name = "MissionDiscovery", description = "미션 탐색 API")
 public class MissionDiscoveryController {
 
-    private final MissionQueryService missionQueryService;
+    private final MissionDiscoveryQueryService missionDiscoveryQueryService;
     private final MissionRecommendationService missionRecommendationService;
 
     @GetMapping
@@ -66,7 +66,7 @@ public class MissionDiscoveryController {
     ) {
         return ApiResponse.of(
                 MissionSuccessCode.MISSIONS_FOUND,
-                missionQueryService.getMissions(
+                missionDiscoveryQueryService.getMissions(
                         principal.userId(),
                         category,
                         keyword,
@@ -100,7 +100,7 @@ public class MissionDiscoveryController {
     ) {
         return ApiResponse.of(
                 MissionSuccessCode.MISSION_FOUND,
-                missionQueryService.getMission(
+                missionDiscoveryQueryService.getMission(
                         principal.userId(),
                         missionId,
                         latitude,

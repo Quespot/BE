@@ -1,5 +1,6 @@
-package com.quespot.domain.mission.service;
+package com.quespot.domain.mission.cursor;
 
+import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,79 +16,108 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
 @Component
-public class RecommendationCursorCodec {
+public class MissionListCursorCodec {
 
     private static final String DELIMITER = "|";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String HMAC_CONTEXT = "mission-recommendation-cursor:v1|";
+    private static final String HMAC_CONTEXT = "mission-cursor:v1|";
 
     private final SecretKeySpec secretKey;
 
-    public RecommendationCursorCodec(@Value("${app.jwt.secret}") String secret) {
-        this.secretKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), HMAC_ALGORITHM);
+    public MissionListCursorCodec(@Value("${app.jwt.secret}") String secret) {
+        this.secretKey = new SecretKeySpec(
+                secret.getBytes(StandardCharsets.UTF_8),
+                HMAC_ALGORITHM
+        );
     }
 
-    public String encode(RecommendationCursor cursor) {
+    public String encode(MissionListCursor cursor) {
         String payload = String.join(
                 DELIMITER,
                 cursor.sortMode().name(),
                 Long.toString(cursor.seed()),
-                Integer.toString(cursor.preferenceRank()),
-                Long.toString(cursor.categoryRank()),
-                Long.toString(cursor.categoryOrder()),
                 Double.toString(cursor.sortValue()),
                 Long.toString(cursor.missionId()),
                 cursor.querySignature()
         );
         String value = payload + DELIMITER + encodeMac(payload);
-        return Base64.getUrlEncoder().withoutPadding()
+        return Base64.getUrlEncoder()
+                .withoutPadding()
                 .encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
-    public RecommendationCursor decode(String value) {
+    public MissionListCursor decode(String value) {
         try {
-            String decoded = new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
+            String decoded = new String(
+                    Base64.getUrlDecoder().decode(value),
+                    StandardCharsets.UTF_8
+            );
             String[] parts = decoded.split("\\|", -1);
-            if (parts.length != 9) {
+            if (parts.length != 6) {
                 throw invalidCursor();
             }
 
             String payload = String.join(
                     DELIMITER,
-                    parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7]
+                    parts[0],
+                    parts[1],
+                    parts[2],
+                    parts[3],
+                    parts[4]
             );
-            byte[] providedMac = Base64.getUrlDecoder().decode(parts[8]);
+            byte[] providedMac = Base64.getUrlDecoder().decode(parts[5]);
             if (!MessageDigest.isEqual(createMac(payload), providedMac)) {
                 throw invalidCursor();
             }
 
-            RecommendationCursor cursor = new RecommendationCursor(
-                    RecommendationCursor.SortMode.valueOf(parts[0]),
+            MissionListCursor cursor = new MissionListCursor(
+                    MissionListCursor.SortMode.valueOf(parts[0]),
                     Long.parseLong(parts[1]),
-                    Integer.parseInt(parts[2]),
+                    Double.parseDouble(parts[2]),
                     Long.parseLong(parts[3]),
-                    Long.parseLong(parts[4]),
-                    Double.parseDouble(parts[5]),
-                    Long.parseLong(parts[6]),
-                    parts[7]
+                    parts[4]
             );
-            validate(cursor);
+            if (!Double.isFinite(cursor.sortValue())
+                    || cursor.sortValue() < 0
+                    || cursor.missionId() <= 0) {
+                throw invalidCursor();
+            }
             return cursor;
         } catch (IllegalArgumentException exception) {
             throw invalidCursor();
         }
     }
 
+    private String encodeMac(String payload) {
+        return Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(createMac(payload));
+    }
+
+    private byte[] createMac(String payload) {
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            mac.init(secretKey);
+            return mac.doFinal(
+                    (HMAC_CONTEXT + payload).getBytes(StandardCharsets.UTF_8)
+            );
+        } catch (GeneralSecurityException exception) {
+            throw new IllegalStateException("HMAC-SHA256 algorithm is unavailable", exception);
+        }
+    }
+
     public String querySignature(
             Long userId,
-            String preferredCategories,
+            MissionCategory category,
+            String keyword,
             BigDecimal latitude,
             BigDecimal longitude
     ) {
         String value = String.join(
                 DELIMITER,
                 userId.toString(),
-                preferredCategories,
+                category == null ? "" : category.name(),
+                keyword == null ? "" : keyword,
                 normalize(latitude),
                 normalize(longitude)
         );
@@ -97,31 +127,6 @@ public class RecommendationCursorCodec {
             return Base64.getUrlEncoder().withoutPadding().encodeToString(digest);
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 algorithm is unavailable", exception);
-        }
-    }
-
-    private void validate(RecommendationCursor cursor) {
-        if (!Double.isFinite(cursor.sortValue())
-                || cursor.sortValue() < 0
-                || cursor.preferenceRank() < 0
-                || cursor.categoryRank() <= 0
-                || cursor.categoryOrder() < 0
-                || cursor.missionId() <= 0) {
-            throw invalidCursor();
-        }
-    }
-
-    private String encodeMac(String payload) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(createMac(payload));
-    }
-
-    private byte[] createMac(String payload) {
-        try {
-            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
-            mac.init(secretKey);
-            return mac.doFinal((HMAC_CONTEXT + payload).getBytes(StandardCharsets.UTF_8));
-        } catch (GeneralSecurityException exception) {
-            throw new IllegalStateException("HMAC-SHA256 algorithm is unavailable", exception);
         }
     }
 
