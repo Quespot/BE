@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 @SpringBootTest
 @Testcontainers
@@ -74,8 +75,10 @@ class MissionRecommendationRepositoryTest {
 
     @Test
     void recommendsPreferredCategoriesFirstAndExcludesCompletedAndInProgressMissions() {
-        Mission food = createMission("food", AppCategory.FOOD, MissionTemplate.FOOD_LOCATION, "37.5700");
-        Mission nature = createMission("nature", AppCategory.NATURE, MissionTemplate.NATURE_LOCATION, "37.5800");
+        Mission foodNear = createMission("food-near", AppCategory.FOOD, MissionTemplate.FOOD_LOCATION, "37.5700");
+        Mission foodFar = createMission("food-far", AppCategory.FOOD, MissionTemplate.FOOD_LOCATION, "37.5710");
+        Mission natureNear = createMission("nature-near", AppCategory.NATURE, MissionTemplate.NATURE_LOCATION, "37.5800");
+        Mission natureFar = createMission("nature-far", AppCategory.NATURE, MissionTemplate.NATURE_LOCATION, "37.5810");
         Mission history = createMission("history", AppCategory.HISTORY, MissionTemplate.HISTORY_LOCATION, "37.5900");
         Mission completed = createMission("completed", AppCategory.FOOD, MissionTemplate.FOOD_LOCATION, "37.6000");
         Mission inProgress = createMission("progress", AppCategory.NATURE, MissionTemplate.NATURE_LOCATION, "37.6100");
@@ -97,14 +100,26 @@ class MissionRecommendationRepositoryTest {
 
         assertThat(rows).extracting(RecommendedMissionProjection::getMissionId)
                 .doesNotContain(completed.getId(), inProgress.getId());
-        assertThat(rows.subList(0, 2)).extracting(RecommendedMissionProjection::getCategory)
-                .containsExactlyInAnyOrder(MissionCategory.FOOD.name(), MissionCategory.NATURE.name());
-        assertThat(rows.subList(0, 2)).extracting(RecommendedMissionProjection::getPreferenceRank)
+        String firstCategory = rows.get(0).getCategory();
+        String secondCategory = firstCategory.equals(MissionCategory.FOOD.name())
+                ? MissionCategory.NATURE.name()
+                : MissionCategory.FOOD.name();
+        assertThat(rows.subList(0, 4)).extracting(
+                        RecommendedMissionProjection::getCategory,
+                        RecommendedMissionProjection::getCategoryRank
+                )
+                .containsExactly(
+                        tuple(firstCategory, 1L),
+                        tuple(secondCategory, 1L),
+                        tuple(firstCategory, 2L),
+                        tuple(secondCategory, 2L)
+                );
+        assertThat(rows.subList(0, 4)).extracting(RecommendedMissionProjection::getPreferenceRank)
                 .containsOnly(0);
-        assertThat(rows.get(2).getMissionId()).isEqualTo(history.getId());
-        assertThat(rows.get(2).getPreferenceRank()).isEqualTo(1);
+        assertThat(rows.get(4).getMissionId()).isEqualTo(history.getId());
+        assertThat(rows.get(4).getPreferenceRank()).isEqualTo(1);
         assertThat(rows).extracting(RecommendedMissionProjection::getMissionId)
-                .contains(food.getId(), nature.getId());
+                .contains(foodNear.getId(), foodFar.getId(), natureNear.getId(), natureFar.getId());
     }
 
     private Mission createMission(
@@ -115,7 +130,7 @@ class MissionRecommendationRepositoryTest {
     ) {
         Spot spot = spotRepository.save(Spot.builder()
                 .source(SpotSource.TOUR_API)
-                .sourceContentId("recommendation-" + suffix)
+                .sourceContentId("rec-" + suffix)
                 .name("추천 장소 " + suffix)
                 .latitude(new BigDecimal(latitude))
                 .longitude(new BigDecimal("126.9780"))
