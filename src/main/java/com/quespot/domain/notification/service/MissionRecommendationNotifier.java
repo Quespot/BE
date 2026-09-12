@@ -19,7 +19,7 @@ import java.time.ZoneId;
 
 // 사용자 1명의 추천 판정 + 알림 생성. 별도 Bean의 @Transactional이라 사용자마다 독립 트랜잭션이고,
 // 커밋 뒤 NotificationPushListener가 그 사용자 푸시를 보낸다. 한 사용자의 실패가 다른 사용자에게
-// 번지지 않는다(MissionRecommendationService가 사용자별로 try/catch).
+// 번지지 않는다(MissionRecommendationPushService가 사용자별로 try/catch).
 @Component
 @RequiredArgsConstructor
 public class MissionRecommendationNotifier {

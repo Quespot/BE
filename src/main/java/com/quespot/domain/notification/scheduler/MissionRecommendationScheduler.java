@@ -1,6 +1,6 @@
 package com.quespot.domain.notification.scheduler;
 
-import com.quespot.domain.notification.service.MissionRecommendationService;
+import com.quespot.domain.notification.service.MissionRecommendationPushService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 @ConditionalOnProperty(name = "app.notification.recommendation.enabled", havingValue = "true")
 public class MissionRecommendationScheduler {
 
-    private final MissionRecommendationService missionRecommendationService;
+    private final MissionRecommendationPushService missionRecommendationPushService;
 
     @Scheduled(
             cron = "${app.notification.recommendation.cron}",
             zone = "${app.notification.recommendation.zone:Asia/Seoul}"
     )
     public void run() {
-        missionRecommendationService.recommendToAll();
+        missionRecommendationPushService.recommendToAll();
     }
 }
