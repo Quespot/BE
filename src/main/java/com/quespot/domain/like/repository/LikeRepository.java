@@ -30,6 +30,19 @@ public interface LikeRepository extends JpaRepository<Like, Long> {
 
     boolean existsByUserIdAndTargetTypeAndTargetId(Long userId, LikeTargetType targetType, Long targetId);
 
+    @Query("""
+            select l.targetId
+            from UserLike l
+            where l.userId = :userId
+              and l.targetType = :targetType
+              and l.targetId in :targetIds
+            """)
+    List<Long> findLikedTargetIds(
+            @Param("userId") Long userId,
+            @Param("targetType") LikeTargetType targetType,
+            @Param("targetIds") List<Long> targetIds
+    );
+
     // likes엔 FK가 없어 연관관계 대신 `join ... on`으로 붙인다. 비활성 미션은
     // 목록에서 빠진다(좋아요 행은 남겨둔다 — 해제는 사용자가 한다).
     @Query("""

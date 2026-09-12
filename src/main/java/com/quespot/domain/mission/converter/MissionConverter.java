@@ -15,6 +15,7 @@ import com.quespot.domain.mission.dto.res.MissionCandidateResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionListItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionPhotoResponseDTO;
+import com.quespot.domain.mission.dto.res.RecommendedMissionItemResponseDTO;
 import com.quespot.domain.mission.dto.res.VerificationGuideResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionAttempt;
@@ -27,6 +28,7 @@ import com.quespot.domain.mission.enums.UserMissionStatus;
 import com.quespot.domain.mission.repository.projection.ArchiveFeedRowProjection;
 import com.quespot.domain.mission.repository.projection.CompletedMissionArchiveProjection;
 import com.quespot.domain.mission.repository.projection.MissionListProjection;
+import com.quespot.domain.mission.repository.projection.RecommendedMissionProjection;
 import com.quespot.domain.mission.service.MissionArrivalService;
 import com.quespot.domain.spot.entity.Spot;
 import org.springframework.data.domain.Page;
@@ -93,6 +95,24 @@ public class MissionConverter {
                 projection.getEstimatedMinutes(),
                 userMissionStatus,
                 userMissionStatus.canStart()
+        );
+    }
+
+    public static RecommendedMissionItemResponseDTO toRecommendedMissionItem(
+            RecommendedMissionProjection projection,
+            boolean includeDistance,
+            boolean liked
+    ) {
+        return new RecommendedMissionItemResponseDTO(
+                projection.getMissionId(),
+                projection.getTitle(),
+                MissionCategory.valueOf(projection.getCategory()),
+                projection.getSpotName(),
+                projection.getImageUrl(),
+                includeDistance ? Math.round(projection.getSortValue()) : null,
+                projection.getRewardPoint(),
+                projection.getEstimatedMinutes(),
+                liked
         );
     }
 

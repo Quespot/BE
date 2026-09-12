@@ -74,6 +74,7 @@ public class RefreshTokenService {
 
     private final StringRedisTemplate stringRedisTemplate;
 
+    // 로그인 세션 유효성 조회 로직
     public boolean isSessionActive(Long userId, String sessionId) {
         if (userId == null || sessionId == null || sessionId.isBlank()) {
             return false;
@@ -85,6 +86,7 @@ public class RefreshTokenService {
         return String.valueOf(userId).equals(savedUserId);
     }
 
+    // 리프레시 토큰 저장 로직
     public void saveRefreshToken(Long userId, JwtTokenPair tokenPair) {
         long currentTimeMillis = Instant.now().toEpochMilli();
         long expirationTimeMillis = currentTimeMillis + tokenPair.refreshTokenExpiresInSeconds() * 1000;
@@ -104,6 +106,7 @@ public class RefreshTokenService {
         );
     }
 
+    // 리프레시 토큰 교체 로직
     public void rotateRefreshToken(
             Long userId,
             String currentRefreshToken,
@@ -131,6 +134,7 @@ public class RefreshTokenService {
         }
     }
 
+    // 로그인 세션 삭제 로직
     public void deleteSession(Long userId, String sessionId) {
         if (userId == null || sessionId == null || sessionId.isBlank()) {
             return;
@@ -146,6 +150,7 @@ public class RefreshTokenService {
         );
     }
 
+    // 사용자의 전체 로그인 세션 삭제 로직
     public void deleteAllSessions(Long userId) {
         if (userId == null) {
             return;

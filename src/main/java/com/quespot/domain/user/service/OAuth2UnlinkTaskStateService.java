@@ -17,6 +17,7 @@ public class OAuth2UnlinkTaskStateService {
 
     private final OAuth2UnlinkTaskRepository oAuth2UnlinkTaskRepository;
 
+    // OAuth 연동 해제 작업 선점 로직
     @Transactional
     public Optional<ClaimedUnlinkTask> claim(LoginProvider provider, String providerUserId) {
         return oAuth2UnlinkTaskRepository
@@ -25,6 +26,7 @@ public class OAuth2UnlinkTaskStateService {
                 .map(task -> new ClaimedUnlinkTask(task.getId(), task.toCommand()));
     }
 
+    // OAuth 연동 해제 작업 완료 처리 로직
     @Transactional
     public void complete(Long taskId) {
         oAuth2UnlinkTaskRepository.findByIdForUpdate(taskId)
@@ -32,6 +34,7 @@ public class OAuth2UnlinkTaskStateService {
                 .ifPresent(oAuth2UnlinkTaskRepository::delete);
     }
 
+    // OAuth 연동 해제 작업 실패 처리 로직
     @Transactional
     public void fail(Long taskId, String errorMessage, boolean retryable) {
         oAuth2UnlinkTaskRepository.findByIdForUpdate(taskId)
@@ -39,6 +42,7 @@ public class OAuth2UnlinkTaskStateService {
                 .ifPresent(task -> task.recordFailure(errorMessage, retryable));
     }
 
+    // 소셜 계정 재연결 전 연동 해제 작업 정리 로직
     @Transactional
     public void prepareForRelink(LoginProvider provider, String providerUserId) {
         oAuth2UnlinkTaskRepository

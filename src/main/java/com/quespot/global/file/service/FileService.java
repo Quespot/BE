@@ -31,6 +31,7 @@ public class FileService {
 
     private final FileStorage fileStorage;
 
+    // 파일 업로드용 Presigned URL 생성 로직
     public PresignedUploadResult createPresignedUploadUrl(
             Long userId,
             UploadPurpose purpose,
@@ -51,11 +52,13 @@ public class FileService {
         );
     }
 
+    // 파일 조회용 Presigned URL 생성 로직
     public String createPresignedDownloadUrl(String objectKey) {
         validateObjectKey(objectKey);
         return fileStorage.createPresignedDownloadUrl(objectKey);
     }
 
+    // 파일 소유자 및 업로드 용도 검증 로직
     public void validateOwnedObjectKey(
             Long userId,
             UploadPurpose purpose,
@@ -78,6 +81,7 @@ public class FileService {
         }
     }
 
+    // 파일 삭제 로직
     public void deleteObject(String objectKey) {
         validateObjectKey(objectKey);
         fileStorage.deleteObject(objectKey);

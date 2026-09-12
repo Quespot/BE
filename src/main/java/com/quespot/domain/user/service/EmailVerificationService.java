@@ -176,6 +176,7 @@ public class EmailVerificationService {
         throw new AuthException(AuthErrorCode.INVALID_EMAIL_VERIFICATION_CODE);
     }
 
+    // 이메일 인증 완료 여부 조회 로직
     public boolean isEmailVerified(String email, EmailVerificationPurpose purpose) {
         return Boolean.TRUE.equals(stringRedisTemplate.hasKey(verificationCompletedKey(email, purpose)));
     }
