@@ -20,7 +20,23 @@ public enum NotificationSuccessCode implements BaseCode {
 
     NOTIFICATION_SETTING_UPDATED(HttpStatus.OK,
             "NOTIFICATION_200_004",
-            "알림 설정을 변경했습니다.");
+            "알림 설정을 변경했습니다."),
+
+    NOTIFICATION_LIST_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_005",
+            "알림 목록을 조회했습니다."),
+
+    NOTIFICATION_UNREAD_COUNT_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_006",
+            "미읽음 알림 개수를 조회했습니다."),
+
+    NOTIFICATION_READ(HttpStatus.OK,
+            "NOTIFICATION_200_007",
+            "알림을 읽음 처리했습니다."),
+
+    NOTIFICATION_ALL_READ(HttpStatus.OK,
+            "NOTIFICATION_200_008",
+            "모든 알림을 읽음 처리했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
