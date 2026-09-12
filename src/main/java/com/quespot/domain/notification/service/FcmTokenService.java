@@ -12,6 +12,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class FcmTokenService {
@@ -26,6 +28,9 @@ public class FcmTokenService {
                 .orElseGet(() -> saveNewToken(userId, request));
 
         fcmToken.reassignTo(userId, request.deviceType());
+        if (request.hasLocation()) {
+            fcmToken.updateLocation(request.latitude(), request.longitude(), LocalDateTime.now());
+        }
 
         return NotificationConverter.toRegisterFcmTokenResponseDTO(fcmToken);
     }

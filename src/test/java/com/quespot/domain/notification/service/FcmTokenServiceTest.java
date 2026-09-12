@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +42,7 @@ class FcmTokenServiceTest {
     @Test
     void registersNewToken() {
         Long userId = 1L;
-        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-a", DeviceType.ANDROID);
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-a", DeviceType.ANDROID, null, null);
         FcmToken savedToken = FcmToken.register(userId, request.token(), request.deviceType());
         ReflectionTestUtils.setField(savedToken, "id", 10L);
 
@@ -61,7 +63,7 @@ class FcmTokenServiceTest {
         Long newOwnerId = 2L;
         String token = "token-shared-device";
         FcmToken existingToken = FcmToken.register(previousOwnerId, token, DeviceType.ANDROID);
-        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO(token, DeviceType.IOS);
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO(token, DeviceType.IOS, null, null);
 
         when(fcmTokenRepository.findByToken(token)).thenReturn(Optional.of(existingToken));
 
@@ -76,7 +78,7 @@ class FcmTokenServiceTest {
     @Test
     void fallsBackToExistingTokenOnConcurrentInsertRace() {
         Long userId = 1L;
-        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-race", DeviceType.WEB);
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-race", DeviceType.WEB, null, null);
         FcmToken raceWinnerToken = FcmToken.register(userId, request.token(), request.deviceType());
 
         when(fcmTokenRepository.findByToken(request.token()))
@@ -94,7 +96,7 @@ class FcmTokenServiceTest {
     @Test
     void throwsNotificationExceptionWhenConcurrentInsertWinnerCannotBeFound() {
         Long userId = 1L;
-        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-failed", DeviceType.WEB);
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-failed", DeviceType.WEB, null, null);
 
         when(fcmTokenRepository.findByToken(request.token())).thenReturn(Optional.empty());
         when(fcmTokenWriter.saveNewToken(userId, request))
@@ -115,5 +117,37 @@ class FcmTokenServiceTest {
 
         verify(fcmTokenRepository, times(1)).deleteByUserIdAndToken(userId, token);
         verify(fcmTokenRepository, never()).findByToken(anyString());
+    }
+
+    @Test
+    void storesLocationWhenProvided() {
+        Long userId = 1L;
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO(
+                "token-loc", DeviceType.ANDROID, new BigDecimal("37.5665"), new BigDecimal("126.9780"));
+        FcmToken existing = FcmToken.register(userId, request.token(), request.deviceType());
+
+        when(fcmTokenRepository.findByToken(request.token())).thenReturn(Optional.of(existing));
+
+        fcmTokenService.registerToken(userId, request);
+
+        assertThat(existing.getLastLatitude()).isEqualByComparingTo("37.5665");
+        assertThat(existing.getLastLongitude()).isEqualByComparingTo("126.9780");
+        assertThat(existing.getLocatedAt()).isNotNull();
+    }
+
+    @Test
+    void keepsPreviousLocationWhenRequestHasNone() {
+        Long userId = 1L;
+        FcmToken existing = FcmToken.register(userId, "token-keep", DeviceType.ANDROID);
+        LocalDateTime before = LocalDateTime.of(2026, 9, 1, 10, 0);
+        existing.updateLocation(new BigDecimal("37.1"), new BigDecimal("127.1"), before);
+        RegisterFcmTokenRequestDTO request = new RegisterFcmTokenRequestDTO("token-keep", DeviceType.IOS, null, null);
+
+        when(fcmTokenRepository.findByToken("token-keep")).thenReturn(Optional.of(existing));
+
+        fcmTokenService.registerToken(userId, request);
+
+        assertThat(existing.getLastLatitude()).isEqualByComparingTo("37.1");
+        assertThat(existing.getLocatedAt()).isEqualTo(before);
     }
 }

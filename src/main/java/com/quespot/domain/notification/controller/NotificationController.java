@@ -29,7 +29,8 @@ public class NotificationController {
     @PostMapping
     @Operation(
             summary = "FCM 토큰 등록",
-            description = "로그인한 사용자의 기기 FCM 토큰을 등록한다. 이미 등록된 토큰이면 소유자를 갱신한다."
+            description = "로그인한 사용자의 기기 FCM 토큰을 등록한다. 이미 등록된 토큰이면 소유자를 갱신한다. "
+                    + "latitude/longitude를 함께 보내면 주변 미션 추천 알림의 기준 위치로 저장된다(둘 중 하나만 보내면 400)."
     )
     public ApiResponse<RegisterFcmTokenResponseDTO> registerToken(
             @AuthenticationPrincipal AuthenticatedUser principal,
