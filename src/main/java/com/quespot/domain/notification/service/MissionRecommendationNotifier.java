@@ -33,7 +33,12 @@ public class MissionRecommendationNotifier {
 
     @Transactional
     public RecommendationOutcome recommend(Long userId, BigDecimal latitude, BigDecimal longitude) {
-        LocalDateTime todayStart = LocalDate.now(ZoneId.of(properties.zone())).atStartOfDay();
+        // "오늘"은 KST 기준이지만 created_at은 JVM 기본 시간대(운영 컨테이너는 UTC)의 LocalDateTime으로
+        // 저장되므로, KST 자정을 JVM 시간대의 벽시계 값으로 바꿔 비교한다(#57 리뷰).
+        ZoneId zone = ZoneId.of(properties.zone());
+        LocalDateTime todayStart = LocalDate.now(zone).atStartOfDay(zone)
+                .withZoneSameInstant(ZoneId.systemDefault())
+                .toLocalDateTime();
         // 재시작 등으로 같은 날 두 번 돌아도 한 번만 보낸다.
         if (notificationRepository.existsByUserIdAndTypeAndCreatedAtGreaterThanEqual(
                 userId, NotificationType.MISSION_RECOMMENDATION, todayStart)) {

@@ -65,4 +65,15 @@ class NotificationServiceTest {
 
         assertThat(n.getBody()).hasSize(Notification.BODY_MAX_LENGTH);
     }
+
+    @Test
+    void truncatesByCodePointWithoutSplittingSurrogatePairs() {
+        String emoji = "😀"; // 😀, 2 chars / 1 code point
+        Notification n = Notification.create(
+                1L, NotificationType.MISSION_RECOMMENDATION, "t", emoji.repeat(600), null, null);
+
+        String body = n.getBody();
+        assertThat(body.codePointCount(0, body.length())).isEqualTo(Notification.BODY_MAX_LENGTH);
+        assertThat(Character.isLowSurrogate(body.charAt(body.length() - 1))).isTrue();
+    }
 }

@@ -41,8 +41,13 @@ class FcmPushSenderTest {
     }
 
     private static SendResponse failure(MessagingErrorCode code) {
+        return failure(code, "The registration token is not a valid FCM registration token");
+    }
+
+    private static SendResponse failure(MessagingErrorCode code, String message) {
         FirebaseMessagingException exception = mock(FirebaseMessagingException.class);
         when(exception.getMessagingErrorCode()).thenReturn(code);
+        when(exception.getMessage()).thenReturn(message);
         SendResponse response = mock(SendResponse.class);
         when(response.isSuccessful()).thenReturn(false);
         when(response.getException()).thenReturn(exception);
@@ -90,6 +95,23 @@ class FcmPushSenderTest {
 
         assertThat(result.successCount()).isEqualTo(1);
         assertThat(result.invalidTokens()).containsExactly("gone", "bad");
+    }
+
+    @Test
+    void doesNotTreatMalformedMessageInvalidArgumentAsInvalidToken() throws Exception {
+        when(provider.getIfAvailable()).thenReturn(messaging);
+        List<SendResponse> responses = List.of(
+                failure(MessagingErrorCode.INVALID_ARGUMENT, "Invalid data key"),
+                failure(MessagingErrorCode.INVALID_ARGUMENT, "Invalid data key")
+        );
+        BatchResponse batch = mock(BatchResponse.class);
+        when(batch.getResponses()).thenReturn(responses);
+        when(messaging.sendEachForMulticast(any(MulticastMessage.class))).thenReturn(batch);
+
+        PushResult result = sender.send(List.of(token("a"), token("b")), "t", "b", Map.of("bad", "x"));
+
+        assertThat(result.successCount()).isZero();
+        assertThat(result.invalidTokens()).isEmpty();
     }
 
     @Test

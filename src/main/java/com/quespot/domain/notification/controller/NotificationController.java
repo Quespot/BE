@@ -41,6 +41,9 @@ public class NotificationController {
                     응답의 nextCursor(숫자 id)를 다음 요청의 cursor에 그대로 넣는다. hasNext=false면 마지막 페이지이고
                     nextCursor는 null. 결과가 없으면 notifications는 빈 배열이다.
                     referenceType=MISSION이면 referenceId는 미션 id라 미션 상세로 딥링크할 수 있다.
+                    푸시(FCM) data payload에도 같은 키가 문자열로 실린다: type, notificationId, referenceType, referenceId
+                    (referenceType/referenceId는 대상이 있을 때만). 푸시를 탭하면 notificationId로 읽음 처리하고
+                    referenceId로 이동하면 된다.
                     """
     )
     public ApiResponse<NotificationListResponseDTO> getNotifications(

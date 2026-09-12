@@ -87,10 +87,11 @@ public class Notification extends BaseEntity {
         }
     }
 
+    // 코드 포인트 단위로 자른다 — substring은 이모지 같은 서로게이트 쌍을 반으로 갈라 utf8mb4 저장이 실패한다.
     private static String truncate(String body) {
-        if (body == null || body.length() <= BODY_MAX_LENGTH) {
+        if (body == null || body.codePointCount(0, body.length()) <= BODY_MAX_LENGTH) {
             return body;
         }
-        return body.substring(0, BODY_MAX_LENGTH);
+        return body.substring(0, body.offsetByCodePoints(0, BODY_MAX_LENGTH));
     }
 }
