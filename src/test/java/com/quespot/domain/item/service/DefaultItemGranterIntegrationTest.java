@@ -5,6 +5,8 @@ import com.quespot.domain.item.dto.res.ShopItemResponseDTO;
 import com.quespot.domain.item.dto.res.UserItemResponseDTO;
 import com.quespot.domain.item.entity.ShopItem;
 import com.quespot.domain.item.enums.ItemCategory;
+import com.quespot.domain.item.exception.ItemException;
+import com.quespot.domain.item.exception.code.ItemErrorCode;
 import com.quespot.domain.item.repository.EquipSlotLimitRepository;
 import com.quespot.domain.item.repository.ShopItemRepository;
 import com.quespot.domain.item.repository.UserItemRepository;
@@ -18,9 +20,13 @@ import org.testcontainers.containers.MySQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // 기본 아이템 지연 지급의 멱등성, 상점 목록의 기본 아이템 제외, 시더 재실행 멱등성을 실DB로 검증한다(#62).
 @SpringBootTest
@@ -93,13 +99,42 @@ class DefaultItemGranterIntegrationTest {
         assertThat(hats).isEmpty();
     }
 
+    // 비활성 아이템은 보유 목록·퀘스티·장착에서 빠지되 행은 남는다(#62 spec 2.5). 같은 컨테이너를
+    // 다른 테스트와 공유하므로 끝나면 시더를 다시 돌려 되살린다(정의에 있는 아이템이라 재활성화됨).
+    @Test
+    void inactiveOwnedItemIsHiddenFromListAndCannotBeEquippedButRowIsKept() throws Exception {
+        Long userId = 9403L;
+        userItemService.getMyItems(userId);
+        ShopItem bag = shopItemRepository.findByCode("TRAVEL_BAG").orElseThrow();
+        bag.deactivate();
+        shopItemRepository.save(bag);
+
+        try {
+            assertThat(userItemService.getMyItems(userId)).hasSize(6)
+                    .extracting(UserItemResponseDTO::name).doesNotContain("여행 가방");
+            assertThat(userItemService.getQuesty(userId).ownedItemCount()).isEqualTo(6);
+            assertThatThrownBy(() -> userItemService.equip(userId, bag.getId()))
+                    .isInstanceOf(ItemException.class)
+                    .extracting(e -> ((ItemException) e).getErrorCode())
+                    .isEqualTo(ItemErrorCode.ITEM_NOT_OWNED);
+            assertThat(userItemRepository.existsByUserIdAndItem_Id(userId, bag.getId())).isTrue();
+        } finally {
+            seeder.run();
+        }
+        assertThat(shopItemRepository.findByCode("TRAVEL_BAG").orElseThrow().getIsActive()).isTrue();
+    }
+
+    // 재실행 시 UPDATE가 한 건도 없어야 한다 — updated_at이 그대로인지로 확인한다.
     @Test
     void seederIsIdempotentOnRerunAndSeededBackgroundSlotLimit() throws Exception {
-        long before = shopItemRepository.count();
+        Map<String, LocalDateTime> before = shopItemRepository.findAll().stream()
+                .collect(Collectors.toMap(ShopItem::getCode, ShopItem::getUpdatedAt));
 
         seeder.run();
 
-        assertThat(shopItemRepository.count()).isEqualTo(before).isEqualTo(12);
+        Map<String, LocalDateTime> after = shopItemRepository.findAll().stream()
+                .collect(Collectors.toMap(ShopItem::getCode, ShopItem::getUpdatedAt));
+        assertThat(after).hasSize(12).isEqualTo(before);
         assertThat(shopItemRepository.findByIsActiveTrue()).hasSize(12);
         assertThat(equipSlotLimitRepository.findById(ItemCategory.BACKGROUND))
                 .isPresent()

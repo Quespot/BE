@@ -44,6 +44,7 @@ public class ItemMasterDataSeeder implements CommandLineRunner {
     }
 
     // 기본 보유 7종(가격 0, is_default) + 상점 배경 5종(#62). 프론트 화면과 1:1.
+    // is_featured(카드 별표)는 아직 쓰는 화면이 없어 정의에 두지 않고 시더가 전부 false로 고정한다.
     static final List<ShopItemDefinition> SHOP_ITEMS = List.of(
             new ShopItemDefinition("EXPLORER_HAT", "탐험가 모자", ItemCategory.HAT, ItemRarity.NORMAL, 0, true, 1),
             new ShopItemDefinition("PURPLE_SUNGLASSES", "보라 선글라스", ItemCategory.ACCESSORY, ItemRarity.NORMAL, 0, true, 2),

@@ -133,7 +133,9 @@ public class ShopItem extends BaseEntity {
         this.isActive = true;
     }
 
-    // 정의 목록에서 빠진 아이템. 행은 남긴다(보유 이력 보존). 판매·지급·보유 목록에서 모두 빠진다.
+    // 정의 목록에서 빠진 아이템. 행은 남긴다(보유 이력 보존). 판매·지급·보유 목록·슬롯 계산에서 모두 빠진다.
+    // user_items.is_equipped는 건드리지 않으므로, 비활성 아이템을 나중에 정의에 되살리면 장착 상태로
+    // 다시 나타나 슬롯 한도를 넘길 수 있다 — 되살릴 땐 해당 아이템의 장착 행을 먼저 해제할 것.
     public void deactivate() {
         this.isActive = false;
     }
