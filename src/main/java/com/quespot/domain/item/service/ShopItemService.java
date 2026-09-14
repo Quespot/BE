@@ -17,11 +17,12 @@ public class ShopItemService {
 
     private final ShopItemRepository shopItemRepository;
 
+    // 상점엔 판매 아이템만(기본 보유 아이템 제외). 현재 마스터 기준으로는 배경 5종이다(#62).
     @Transactional(readOnly = true)
     public List<ShopItemResponseDTO> getShopItems(ItemCategory category) {
         List<ShopItem> shopItems = category == null
-                ? shopItemRepository.findByIsActiveTrueOrderBySortOrderAsc()
-                : shopItemRepository.findByCategoryAndIsActiveTrueOrderBySortOrderAsc(category);
+                ? shopItemRepository.findByIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc()
+                : shopItemRepository.findByCategoryAndIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc(category);
 
         return shopItems.stream()
                 .map(ItemConverter::toShopItemResponseDTO)

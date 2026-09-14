@@ -19,23 +19,28 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Comparator;
 import java.util.List;
 
+// 보유 목록·퀘스티·장착은 진입 시 기본 아이템을 먼저 채운다(DefaultItemGranter, #62).
+// INSERT가 들어가므로 readOnly 트랜잭션을 쓰지 않는다.
 @Service
 @RequiredArgsConstructor
 public class UserItemService {
 
     private final UserItemRepository userItemRepository;
     private final EquipSlotLimitRepository equipSlotLimitRepository;
+    private final DefaultItemGranter defaultItemGranter;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<UserItemResponseDTO> getMyItems(Long userId) {
+        defaultItemGranter.grantMissing(userId);
         return userItemRepository.findAllByUserIdWithItem(userId).stream()
                 .map(ItemConverter::toUserItemResponseDTO)
                 .toList();
     }
 
     // 기존 join fetch 쿼리 한 번으로 장착 목록·보유 수·최고 등급을 모두 계산한다(#50).
-    @Transactional(readOnly = true)
+    @Transactional
     public QuestyResponseDTO getQuesty(Long userId) {
+        defaultItemGranter.grantMissing(userId);
         List<UserItem> owned = userItemRepository.findAllByUserIdWithItem(userId);
         List<EquippedItemResponseDTO> equipped = owned.stream()
                 .filter(UserItem::getIsEquipped)
@@ -52,7 +57,8 @@ public class UserItemService {
 
     @Transactional
     public void equip(Long userId, Long itemId) {
-        UserItem target = userItemRepository.findByUserIdAndItem_Id(userId, itemId)
+        defaultItemGranter.grantMissing(userId);
+        UserItem target = userItemRepository.findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, itemId)
                 .orElseThrow(() -> new ItemException(ItemErrorCode.ITEM_NOT_OWNED));
 
         if (target.getIsEquipped()) {
@@ -81,6 +87,7 @@ public class UserItemService {
         target.equip();
     }
 
+    // 해제는 비활성 아이템이어도 허용(멱등). 지급은 부르지 않는다.
     @Transactional
     public void unequip(Long userId, Long itemId) {
         userItemRepository.findByUserIdAndItem_Id(userId, itemId)

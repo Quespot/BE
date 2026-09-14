@@ -29,27 +29,28 @@ class ShopItemServiceTest {
     }
 
     @Test
-    void listsAllActiveItemsWhenCategoryIsNull() {
-        ShopItem item = ShopItem.seed("EXPLORER_HAT", "탐험가 모자", ItemCategory.HAT, ItemRarity.NORMAL, 0, true, false);
-        when(shopItemRepository.findByIsActiveTrueOrderBySortOrderAsc()).thenReturn(List.of(item));
+    void listsActiveNonDefaultItemsWhenCategoryIsNull() {
+        ShopItem item = ShopItem.seed("COZY_CAFE", "포근한 카페", ItemCategory.BACKGROUND, ItemRarity.NORMAL, 320, false, false, 11);
+        when(shopItemRepository.findByIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc()).thenReturn(List.of(item));
 
         List<ShopItemResponseDTO> result = shopItemService.getShopItems(null);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).code()).isEqualTo("EXPLORER_HAT");
-        verify(shopItemRepository, never()).findByCategoryAndIsActiveTrueOrderBySortOrderAsc(any());
+        assertThat(result.get(0).code()).isEqualTo("COZY_CAFE");
+        assertThat(result.get(0).isDefault()).isFalse();
+        verify(shopItemRepository, never()).findByCategoryAndIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc(any());
     }
 
     @Test
-    void listsItemsByCategoryWhenCategoryProvided() {
-        ShopItem item = ShopItem.seed("GOLDEN_CROWN", "황금 왕관", ItemCategory.HAT, ItemRarity.LEGENDARY, 300, false, false);
-        when(shopItemRepository.findByCategoryAndIsActiveTrueOrderBySortOrderAsc(ItemCategory.HAT))
+    void listsActiveNonDefaultItemsByCategoryWhenCategoryProvided() {
+        ShopItem item = ShopItem.seed("BEACH_CAMPING", "바닷가 캠핑", ItemCategory.BACKGROUND, ItemRarity.NORMAL, 360, false, false, 14);
+        when(shopItemRepository.findByCategoryAndIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc(ItemCategory.BACKGROUND))
                 .thenReturn(List.of(item));
 
-        List<ShopItemResponseDTO> result = shopItemService.getShopItems(ItemCategory.HAT);
+        List<ShopItemResponseDTO> result = shopItemService.getShopItems(ItemCategory.BACKGROUND);
 
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).rarity()).isEqualTo(ItemRarity.LEGENDARY);
-        verify(shopItemRepository, never()).findByIsActiveTrueOrderBySortOrderAsc();
+        assertThat(result.get(0).price()).isEqualTo(360);
+        verify(shopItemRepository, never()).findByIsActiveTrueAndIsDefaultFalseOrderBySortOrderAsc();
     }
 }
