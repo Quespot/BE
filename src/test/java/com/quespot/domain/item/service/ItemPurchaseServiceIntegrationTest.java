@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 // 조건부 차감 + UNIQUE(user_id, item_id) + 롤백을 실DB로 검증한다.
-// 시더(ItemMasterDataSeeder)가 부팅 시 GOLDEN_CROWN(300P) 등을 넣어둔다.
+// 시더(ItemMasterDataSeeder)가 부팅 시 COZY_CAFE(320P) 등 배경 5종을 넣어둔다(#62).
 @SpringBootTest
 @Testcontainers
 class ItemPurchaseServiceIntegrationTest {
@@ -50,40 +50,38 @@ class ItemPurchaseServiceIntegrationTest {
     @Autowired private PointTransactionRepository pointTransactionRepository;
     @Autowired private PointService pointService;
 
-    private ShopItem goldenCrown() {
-        return shopItemRepository.findAll().stream()
-                .filter(i -> "GOLDEN_CROWN".equals(i.getCode()))
-                .findFirst().orElseThrow();
+    private ShopItem cozyCafe() {
+        return shopItemRepository.findByCode("COZY_CAFE").orElseThrow();
     }
 
     @Test
     void purchaseDebitsAndGrantsThenSecondPurchaseIsRejectedWithoutSecondDebit() {
         Long userId = 9301L;
-        ShopItem crown = goldenCrown();
+        ShopItem cafe = cozyCafe();
         pointService.credit(userId, 500, "MISSION_REWARD", "MISSION_ATTEMPT", 9301L, "보상");
 
-        itemPurchaseService.purchase(userId, crown.getId());
+        itemPurchaseService.purchase(userId, cafe.getId());
 
-        assertThat(userItemRepository.existsByUserIdAndItem_Id(userId, crown.getId())).isTrue();
-        assertThat(userPointRepository.findById(userId).get().getBalance()).isEqualTo(500 - crown.getPrice());
+        assertThat(userItemRepository.existsByUserIdAndItem_Id(userId, cafe.getId())).isTrue();
+        assertThat(userPointRepository.findById(userId).get().getBalance()).isEqualTo(500 - cafe.getPrice());
 
-        assertThatThrownBy(() -> itemPurchaseService.purchase(userId, crown.getId()))
+        assertThatThrownBy(() -> itemPurchaseService.purchase(userId, cafe.getId()))
                 .isInstanceOf(ItemException.class)
                 .extracting(e -> ((ItemException) e).getErrorCode())
                 .isEqualTo(ItemErrorCode.ITEM_ALREADY_OWNED);
-        assertThat(userPointRepository.findById(userId).get().getBalance()).isEqualTo(500 - crown.getPrice());
+        assertThat(userPointRepository.findById(userId).get().getBalance()).isEqualTo(500 - cafe.getPrice());
     }
 
     @Test
     void insufficientBalanceRejectsPurchaseWithoutGrantingItem() {
         Long userId = 9302L;
-        ShopItem crown = goldenCrown();
+        ShopItem cafe = cozyCafe();
         pointService.credit(userId, 100, "MISSION_REWARD", "MISSION_ATTEMPT", 9302L, "보상");
 
-        assertThatThrownBy(() -> itemPurchaseService.purchase(userId, crown.getId()))
+        assertThatThrownBy(() -> itemPurchaseService.purchase(userId, cafe.getId()))
                 .isInstanceOf(RewardException.class);
 
-        assertThat(userItemRepository.existsByUserIdAndItem_Id(userId, crown.getId())).isFalse();
+        assertThat(userItemRepository.existsByUserIdAndItem_Id(userId, cafe.getId())).isFalse();
         assertThat(userPointRepository.findById(userId).get().getBalance()).isEqualTo(100);
         assertThat(pointTransactionRepository.findAll())
                 .filteredOn(t -> t.getUserId().equals(userId))

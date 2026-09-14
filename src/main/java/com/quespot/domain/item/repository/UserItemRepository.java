@@ -46,6 +46,8 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
     // ON DUPLICATE KEY UPDATE id = id로 멱등 — 동시 호출도 예외 없이 no-op. 같은 트랜잭션에서
     // UNIQUE 위반을 catch하면 rollback-only가 되므로(CLAUDE.md) 예외 경로 자체를 없앤다.
     // 가격 0이라 포인트 원장·활동 기록은 남기지 않는다.
+    // INSERT ... SELECT에서는 ON DUPLICATE KEY UPDATE의 id가 SELECT 쪽 테이블과 모호해지므로
+    // 테이블명으로 한정한다(실DB에서 "Column 'id' in field list is ambiguous" 확인).
     @Modifying
     @Query(value = """
             INSERT INTO user_items (user_id, item_id, is_equipped, purchased_at, created_at, updated_at)
@@ -53,7 +55,7 @@ public interface UserItemRepository extends JpaRepository<UserItem, Long> {
               FROM shop_items si
              WHERE si.is_default = 1
                AND si.is_active = 1
-            ON DUPLICATE KEY UPDATE id = id
+            ON DUPLICATE KEY UPDATE user_items.id = user_items.id
             """, nativeQuery = true)
     int grantDefaultItems(@Param("userId") Long userId);
 }
