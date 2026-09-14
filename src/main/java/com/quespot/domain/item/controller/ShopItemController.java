@@ -62,7 +62,8 @@ public class ShopItemController {
     @GetMapping
     @Operation(
             summary = "상점 아이템 목록",
-            description = "판매 중인 상점 아이템 목록을 조회한다. category를 지정하면 해당 카테고리만 반환한다."
+            description = "판매 중인 상점 아이템 목록을 조회한다. 기본 보유 아이템(isDefault)은 포함하지 않는다. "
+                    + "category를 지정하면 해당 카테고리만 반환한다."
     )
     public ApiResponse<List<ShopItemResponseDTO>> getShopItems(
             @RequestParam(required = false) ItemCategory category
