@@ -14,6 +14,7 @@ import com.quespot.domain.item.dto.res.EquippedItemResponseDTO;
 import com.quespot.domain.item.dto.res.QuestyResponseDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -21,7 +22,9 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -29,13 +32,15 @@ class UserItemServiceTest {
 
     private UserItemRepository userItemRepository;
     private EquipSlotLimitRepository equipSlotLimitRepository;
+    private DefaultItemGranter defaultItemGranter;
     private UserItemService userItemService;
 
     @BeforeEach
     void setUp() {
         userItemRepository = mock(UserItemRepository.class);
         equipSlotLimitRepository = mock(EquipSlotLimitRepository.class);
-        userItemService = new UserItemService(userItemRepository, equipSlotLimitRepository);
+        defaultItemGranter = mock(DefaultItemGranter.class);
+        userItemService = new UserItemService(userItemRepository, equipSlotLimitRepository, defaultItemGranter);
     }
 
     private ShopItem shopItem(Long id, ItemCategory category) {
@@ -50,7 +55,7 @@ class UserItemServiceTest {
         Long itemId = 10L;
         UserItem userItem = UserItem.acquire(userId, shopItem(itemId, ItemCategory.HAT));
 
-        when(userItemRepository.findByUserIdAndItem_Id(userId, itemId)).thenReturn(Optional.of(userItem));
+        when(userItemRepository.findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, itemId)).thenReturn(Optional.of(userItem));
         when(equipSlotLimitRepository.findById(ItemCategory.HAT))
                 .thenReturn(Optional.of(EquipSlotLimit.seed(ItemCategory.HAT, 1, 1)));
         when(userItemRepository.lockAllByUserIdAndItem_Category(userId, ItemCategory.HAT))
@@ -59,6 +64,9 @@ class UserItemServiceTest {
         userItemService.equip(userId, itemId);
 
         assertThat(userItem.getIsEquipped()).isTrue();
+        InOrder inOrder = inOrder(defaultItemGranter, userItemRepository);
+        inOrder.verify(defaultItemGranter).grantMissing(userId);
+        inOrder.verify(userItemRepository).findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, itemId);
     }
 
     @Test
@@ -68,12 +76,13 @@ class UserItemServiceTest {
         UserItem userItem = UserItem.acquire(userId, shopItem(itemId, ItemCategory.HAT));
         userItem.equip();
 
-        when(userItemRepository.findByUserIdAndItem_Id(userId, itemId)).thenReturn(Optional.of(userItem));
+        when(userItemRepository.findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, itemId)).thenReturn(Optional.of(userItem));
 
         userItemService.equip(userId, itemId);
 
         assertThat(userItem.getIsEquipped()).isTrue();
         verifyNoInteractions(equipSlotLimitRepository);
+        verify(defaultItemGranter).grantMissing(userId);
     }
 
     @Test
@@ -83,7 +92,7 @@ class UserItemServiceTest {
         currentlyEquipped.equip();
         UserItem newItem = UserItem.acquire(userId, shopItem(2L, ItemCategory.HAT));
 
-        when(userItemRepository.findByUserIdAndItem_Id(userId, 2L)).thenReturn(Optional.of(newItem));
+        when(userItemRepository.findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, 2L)).thenReturn(Optional.of(newItem));
         when(equipSlotLimitRepository.findById(ItemCategory.HAT))
                 .thenReturn(Optional.of(EquipSlotLimit.seed(ItemCategory.HAT, 1, 1)));
         when(userItemRepository.lockAllByUserIdAndItem_Category(userId, ItemCategory.HAT))
@@ -99,7 +108,7 @@ class UserItemServiceTest {
     void equipThrowsWhenItemNotOwned() {
         Long userId = 1L;
         Long itemId = 99L;
-        when(userItemRepository.findByUserIdAndItem_Id(userId, itemId)).thenReturn(Optional.empty());
+        when(userItemRepository.findByUserIdAndItem_IdAndItem_IsActiveTrue(userId, itemId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userItemService.equip(userId, itemId))
                 .isInstanceOf(ItemException.class)
@@ -128,6 +137,8 @@ class UserItemServiceTest {
         when(userItemRepository.findByUserIdAndItem_Id(userId, itemId)).thenReturn(Optional.empty());
 
         userItemService.unequip(userId, itemId);
+
+        verifyNoInteractions(defaultItemGranter);
     }
 
     @Test
@@ -141,6 +152,9 @@ class UserItemServiceTest {
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).itemId()).isEqualTo(10L);
+        InOrder inOrder = inOrder(defaultItemGranter, userItemRepository);
+        inOrder.verify(defaultItemGranter).grantMissing(userId);
+        inOrder.verify(userItemRepository).findAllByUserIdWithItem(userId);
     }
 
     @Test
@@ -175,5 +189,8 @@ class UserItemServiceTest {
         assertThat(result.equippedItems()).isEmpty();
         assertThat(result.ownedItemCount()).isZero();
         assertThat(result.highestRarity()).isNull();
+        InOrder inOrder = inOrder(defaultItemGranter, userItemRepository);
+        inOrder.verify(defaultItemGranter).grantMissing(1L);
+        inOrder.verify(userItemRepository).findAllByUserIdWithItem(1L);
     }
 }

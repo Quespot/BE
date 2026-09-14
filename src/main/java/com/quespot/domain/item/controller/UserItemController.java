@@ -32,7 +32,8 @@ public class UserItemController {
     @GetMapping
     @Operation(
             summary = "내 보유 아이템 목록",
-            description = "로그인한 사용자가 보유한 아이템 목록을 장착 상태와 함께 조회한다."
+            description = "로그인한 사용자가 보유한 아이템 목록을 장착 상태와 함께 조회한다. "
+                    + "아직 지급되지 않은 기본 보유 아이템이 있으면 이 시점에 지급된다."
     )
     public ApiResponse<List<UserItemResponseDTO>> getMyItems(
             @AuthenticationPrincipal AuthenticatedUser principal
