@@ -4,5 +4,6 @@ public enum ItemCategory {
     HAT,
     ACCESSORY,
     OUTFIT,
-    ITEM
+    ITEM,
+    BACKGROUND
 }
