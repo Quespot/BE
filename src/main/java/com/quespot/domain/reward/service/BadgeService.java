@@ -24,7 +24,7 @@ public class BadgeService {
 
     @Transactional(readOnly = true)
     public BadgeListResponseDTO getBadges(Long userId) {
-        List<Badge> badges = badgeRepository.findAllByOrderBySortOrderAsc();
+        List<Badge> badges = badgeRepository.findByIsActiveTrueOrderBySortOrderAsc();
 
         Map<Long, UserBadge> acquiredByBadgeId = userBadgeRepository.findByUserId(userId).stream()
                 .collect(Collectors.toMap(ub -> ub.getBadge().getId(), Function.identity()));
