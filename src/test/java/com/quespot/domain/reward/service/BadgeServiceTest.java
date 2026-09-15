@@ -49,7 +49,7 @@ class BadgeServiceTest {
         Badge firstMission = badge(1L, "FIRST_MISSION", "첫 미션");
         Badge explorer = badge(2L, "EXPLORER", "탐험가");
 
-        when(badgeRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(firstMission, explorer));
+        when(badgeRepository.findByIsActiveTrueOrderBySortOrderAsc()).thenReturn(List.of(firstMission, explorer));
         when(userBadgeRepository.findByUserId(userId)).thenReturn(List.of());
 
         BadgeListResponseDTO result = badgeService.getBadges(userId);
@@ -67,7 +67,7 @@ class BadgeServiceTest {
 
         UserBadge acquiredFirstMission = acquired(firstMission, acquiredAt);
 
-        when(badgeRepository.findAllByOrderBySortOrderAsc()).thenReturn(List.of(firstMission, explorer));
+        when(badgeRepository.findByIsActiveTrueOrderBySortOrderAsc()).thenReturn(List.of(firstMission, explorer));
         when(userBadgeRepository.findByUserId(userId)).thenReturn(List.of(acquiredFirstMission));
 
         BadgeListResponseDTO result = badgeService.getBadges(userId);
