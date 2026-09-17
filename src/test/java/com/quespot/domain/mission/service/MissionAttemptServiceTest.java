@@ -240,7 +240,7 @@ class MissionAttemptServiceTest {
     void quitSetsStatusToQuitWhenInProgress() {
         Mission mission = activeMission();
         MissionAttempt attempt = MissionAttempt.start(1L, mission);
-        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionAttemptRepository.findWithMissionById(100L)).thenReturn(Optional.of(attempt));
 
         missionAttemptService.quit(1L, 100L);
 
@@ -252,7 +252,7 @@ class MissionAttemptServiceTest {
         Mission mission = activeMission();
         MissionAttempt attempt = MissionAttempt.start(1L, mission);
         attempt.quit();
-        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionAttemptRepository.findWithMissionById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionAttemptService.quit(1L, 100L))
                 .isInstanceOf(MissionException.class)
@@ -264,7 +264,7 @@ class MissionAttemptServiceTest {
     void getAttemptThrowsWhenNotOwnedByUser() {
         Mission mission = activeMission();
         MissionAttempt attempt = MissionAttempt.start(2L, mission);
-        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionAttemptRepository.findWithMissionById(100L)).thenReturn(Optional.of(attempt));
 
         assertThatThrownBy(() -> missionAttemptService.getAttempt(1L, 100L))
                 .isInstanceOf(MissionException.class)
@@ -276,7 +276,7 @@ class MissionAttemptServiceTest {
     void writeReflectionSetsReflectionOnOwnedAttempt() {
         Mission mission = activeMission();
         MissionAttempt attempt = MissionAttempt.start(1L, mission);
-        when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
+        when(missionAttemptRepository.findWithMissionById(100L)).thenReturn(Optional.of(attempt));
 
         missionAttemptService.writeReflection(1L, 100L, "좋았어요");
 
