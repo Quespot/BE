@@ -7,7 +7,6 @@ import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.entity.MissionCourse;
 import com.quespot.domain.mission.enums.CourseAttemptStatus;
 import com.quespot.domain.mission.enums.MissionAttemptStatus;
-import com.quespot.domain.mission.enums.MissionCategory;
 import com.quespot.domain.mission.enums.MissionStatus;
 import com.quespot.domain.mission.exception.MissionException;
 import com.quespot.domain.mission.exception.code.MissionErrorCode;
@@ -28,7 +27,10 @@ import java.util.Set;
 
 // 사용자가 anchor 미션 하나를 고르면 규칙 기반으로 코스를 생성하고 즉시 시작한다
 // (#39 재설계). 반경 500m→1km 순회, 페어 단위 재시도로 기존 코스와의 중복을
-// 피한다(스펙 2번 섹션).
+// 피한다(스펙 2번 섹션). 2·3번 미션의 카테고리 조건(NATURE/CULTURE,
+// CULTURE/NIGHT_VIEW)은 #67에서 뺐다 — 수집 데이터가 FOOD·ETC 위주라 주변 미션
+// 10개 중 2개꼴만 통과해 코스가 거의 안 만들어졌다. 지금은 카테고리 무관하게
+// 반경 안 미수행 미션을 전부 후보로 본다.
 @Service
 @RequiredArgsConstructor
 public class MissionCourseGenerationService {
@@ -37,10 +39,6 @@ public class MissionCourseGenerationService {
     private static final int RADIUS_STEP2_METERS = 1000;
     private static final int CANDIDATE_FETCH_LIMIT = 20;
     private static final float BONUS_RATE = 0.30f;
-    private static final List<String> SECOND_CATEGORIES =
-            List.of(MissionCategory.NATURE.name(), MissionCategory.CULTURE.name());
-    private static final List<String> THIRD_CATEGORIES =
-            List.of(MissionCategory.CULTURE.name(), MissionCategory.NIGHT_VIEW.name());
 
     private final MissionCourseCandidateRepository candidateRepository;
     private final MissionCourseRepository missionCourseRepository;
@@ -120,12 +118,12 @@ public class MissionCourseGenerationService {
     private CandidatePair tryFindPair(Long userId, Mission anchor, int radiusMeters, Set<String> rejectedPairs) {
         List<CourseCandidateMissionProjection> m2Candidates = candidateRepository.findNearestCandidates(
                 anchor.getSnapshotLatitude(), anchor.getSnapshotLongitude(), radiusMeters,
-                SECOND_CATEGORIES, List.of(anchor.getId()), userId, CANDIDATE_FETCH_LIMIT
+                List.of(anchor.getId()), userId, CANDIDATE_FETCH_LIMIT
         );
         for (CourseCandidateMissionProjection m2 : m2Candidates) {
             List<CourseCandidateMissionProjection> m3Candidates = candidateRepository.findNearestCandidates(
                     m2.getLatitude(), m2.getLongitude(), radiusMeters,
-                    THIRD_CATEGORIES, List.of(anchor.getId(), m2.getMissionId()), userId, CANDIDATE_FETCH_LIMIT
+                    List.of(anchor.getId(), m2.getMissionId()), userId, CANDIDATE_FETCH_LIMIT
             );
             for (CourseCandidateMissionProjection m3 : m3Candidates) {
                 String key = m2.getMissionId() + ":" + m3.getMissionId();

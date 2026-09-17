@@ -74,6 +74,12 @@ if (( ${#missing_variables[@]} > 0 )); then
     exit 1
 fi
 
+if ! grep --quiet --extended-regexp \
+    '^GRAFANA_CLOUD_PROMETHEUS_URL=https://.+' "${ENV_FILE}"; then
+    echo "GRAFANA_CLOUD_PROMETHEUS_URL must start with https://." >&2
+    exit 1
+fi
+
 previous_image=""
 if [[ -f "${LAST_IMAGE_FILE}" ]]; then
     previous_image="$(<"${LAST_IMAGE_FILE}")"

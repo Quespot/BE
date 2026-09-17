@@ -8,6 +8,7 @@ import com.quespot.global.apiPayload.exception.GeneralException;
 import com.quespot.global.monitoring.ApiErrorMetrics;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -20,6 +21,7 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GeneralExceptionAdvice {
@@ -74,8 +76,12 @@ public class GeneralExceptionAdvice {
         return handleExceptionInternal(GeneralErrorCode.COMMON_503_001);
     }
 
+    // 처리되지 않은 예외는 응답이 COMMON_500_001로만 나가서 원인을 알 수 없다(#67에서
+    // LazyInitializationException이 서버 로그에도 안 남아 코드 추적으로만 찾았다).
+    // 스택트레이스를 반드시 남긴다.
     @ExceptionHandler(Exception.class)
-    protected ResponseEntity<ApiResponse<Void>> handleException() {
+    protected ResponseEntity<ApiResponse<Void>> handleException(Exception exception) {
+        log.error("처리되지 않은 예외", exception);
         return handleExceptionInternal(GeneralErrorCode.COMMON_500_001);
     }
 

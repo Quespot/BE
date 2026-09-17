@@ -93,21 +93,23 @@ class MissionCourseCandidateRepositoryTest {
         return missionRepository.save(Mission.publish(candidate));
     }
 
+    // 카테고리 조건은 #67에서 뺐다 — FOOD/ETC/HISTORY도 반경 안이면 후보다.
     @Test
-    void findsOnlyMissionsWithinRadiusMatchingCategoryOrderedByDistance() {
+    void findsAllMissionsWithinRadiusRegardlessOfCategoryOrderedByDistance() {
+        Mission nearest = mission("food", MissionTemplate.FOOD_LOCATION, new BigDecimal("37.5670"), ANCHOR_LNG); // ~55m
         Mission near = mission("near", MissionTemplate.CULTURE_LOCATION, new BigDecimal("37.5701"), ANCHOR_LNG); // ~400m
         Mission mid = mission("mid", MissionTemplate.NATURE_LOCATION, new BigDecimal("37.5728"), ANCHOR_LNG); // ~700m
         mission("far", MissionTemplate.CULTURE_LOCATION, new BigDecimal("37.5773"), ANCHOR_LNG); // ~1200m, 반경 밖
-        mission("wrong-category", MissionTemplate.FOOD_LOCATION, new BigDecimal("37.5670"), ANCHOR_LNG); // 카테고리 불일치
 
         List<CourseCandidateMissionProjection> result = candidateRepository.findNearestCandidates(
                 ANCHOR_LAT, ANCHOR_LNG, 1000,
-                List.of("NATURE", "CULTURE"), List.of(-1L), 9999L, 20
+                List.of(-1L), 9999L, 20
         );
 
-        assertThat(result).hasSize(2);
-        assertThat(result.get(0).getMissionId()).isEqualTo(near.getId());
-        assertThat(result.get(1).getMissionId()).isEqualTo(mid.getId());
+        assertThat(result).hasSize(3);
+        assertThat(result.get(0).getMissionId()).isEqualTo(nearest.getId());
+        assertThat(result.get(1).getMissionId()).isEqualTo(near.getId());
+        assertThat(result.get(2).getMissionId()).isEqualTo(mid.getId());
     }
 
     @Test
@@ -117,7 +119,7 @@ class MissionCourseCandidateRepositoryTest {
 
         List<CourseCandidateMissionProjection> result = candidateRepository.findNearestCandidates(
                 ANCHOR_LAT, ANCHOR_LNG, 1000,
-                List.of("CULTURE"), List.of(-1L), 7001L, 20
+                List.of(-1L), 7001L, 20
         );
 
         assertThat(result).noneMatch(row -> row.getMissionId().equals(attempted.getId()));
@@ -129,7 +131,7 @@ class MissionCourseCandidateRepositoryTest {
 
         List<CourseCandidateMissionProjection> result = candidateRepository.findNearestCandidates(
                 ANCHOR_LAT, ANCHOR_LNG, 1000,
-                List.of("CULTURE"), List.of(mission.getId()), 9999L, 20
+                List.of(mission.getId()), 9999L, 20
         );
 
         assertThat(result).noneMatch(row -> row.getMissionId().equals(mission.getId()));
@@ -141,7 +143,7 @@ class MissionCourseCandidateRepositoryTest {
 
         List<CourseCandidateMissionProjection> result = candidateRepository.findNearestCandidates(
                 ANCHOR_LAT, ANCHOR_LNG, 500,
-                List.of("CULTURE"), List.of(-1L), 9999L, 20
+                List.of(-1L), 9999L, 20
         );
 
         assertThat(result).isEmpty();

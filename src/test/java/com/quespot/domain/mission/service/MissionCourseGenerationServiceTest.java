@@ -142,11 +142,11 @@ class MissionCourseGenerationServiceTest {
         CourseCandidateMissionProjection candidateM3 = candidate(3L, "37.5715", "126.9850");
         when(candidateRepository.findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of(candidateM2));
         when(candidateRepository.findNearestCandidates(
                 eq(m2.getSnapshotLatitude()), eq(m2.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of(candidateM3));
         when(missionCourseRepository.save(any(MissionCourse.class))).thenAnswer(inv -> {
             MissionCourse c = inv.getArgument(0);
@@ -178,11 +178,11 @@ class MissionCourseGenerationServiceTest {
         when(courseMissionRepository.findExistingPairs(9L, 1L)).thenReturn(List.of());
         when(candidateRepository.findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of());
         when(candidateRepository.findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(1000),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of());
 
         assertThatThrownBy(() -> service.generateAndStart(9L, 1L))
@@ -192,11 +192,11 @@ class MissionCourseGenerationServiceTest {
 
         verify(candidateRepository).findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         );
         verify(candidateRepository).findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(1000),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         );
     }
 
@@ -222,15 +222,15 @@ class MissionCourseGenerationServiceTest {
         CourseCandidateMissionProjection candidateM3ForSecond = candidate(3L, "37.5715", "126.9850");
         when(candidateRepository.findNearestCandidates(
                 eq(anchor.getSnapshotLatitude()), eq(anchor.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of(candidateM2First, candidateM2Second));
         when(candidateRepository.findNearestCandidates(
                 eq(m2First.getSnapshotLatitude()), eq(m2First.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of(candidateM3ForFirst));
         when(candidateRepository.findNearestCandidates(
                 eq(m2Second.getSnapshotLatitude()), eq(m2Second.getSnapshotLongitude()), eq(500),
-                any(), any(), eq(9L), anyInt()
+                any(), eq(9L), anyInt()
         )).thenReturn(List.of(candidateM3ForSecond));
         when(missionCourseRepository.save(any(MissionCourse.class))).thenAnswer(inv -> {
             MissionCourse c = inv.getArgument(0);

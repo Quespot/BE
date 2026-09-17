@@ -121,7 +121,9 @@ public class MissionAttemptService {
     }
 
     private MissionAttempt findOwnedAttempt(Long userId, Long attemptId) {
-        return missionAttemptRepository.findById(attemptId)
+        // mission을 같이 로딩한다(#67) — getAttempt()가 돌려준 엔티티는 트랜잭션 밖에서
+        // 컨버터가 attempt.getMission()을 타므로 지연 로딩이면 500이 난다.
+        return missionAttemptRepository.findWithMissionById(attemptId)
                 .filter(a -> a.getUserId().equals(userId))
                 .orElseThrow(() -> new MissionException(MissionErrorCode.ATTEMPT_NOT_FOUND));
     }
