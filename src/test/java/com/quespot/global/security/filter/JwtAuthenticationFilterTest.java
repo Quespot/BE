@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quespot.domain.user.enums.UserRole;
 import com.quespot.domain.user.service.RefreshTokenService;
 import com.quespot.global.apiPayload.code.GeneralErrorCode;
+import com.quespot.global.monitoring.ApiErrorMetrics;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -44,7 +45,7 @@ class JwtAuthenticationFilterTest {
         JwtAuthenticationFilter filter = new JwtAuthenticationFilter(
                 jwtTokenProvider,
                 refreshTokenService,
-                new SecurityErrorResponseWriter(new ObjectMapper())
+                new SecurityErrorResponseWriter(new ObjectMapper(), mock(ApiErrorMetrics.class))
         );
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + tokenPair.accessToken());

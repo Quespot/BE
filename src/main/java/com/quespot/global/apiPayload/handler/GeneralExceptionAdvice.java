@@ -5,7 +5,9 @@ import com.quespot.global.apiPayload.code.BaseErrorCode;
 import com.quespot.global.apiPayload.code.ErrorReasonDTO;
 import com.quespot.global.apiPayload.code.GeneralErrorCode;
 import com.quespot.global.apiPayload.exception.GeneralException;
+import com.quespot.global.monitoring.ApiErrorMetrics;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -19,7 +21,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GeneralExceptionAdvice {
+
+    private final ApiErrorMetrics apiErrorMetrics;
 
     @ExceptionHandler(GeneralException.class)
     protected ResponseEntity<ApiResponse<Void>> handleGeneralException(GeneralException exception) {
@@ -83,6 +88,7 @@ public class GeneralExceptionAdvice {
             Object errorDetail
     ) {
         ErrorReasonDTO reason = errorCode.getReasonHttpStatus();
+        apiErrorMetrics.increment(errorCode);
 
         return ResponseEntity
                 .status(reason.getHttpStatus())
