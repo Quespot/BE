@@ -42,6 +42,10 @@ public class SecurityConfig {
             "/actuator/health/**"
     };
 
+    private static final String[] METRICS_PATHS = {
+            "/actuator/prometheus"
+    };
+
     private static final String[] PUBLIC_API_PATHS = {
             "/api/auth/sign-up",
             "/api/auth/login",
@@ -84,6 +88,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(jwtAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HEALTH_PATHS).permitAll()
+                        .requestMatchers(METRICS_PATHS).permitAll()
                         .requestMatchers(SWAGGER_PATHS).permitAll()
                         .requestMatchers(PUBLIC_API_PATHS).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

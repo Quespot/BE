@@ -6,6 +6,7 @@ import com.quespot.domain.user.exception.AuthException;
 import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.global.security.filter.JwtAuthenticationFilter;
 import com.quespot.global.security.handler.SecurityErrorResponseWriter;
+import com.quespot.global.monitoring.ApiErrorMetrics;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 @Testcontainers
 class RefreshTokenRedisIntegrationTest {
@@ -80,7 +82,7 @@ class RefreshTokenRedisIntegrationTest {
         jwtAuthenticationFilter = new JwtAuthenticationFilter(
                 jwtTokenProvider,
                 refreshTokenService,
-                new SecurityErrorResponseWriter(new ObjectMapper())
+                new SecurityErrorResponseWriter(new ObjectMapper(), mock(ApiErrorMetrics.class))
         );
     }
 

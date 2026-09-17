@@ -55,6 +55,9 @@ required_variables=(
     MAIL_PASSWORD
     MAIL_VERIFICATION_CODE_SECRET
     AWS_S3_BUCKET
+    GRAFANA_CLOUD_PROMETHEUS_URL
+    GRAFANA_CLOUD_PROMETHEUS_USERNAME
+    GRAFANA_CLOUD_API_TOKEN
     SWAGGER_ENABLED
 )
 
@@ -68,6 +71,12 @@ done
 if (( ${#missing_variables[@]} > 0 )); then
     printf 'Required values are missing from %s: %s\n' \
         "${ENV_FILE}" "${missing_variables[*]}" >&2
+    exit 1
+fi
+
+if ! grep --quiet --extended-regexp \
+    '^GRAFANA_CLOUD_PROMETHEUS_URL=https://.+' "${ENV_FILE}"; then
+    echo "GRAFANA_CLOUD_PROMETHEUS_URL must start with https://." >&2
     exit 1
 fi
 
@@ -98,9 +107,9 @@ run_compose() {
 start_image() {
     local image="$1"
     write_image_env "${image}" || return 1
-    run_compose pull app || return 1
+    run_compose pull app alloy || return 1
     run_compose up -d redis || return 1
-    run_compose up -d --no-deps --force-recreate app nginx certbot || return 1
+    run_compose up -d --no-deps --force-recreate app alloy nginx certbot || return 1
 }
 
 wait_for_health() {

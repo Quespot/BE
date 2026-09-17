@@ -14,6 +14,7 @@
 - AWS SDK for Java, Amazon S3
 - Gmail SMTP
 - Spring Boot Actuator
+- Micrometer Prometheus Registry, Grafana Alloy, Grafana Cloud
 - Lombok
 
 ## 로컬 실행 준비
@@ -43,6 +44,14 @@ CREATE DATABASE IF NOT EXISTS quespot
 - S3 버킷은 비공개로 운영하며, 클라이언트는 `POST /api/files/presigned-upload-url`에서 5분간 유효한 업로드 URL을 발급받아 파일을 직접 업로드합니다.
 - 지원 형식은 JPEG, PNG, WebP이고 기본 최대 크기는 10MB입니다. 업로드 요청에 사용한 `Content-Type`을 S3 PUT 요청에도 동일하게 전달해야 합니다.
 
+## 모니터링
+
+- Spring Boot Actuator가 요청 수·응답 시간·상태 코드, JVM, 시스템, HikariCP 메트릭을 Prometheus 형식으로 제공합니다.
+- 공통 예외 응답은 `quespot_api_errors_total`에 Quespot 에러 코드와 HTTP 상태별로 집계됩니다.
+- 운영 환경의 Grafana Alloy는 내부 Docker 네트워크에서 애플리케이션 메트릭을 수집해 Grafana Cloud Hosted Prometheus로 전송합니다.
+- `/actuator/prometheus`는 Spring Security에서 Alloy 수집을 허용하지만 Nginx에서는 차단하므로 외부 API 도메인에 공개되지 않습니다.
+- 운영 EC2의 `.env`에는 Grafana Cloud 연결 화면에서 확인한 `GRAFANA_CLOUD_PROMETHEUS_URL`, `GRAFANA_CLOUD_PROMETHEUS_USERNAME`, `GRAFANA_CLOUD_API_TOKEN`을 등록합니다.
+
 ## 실행
 
 ```bash
@@ -60,8 +69,8 @@ CREATE DATABASE IF NOT EXISTS quespot
 - AWS의 EC2, RDS for MySQL, ECR을 사용합니다.
 - `develop` 대상 Pull Request에서 GitHub Actions CI가 실행됩니다.
 - `develop` 브랜치에 반영되면 테스트, ECR 이미지 업로드, EC2 배포가 순서대로 실행됩니다.
-- EC2에서는 Docker Compose로 Spring Boot, Redis, Nginx, Certbot을 실행합니다.
-- 최초 배포 전 EC2의 `/opt/quespot/.env`에 `DB_URL`, `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_VERIFICATION_CODE_SECRET`, `OAUTH2_TOKEN_ENCRYPTION_KEY`, `AWS_S3_BUCKET`의 실제 값을 입력해야 합니다. OAuth 제공자를 활성화하면 `OAUTH2_TOKEN_ENCRYPTION_KEY`가 반드시 필요합니다. `.env.example`을 복사한 경우 나열한 필수 항목의 빈 값을 모두 채우고 파일 권한을 `600`으로 설정해야 배포 검증을 통과합니다. 푸시를 쓰려면 서비스 계정 JSON을 컨테이너에 마운트하고 `FIREBASE_CREDENTIALS_PATH`와 `NOTIFICATION_RECOMMENDATION_ENABLED=true`도 넣어야 합니다.
+- EC2에서는 Docker Compose로 Spring Boot, Redis, Grafana Alloy, Nginx, Certbot을 실행합니다.
+- 최초 배포 전 EC2의 `/opt/quespot/.env`에 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_VERIFICATION_CODE_SECRET`, `OAUTH2_TOKEN_ENCRYPTION_KEY`, `AWS_S3_BUCKET`, `GRAFANA_CLOUD_PROMETHEUS_URL`, `GRAFANA_CLOUD_PROMETHEUS_USERNAME`, `GRAFANA_CLOUD_API_TOKEN`의 실제 값을 입력해야 합니다. OAuth 제공자를 활성화하면 `OAUTH2_TOKEN_ENCRYPTION_KEY`가 반드시 필요합니다. `.env.example`을 복사한 경우 나열한 필수 항목의 빈 값을 모두 채우고 파일 권한을 `600`으로 설정해야 배포 검증을 통과합니다. 푸시를 쓰려면 서비스 계정 JSON을 컨테이너에 마운트하고 `FIREBASE_CREDENTIALS_PATH`와 `NOTIFICATION_RECOMMENDATION_ENABLED=true`도 넣어야 합니다.
 - 운영 API는 `https://api.quespot.site`를 사용합니다. 최초 배포 전 EC2의 `/etc/letsencrypt/live/api.quespot.site`에 인증서가 있어야 하며, Compose의 Certbot 서비스가 이후 갱신을 시도합니다.
 - 운영 배포 시 `SWAGGER_ENABLED=false`, `JWT_REFRESH_TOKEN_COOKIE_SECURE=true`로 설정하고 `CORS_ALLOWED_ORIGINS`, OAuth Redirect URI, `OAUTH2_FRONTEND_REDIRECT_URI`, `OAUTH2_ALLOWED_FRONTEND_REDIRECT_URIS`를 실제 프론트 및 API 도메인으로 변경합니다.
 

@@ -1,6 +1,7 @@
 package com.quespot.global.apiPayload.handler;
 
 import com.quespot.global.apiPayload.ApiResponse;
+import com.quespot.global.monitoring.ApiErrorMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,7 @@ import static org.mockito.Mockito.when;
 
 class GeneralExceptionAdviceTest {
 
-    private final GeneralExceptionAdvice advice = new GeneralExceptionAdvice();
+    private final GeneralExceptionAdvice advice = new GeneralExceptionAdvice(mock(ApiErrorMetrics.class));
 
     @Test
     void mapsMethodArgumentTypeMismatchExceptionTo400() {
