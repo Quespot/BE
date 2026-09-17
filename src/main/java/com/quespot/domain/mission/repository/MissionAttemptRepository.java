@@ -22,6 +22,12 @@ public interface MissionAttemptRepository extends JpaRepository<MissionAttempt, 
     @EntityGraph(attributePaths = "mission")
     List<MissionAttempt> findByUserIdAndStatus(Long userId, MissionAttemptStatus status);
 
+    // 단건 조회·인증 가이드·완료 결과 API용(#67). open-in-view: false라 컨트롤러의
+    // 컨버터가 attempt.getMission()을 타는 시점엔 세션이 닫혀 있다 — 서비스에서
+    // mission을 같이 로딩해 둬야 LazyInitializationException이 안 난다.
+    @EntityGraph(attributePaths = "mission")
+    Optional<MissionAttempt> findWithMissionById(Long id);
+
     // 목록 조회 화면에서 미션마다 시도를 따로 조회하지 않기 위한 벌크 조회.
     // 재시작 차단 정책 덕분에 (user, mission) 당 COMPLETED는 최대 1건,
     // active_key 덕분에 IN_PROGRESS도 최대 1건이라 결과가 작다.
