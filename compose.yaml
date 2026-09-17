@@ -219,7 +219,8 @@ configs:
 
       prometheus.remote_write "grafana_cloud" {
         endpoint {
-          url = sys.env("GRAFANA_CLOUD_PROMETHEUS_URL")
+          url              = sys.env("GRAFANA_CLOUD_PROMETHEUS_URL")
+          follow_redirects = false
 
           basic_auth {
             username = sys.env("GRAFANA_CLOUD_PROMETHEUS_USERNAME")
