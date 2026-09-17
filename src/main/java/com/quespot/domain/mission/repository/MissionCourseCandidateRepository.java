@@ -12,7 +12,7 @@ import java.util.List;
 // 코스 생성 알고리즘 전용 최근접 후보 검색(#39 재설계). MissionRepository(허건우
 // 소유, 미션 목록/상세 조회)는 건드리지 않는다 — Mission 엔티티에 대한 두 번째
 // JpaRepository는 별도 Spring 빈으로 문제없이 공존한다(#37 GeoDistanceCalculator와
-// 동일한 이유).
+// 동일한 이유). 카테고리 조건은 #67에서 뺐다 — 반경·미수행·제외 ID만 본다.
 public interface MissionCourseCandidateRepository extends JpaRepository<Mission, Long> {
 
     @Query(value = """
@@ -22,7 +22,6 @@ public interface MissionCourseCandidateRepository extends JpaRepository<Mission,
                 m.snapshot_longitude as longitude
             from missions m
             where m.status = 'ACTIVE'
-              and m.category in (:categories)
               and m.id not in (:excludeIds)
               and ST_Distance_Sphere(
                     POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(:refLng, :refLat)
@@ -41,7 +40,6 @@ public interface MissionCourseCandidateRepository extends JpaRepository<Mission,
             @Param("refLat") BigDecimal refLat,
             @Param("refLng") BigDecimal refLng,
             @Param("radiusMeters") int radiusMeters,
-            @Param("categories") List<String> categories,
             @Param("excludeIds") List<Long> excludeIds,
             @Param("userId") Long userId,
             @Param("limit") int limit
