@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.HandlerMapping;
 
 @Component
@@ -25,8 +26,10 @@ public class ApiErrorMetrics {
     public void increment(BaseErrorCode errorCode, HttpServletRequest request) {
         Object matchedPattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
         String uri = matchedPattern == null ? UNMATCHED_URI : matchedPattern.toString();
+        RequestMethod requestMethod = RequestMethod.resolve(request.getMethod());
+        String method = requestMethod == null ? UNKNOWN_METHOD : requestMethod.name();
 
-        increment(errorCode, request.getMethod(), uri);
+        increment(errorCode, method, uri);
     }
 
     private void increment(BaseErrorCode errorCode, String method, String uri) {
