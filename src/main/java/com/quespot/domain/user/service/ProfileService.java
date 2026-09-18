@@ -16,7 +16,6 @@ import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.global.file.enums.UploadPurpose;
 import com.quespot.global.file.service.FileService;
 import com.quespot.global.security.principal.AuthenticatedUser;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,18 +26,15 @@ public class ProfileService {
     private final UserRepository userRepository;
     private final UserProfileRepository userProfileRepository;
     private final FileService fileService;
-    private final String defaultProfileImageUrl;
 
     public ProfileService(
             UserRepository userRepository,
             UserProfileRepository userProfileRepository,
-            FileService fileService,
-            @Value("${app.profile.default-image-url}") String defaultProfileImageUrl
+            FileService fileService
     ) {
         this.userRepository = userRepository;
         this.userProfileRepository = userProfileRepository;
         this.fileService = fileService;
-        this.defaultProfileImageUrl = defaultProfileImageUrl;
     }
 
     // 프로필 생성 로직
@@ -142,12 +138,9 @@ public class ProfileService {
 
     private ProfileResponseDTO toProfileResponseDTO(UserProfile profile) {
         String objectKey = profile.getProfileImageObjectKey();
-        String profileImageUrl;
-        if (objectKey == null || objectKey.isBlank()) {
-            profileImageUrl = defaultProfileImageUrl;
-        } else {
-            profileImageUrl = fileService.createPresignedDownloadUrl(objectKey);
-        }
+        String profileImageUrl = objectKey == null || objectKey.isBlank()
+                ? null
+                : fileService.createPresignedDownloadUrl(objectKey);
         return ProfileConverter.toProfileResponseDTO(profile, profileImageUrl);
     }
 }
