@@ -47,7 +47,7 @@ CREATE DATABASE IF NOT EXISTS quespot
 ## 모니터링
 
 - Spring Boot Actuator가 요청 수·응답 시간·상태 코드, JVM, 시스템, HikariCP 메트릭을 Prometheus 형식으로 제공합니다.
-- 공통 예외 응답은 `quespot_api_errors_total`에 Quespot 에러 코드와 HTTP 상태별로 집계됩니다.
+- 공통 예외 응답은 `quespot_api_errors_total`에 Quespot 에러 코드, HTTP 상태, 요청 메서드, 템플릿화된 API 경로별로 집계됩니다.
 - 운영 환경의 Grafana Alloy는 내부 Docker 네트워크에서 애플리케이션 메트릭을 수집해 Grafana Cloud Hosted Prometheus로 전송합니다.
 - `/actuator/prometheus`는 Spring Security에서 Alloy 수집을 허용하지만 Nginx에서는 차단하므로 외부 API 도메인에 공개되지 않습니다.
 - 운영 EC2의 `.env`에는 Grafana Cloud 연결 화면에서 확인한 `GRAFANA_CLOUD_PROMETHEUS_URL`, `GRAFANA_CLOUD_PROMETHEUS_USERNAME`, `GRAFANA_CLOUD_API_TOKEN`을 등록합니다.

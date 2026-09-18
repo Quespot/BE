@@ -5,6 +5,7 @@ import com.quespot.global.monitoring.ApiErrorMetrics;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -20,7 +21,10 @@ class GeneralExceptionAdviceTest {
         MethodArgumentTypeMismatchException exception = mock(MethodArgumentTypeMismatchException.class);
         when(exception.getName()).thenReturn("size");
 
-        ResponseEntity<ApiResponse<Void>> response = advice.handleMethodArgumentTypeMismatchException(exception);
+        ResponseEntity<ApiResponse<Void>> response = advice.handleMethodArgumentTypeMismatchException(
+                exception,
+                new MockHttpServletRequest("GET", "/api/missions")
+        );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().getIsSuccess()).isFalse();
