@@ -1,0 +1,146 @@
+section
+== 데이터 규모 ==
+total_missions	active_missions
+100000	95084
+section
+== missions 인덱스 ==
+Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible	Expression
+missions	0	PRIMARY	1	id	A	97344	NULL	NULL		BTREE			YES	NULL
+missions	0	uk_missions_candidate	1	candidate_id	A	97344	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_category	1	status	A	1	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_category	2	category	A	9	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_spot	1	spot_id	A	97344	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_district	1	status	A	1	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_district	2	snapshot_district_code	A	1	NULL	NULL	YES	BTREE			YES	NULL
+missions	1	ix_missions_status_district	3	id	A	97344	NULL	NULL		BTREE			YES	NULL
+section
+== [1] 첫 페이지 (cursor 없음) EXPLAIN ==
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	m	NULL	ref	ix_missions_status_category,ix_missions_status_district	ix_missions_status_category	1	const	48672	100.00	Using filesort
+section
+== [1] 첫 페이지 (cursor 없음) EXPLAIN ANALYZE ==
+EXPLAIN
+-> Limit: 21 row(s)  (cost=6911 rows=21) (actual time=206..206 rows=21 loops=1)\n    -> Sort: sortValue, missionId, limit input to 21 row(s) per chunk  (cost=6911 rows=48672) (actual time=206..206 rows=21 loops=1)\n        -> Index lookup on m using ix_missions_status_category (status='ACTIVE')  (cost=6911 rows=48672) (actual time=3.78..107 rows=95084 loops=1)\n
+section
+== [2] 깊은 페이지 (cursor = 30km) EXPLAIN ANALYZE ==
+EXPLAIN
+-> Limit: 21 row(s)  (cost=6911 rows=21) (actual time=335..335 rows=21 loops=1)\n    -> Sort: sortValue, missionId, limit input to 21 row(s) per chunk  (cost=6911 rows=48672) (actual time=335..335 rows=21 loops=1)\n        -> Filter: ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) > <cache>((@cursor_value))) or ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) = <cache>((@cursor_value))) and (m.id > <cache>((@cursor_id)))))  (cost=6911 rows=48672) (actual time=0.398..253 rows=71680 loops=1)\n            -> Index lookup on m using ix_missions_status_category (status='ACTIVE')  (cost=6911 rows=48672) (actual time=0.0542..122 rows=95084 loops=1)\n
+section
+== [3] 첫 페이지 단독 실행 5회 (profiling) ==
+id	d
+3919	40.68582887604047
+77553	134.95442029339407
+22062	165.5499359437693
+75483	241.6362153421478
+91615	295.3518460190033
+45461	310.2328472933053
+14910	318.93303083165597
+31923	331.73790346379155
+63427	335.97259422822214
+62729	397.9329845464641
+1433	399.3133538375526
+8500	468.9944855707086
+34723	479.14250684069555
+59175	484.29396907527433
+70361	509.8134326193417
+97043	512.726973306131
+56863	524.6349272789329
+35659	529.8548305315085
+73222	537.9115479247238
+81163	550.3362276769569
+48950	558.5935725228767
+id	d
+3919	40.68582887604047
+77553	134.95442029339407
+22062	165.5499359437693
+75483	241.6362153421478
+91615	295.3518460190033
+45461	310.2328472933053
+14910	318.93303083165597
+31923	331.73790346379155
+63427	335.97259422822214
+62729	397.9329845464641
+1433	399.3133538375526
+8500	468.9944855707086
+34723	479.14250684069555
+59175	484.29396907527433
+70361	509.8134326193417
+97043	512.726973306131
+56863	524.6349272789329
+35659	529.8548305315085
+73222	537.9115479247238
+81163	550.3362276769569
+48950	558.5935725228767
+id	d
+3919	40.68582887604047
+77553	134.95442029339407
+22062	165.5499359437693
+75483	241.6362153421478
+91615	295.3518460190033
+45461	310.2328472933053
+14910	318.93303083165597
+31923	331.73790346379155
+63427	335.97259422822214
+62729	397.9329845464641
+1433	399.3133538375526
+8500	468.9944855707086
+34723	479.14250684069555
+59175	484.29396907527433
+70361	509.8134326193417
+97043	512.726973306131
+56863	524.6349272789329
+35659	529.8548305315085
+73222	537.9115479247238
+81163	550.3362276769569
+48950	558.5935725228767
+id	d
+3919	40.68582887604047
+77553	134.95442029339407
+22062	165.5499359437693
+75483	241.6362153421478
+91615	295.3518460190033
+45461	310.2328472933053
+14910	318.93303083165597
+31923	331.73790346379155
+63427	335.97259422822214
+62729	397.9329845464641
+1433	399.3133538375526
+8500	468.9944855707086
+34723	479.14250684069555
+59175	484.29396907527433
+70361	509.8134326193417
+97043	512.726973306131
+56863	524.6349272789329
+35659	529.8548305315085
+73222	537.9115479247238
+81163	550.3362276769569
+48950	558.5935725228767
+id	d
+3919	40.68582887604047
+77553	134.95442029339407
+22062	165.5499359437693
+75483	241.6362153421478
+91615	295.3518460190033
+45461	310.2328472933053
+14910	318.93303083165597
+31923	331.73790346379155
+63427	335.97259422822214
+62729	397.9329845464641
+1433	399.3133538375526
+8500	468.9944855707086
+34723	479.14250684069555
+59175	484.29396907527433
+70361	509.8134326193417
+97043	512.726973306131
+56863	524.6349272789329
+35659	529.8548305315085
+73222	537.9115479247238
+81163	550.3362276769569
+48950	558.5935725228767
+Query_ID	Duration	Query
+1	0.00012450	SET profiling_history_size = 10
+2	0.19989400	SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE' ORDER BY d, m.id LIMIT 21
+3	0.21007225	SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE' ORDER BY d, m.id LIMIT 21
+4	0.21826775	SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE' ORDER BY d, m.id LIMIT 21
+5	0.23908125	SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE' ORDER BY d, m.id LIMIT 21
+6	0.21094525	SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE' ORDER BY d, m.id LIMIT 21

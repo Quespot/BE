@@ -1,0 +1,37 @@
+section
+== missions 인덱스 ==
+Table	Non_unique	Key_name	Seq_in_index	Column_name	Collation	Cardinality	Sub_part	Packed	Null	Index_type	Comment	Index_comment	Visible	Expression
+missions	1	ix_missions_status_lat_lng	1	status	A	1	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_lat_lng	2	snapshot_latitude	A	96738	NULL	NULL		BTREE			YES	NULL
+missions	1	ix_missions_status_lat_lng	3	snapshot_longitude	A	97344	NULL	NULL		BTREE			YES	NULL
+section
+== [1] 첫 페이지 (5km 반경) EXPLAIN ==
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	m	NULL	range	ix_missions_status_category,ix_missions_status_district,ix_missions_status_lat_lng	ix_missions_status_lat_lng	8	NULL	14202	11.11	Using where; Using index
+section
+== [1] 첫 페이지 (5km 반경) EXPLAIN ANALYZE ==
+EXPLAIN
+-> Limit: 21 row(s)  (cost=6391 rows=21) (actual time=347..347 rows=21 loops=1)\n    -> Sort: sortValue, missionId, limit input to 21 row(s) per chunk  (cost=6391 rows=14202) (actual time=346..346 rows=21 loops=1)\n        -> Index range scan on m using ix_missions_status_lat_lng over (status = 'ACTIVE' AND 37.5210841591 < snapshot_latitude < 37.6119158409), with index condition: ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) <= <cache>((@radius))) and (m.`status` = 'ACTIVE') and (m.snapshot_latitude between <cache>(((@lat) - (@lat_delta))) and <cache>(((@lat) + (@lat_delta)))) and (m.snapshot_longitude between <cache>(((@lng) - (@lng_delta))) and <cache>(((@lng) + (@lng_delta)))))  (cost=6391 rows=14202) (actual time=3.98..329 rows=1541 loops=1)\n
+section
+== [2] 깊은 페이지 (cursor = 30km, 50km 반경) EXPLAIN ANALYZE ==
+EXPLAIN
+-> Limit: 21 row(s)  (cost=2104 rows=21) (actual time=306..306 rows=21 loops=1)\n    -> Sort: sortValue, missionId, limit input to 21 row(s) per chunk  (cost=2104 rows=48672) (actual time=306..306 rows=21 loops=1)\n        -> Filter: ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) <= <cache>((@radius))) and ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) > <cache>((@cursor_value))) or ((st_distance_sphere(point(m.snapshot_longitude,m.snapshot_latitude),<cache>(point((@lng),(@lat)))) = <cache>((@cursor_value))) and (m.id > <cache>((@cursor_id))))) and (m.snapshot_latitude between <cache>(((@lat) - (@lat_delta))) and <cache>(((@lat) + (@lat_delta)))) and (m.snapshot_longitude between <cache>(((@lng) - (@lng_delta))) and <cache>(((@lng) + (@lng_delta)))))  (cost=2104 rows=48672) (actual time=1.5..300 rows=4846 loops=1)\n            -> Index lookup on m using ix_missions_status_category (status='ACTIVE')  (cost=2104 rows=48672) (actual time=1.06..178 rows=95084 loops=1)\n
+section
+== [3] 첫 페이지 단독 실행 5회 (profiling) ==
+COUNT(*)
+21
+COUNT(*)
+21
+COUNT(*)
+21
+COUNT(*)
+21
+COUNT(*)
+21
+Query_ID	Duration	Query
+1	0.00063700	SET profiling_history_size = 10
+2	0.00592325	SELECT COUNT(*) FROM (SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE'\n   AND m.snapshot_latitude BETWEEN @lat - @lat_delta AND @lat + @lat_delta\n   AND m.snapshot_longitude BETWEEN @lng - @lng_delta AN
+3	0.00545275	SELECT COUNT(*) FROM (SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE'\n   AND m.snapshot_latitude BETWEEN @lat - @lat_delta AND @lat + @lat_delta\n   AND m.snapshot_longitude BETWEEN @lng - @lng_delta AN
+4	0.00569225	SELECT COUNT(*) FROM (SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE'\n   AND m.snapshot_latitude BETWEEN @lat - @lat_delta AND @lat + @lat_delta\n   AND m.snapshot_longitude BETWEEN @lng - @lng_delta AN
+5	0.00553950	SELECT COUNT(*) FROM (SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE'\n   AND m.snapshot_latitude BETWEEN @lat - @lat_delta AND @lat + @lat_delta\n   AND m.snapshot_longitude BETWEEN @lng - @lng_delta AN
+6	0.00539600	SELECT COUNT(*) FROM (SELECT m.id, ST_Distance_Sphere(POINT(m.snapshot_longitude, m.snapshot_latitude), POINT(@lng, @lat)) d\n  FROM missions m WHERE m.status = 'ACTIVE'\n   AND m.snapshot_latitude BETWEEN @lat - @lat_delta AND @lat + @lat_delta\n   AND m.snapshot_longitude BETWEEN @lng - @lng_delta AN

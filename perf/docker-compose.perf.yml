@@ -1,0 +1,36 @@
+# 성능 테스트 전용 로컬 인프라 (운영·개발 DB와 분리)
+# 기존 로컬 MySQL(3306·3307)·Redis(6379)와 겹치지 않도록 3308·6380 포트 사용
+name: quespot-perf
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: quespot-perf-mysql
+    environment:
+      MYSQL_DATABASE: quespot_perf
+      MYSQL_USER: quespot
+      MYSQL_PASSWORD: quespot_perf
+      MYSQL_ROOT_PASSWORD: root_perf
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=512M
+    ports:
+      - "3308:3306"
+    volumes:
+      - perf-mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -proot_perf"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:8.0-alpine
+    container_name: quespot-perf-redis
+    ports:
+      - "6380:6379"
+
+volumes:
+  perf-mysql:
