@@ -37,6 +37,7 @@ import java.math.BigDecimal;
                 @Index(name = "ix_missions_status_district", columnList = "status, snapshot_district_code, id")
         }
 )
+// 거리순 조회용 위치 생성 컬럼(snapshot_location)과 공간 인덱스는 MissionLocationIndexInitializer가 관리한다
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Mission extends BaseEntity {

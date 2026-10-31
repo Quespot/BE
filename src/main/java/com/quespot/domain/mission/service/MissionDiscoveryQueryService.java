@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,7 +71,7 @@ public class MissionDiscoveryQueryService {
                 ? initialSeed(sortMode, userId)
                 : cursor.seed();
 
-        List<MissionListProjection> rows = findMissions(
+        MissionPage found = findMissions(
                 category,
                 normalizedKeyword,
                 latitude,
@@ -79,6 +80,7 @@ public class MissionDiscoveryQueryService {
                 seed,
                 size + 1
         );
+        List<MissionListProjection> rows = found.rows();
         boolean hasNext = rows.size() > size;
         List<MissionListProjection> page = hasNext ? rows.subList(0, size) : rows;
         Map<Long, UserMissionStatus> statusByMissionId = missionAttemptStatusResolver.resolveStatuses(
@@ -92,7 +94,7 @@ public class MissionDiscoveryQueryService {
                 ))
                 .toList();
         String nextCursor = hasNext
-                ? nextCursor(page.get(page.size() - 1), sortMode, seed, querySignature)
+                ? nextCursor(page.get(page.size() - 1), sortMode, seed, found.radiusStep(), querySignature)
                 : null;
 
         return new MissionListResponseDTO(missions, nextCursor, hasNext);
@@ -125,7 +127,7 @@ public class MissionDiscoveryQueryService {
         );
     }
 
-    private List<MissionListProjection> findMissions(
+    private MissionPage findMissions(
             MissionCategory category,
             String keyword,
             BigDecimal latitude,
@@ -139,8 +141,82 @@ public class MissionDiscoveryQueryService {
         Long cursorMissionId = cursor == null ? null : cursor.missionId();
 
         if (latitude != null) {
-            return missionDiscoveryQueryRepository.findMissionListByDistance(
+            int startStep = cursor == null ? 0 : cursor.radiusStep();
+            return findMissionsByExpandingRadius(
                     categoryValue,
+                    keyword,
+                    latitude,
+                    longitude,
+                    cursorSortValue,
+                    cursorMissionId,
+                    startStep,
+                    limit
+            );
+        }
+        return new MissionPage(missionDiscoveryQueryRepository.findMissionListRandomly(
+                categoryValue,
+                keyword,
+                seed,
+                cursorSortValue,
+                cursorMissionId,
+                limit
+        ), 0);
+    }
+
+    // 가까운 반경부터 조회하고, 한 페이지를 채우지 못하면 마지막으로 찾은 미션 다음부터 다음 반경에서 이어서 조회한다.
+    // 반경 안의 미션을 모두 읽은 뒤에만 넓히므로 응답 순서는 전체 거리순 정렬과 같다.
+    private MissionPage findMissionsByExpandingRadius(
+            String category,
+            String keyword,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Double cursorSortValue,
+            Long cursorMissionId,
+            int startStep,
+            int limit
+    ) {
+        List<MissionListProjection> rows = new ArrayList<>();
+        Double sortValue = cursorSortValue;
+        Long missionId = cursorMissionId;
+        int step = startStep;
+
+        while (true) {
+            List<MissionListProjection> found = findWithinStep(
+                    category,
+                    keyword,
+                    latitude,
+                    longitude,
+                    sortValue,
+                    missionId,
+                    step,
+                    limit - rows.size()
+            );
+            rows.addAll(found);
+            if (rows.size() >= limit || MissionSearchRadius.isUnlimited(step)) {
+                return new MissionPage(rows, step);
+            }
+            if (!found.isEmpty()) {
+                MissionListProjection last = found.get(found.size() - 1);
+                sortValue = last.getSortValue();
+                missionId = last.getMissionId();
+            }
+            step++;
+        }
+    }
+
+    private List<MissionListProjection> findWithinStep(
+            String category,
+            String keyword,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Double cursorSortValue,
+            Long cursorMissionId,
+            int step,
+            int limit
+    ) {
+        if (MissionSearchRadius.isUnlimited(step)) {
+            return missionDiscoveryQueryRepository.findMissionListByDistance(
+                    category,
                     keyword,
                     latitude,
                     longitude,
@@ -149,10 +225,18 @@ public class MissionDiscoveryQueryService {
                     limit
             );
         }
-        return missionDiscoveryQueryRepository.findMissionListRandomly(
-                categoryValue,
+        int radiusMeters = MissionSearchRadius.radiusMeters(step);
+        MissionSearchRadius.BoundingBox box = MissionSearchRadius.boundingBox(latitude, longitude, radiusMeters);
+        return missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
+                category,
                 keyword,
-                seed,
+                latitude,
+                longitude,
+                box.minLatitude(),
+                box.maxLatitude(),
+                box.minLongitude(),
+                box.maxLongitude(),
+                radiusMeters,
                 cursorSortValue,
                 cursorMissionId,
                 limit
@@ -171,6 +255,8 @@ public class MissionDiscoveryQueryService {
         MissionListCursor cursor = missionListCursorCodec.decode(cursorValue);
         if (cursor.sortMode() != sortMode
                 || (sortMode == MissionListCursor.SortMode.DISTANCE && cursor.seed() != 0)
+                || (sortMode == MissionListCursor.SortMode.DISTANCE && !MissionSearchRadius.isValidStep(cursor.radiusStep()))
+                || (sortMode == MissionListCursor.SortMode.RANDOM && cursor.radiusStep() != 0)
                 || !cursor.querySignature().equals(querySignature)) {
             throw new MissionException(MissionErrorCode.INVALID_CURSOR);
         }
@@ -181,6 +267,7 @@ public class MissionDiscoveryQueryService {
             MissionListProjection lastMission,
             MissionListCursor.SortMode sortMode,
             long seed,
+            int radiusStep,
             String querySignature
     ) {
         return missionListCursorCodec.encode(new MissionListCursor(
@@ -188,6 +275,7 @@ public class MissionDiscoveryQueryService {
                 seed,
                 lastMission.getSortValue(),
                 lastMission.getMissionId(),
+                radiusStep,
                 querySignature
         ));
     }
@@ -245,5 +333,8 @@ public class MissionDiscoveryQueryService {
                 * Math.pow(Math.sin(longitudeDelta / 2), 2);
         double centralAngle = 2 * Math.asin(Math.min(1, Math.sqrt(haversine)));
         return Math.round(EARTH_RADIUS_METERS * centralAngle);
+    }
+
+    private record MissionPage(List<MissionListProjection> rows, int radiusStep) {
     }
 }
