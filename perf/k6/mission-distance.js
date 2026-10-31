@@ -36,6 +36,8 @@ export const options = {
   },
   thresholds: {
     http_req_failed: ['rate<0.01'],
+    // 목표 도착률을 처리하지 못해 누락된 시나리오가 있으면 목표 부하를 달성하지 못한 것으로 판정
+    dropped_iterations: ['count<1'],
   },
   summaryTrendStats: ['avg', 'min', 'med', 'p(90)', 'p(95)', 'p(99)', 'max'],
 };

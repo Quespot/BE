@@ -84,6 +84,9 @@ bash perf/seed/02_seed_sessions.sh
 ```bash
 brew install k6   # 처음 한 번
 
+# k6를 실행하는 터미널에서 JWT_SECRET 등 환경변수 불러오기
+set -a; source perf/perf.env; set +a
+
 # 워밍업 (결과 버림)
 k6 run -e JWT_SECRET=$JWT_SECRET -e DURATION=30s perf/k6/mission-distance.js
 
@@ -96,10 +99,10 @@ k6 run -e JWT_SECRET=$JWT_SECRET -e RATE=20 -e DURATION=2m \
   --summary-export perf/results/before-k6-rate20.json perf/k6/mission-distance.js
 ```
 
-- `JWT_SECRET`은 2단계에서 `source perf/perf.env`를 한 터미널이면 그대로 쓸 수 있습니다.
 - 한 번의 시나리오 = 사용자 1명이 거리순 목록을 3페이지까지 넘겨 보는 흐름입니다.
 - `AREA=rural`을 주면 도시 주변이 아닌 전국 임의 위치 사용자로 측정합니다 (미션이 드물어 20km·50km 반경 단계를 자주 사용).
 - `RATE`를 2 → 5 → 20으로 올려 가며 응답 시간이 급격히 나빠지는 지점(포화점)도 기록합니다.
+- 목표 부하를 처리하지 못해 누락된 시나리오(`dropped_iterations`)가 생기면 k6가 실패로 표시합니다. 포화 구간 측정(개선 전 RATE=20 등)에서는 의도된 결과입니다.
 
 봐야 할 지표: `mission_list_first_page`, `mission_list_next_page`의 p50·p95·p99, `http_req_failed`, `http_reqs`(처리량)
 
