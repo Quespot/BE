@@ -4,10 +4,10 @@
 
 Quespot은 간소화된 Git Flow를 사용합니다.
 
-- `main`: 최종 제출 및 배포용 브랜치입니다.
-- `develop`: 기능 통합 및 테스트용 브랜치입니다.
+- `main`: 운영 배포 브랜치입니다. `main`에 반영되면 GitHub Actions가 자동으로 배포합니다.
+- `develop`: 기능 통합 및 테스트용 브랜치입니다. `develop` 반영만으로는 배포되지 않습니다.
 - `feature/*`: 기능 개발 브랜치입니다.
-- 기본 흐름은 `feature/*` -> PR -> `develop` -> 데모/제출 전 PR -> `main`입니다.
+- 기본 흐름은 `feature/*` -> PR -> `develop` -> 배포 시 PR -> `main`입니다.
 
 ## 2. 브랜치 네이밍
 
@@ -70,7 +70,7 @@ git switch -c feature/#이슈번호-기능명
 
 - PR은 이슈 단위로 생성합니다.
 - PR 대상 브랜치는 기본적으로 `develop`입니다.
-- 데모 또는 제출 전 안정화가 끝난 변경만 `main`으로 PR을 생성합니다.
+- 안정화가 끝나 배포할 변경만 `develop`에서 `main`으로 PR을 생성합니다. `main` 병합은 merge commit 방식을 사용합니다.
 - 충돌 해결 책임자는 PR 작성자입니다.
 - PR에는 작업 내용, 변경 사항, 테스트 결과, 리뷰 포인트, 관련 이슈를 포함합니다.
 - API가 변경되면 Notion API 명세와 Swagger/OpenAPI 문서를 함께 업데이트합니다.
