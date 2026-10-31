@@ -1,0 +1,60 @@
+package com.quespot.domain.notification.exception.code;
+
+import com.quespot.global.apiPayload.code.BaseCode;
+import com.quespot.global.apiPayload.code.SuccessReasonDTO;
+import org.springframework.http.HttpStatus;
+
+public enum NotificationSuccessCode implements BaseCode {
+
+    FCM_TOKEN_REGISTERED(HttpStatus.OK,
+            "NOTIFICATION_200_001",
+            "FCM 토큰이 등록되었습니다."),
+
+    FCM_TOKEN_UNREGISTERED(HttpStatus.OK,
+            "NOTIFICATION_200_002",
+            "FCM 토큰이 해제되었습니다."),
+
+    NOTIFICATION_SETTING_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_003",
+            "알림 설정을 조회했습니다."),
+
+    NOTIFICATION_SETTING_UPDATED(HttpStatus.OK,
+            "NOTIFICATION_200_004",
+            "알림 설정을 변경했습니다."),
+
+    NOTIFICATION_LIST_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_005",
+            "알림 목록을 조회했습니다."),
+
+    NOTIFICATION_UNREAD_COUNT_FOUND(HttpStatus.OK,
+            "NOTIFICATION_200_006",
+            "미읽음 알림 개수를 조회했습니다."),
+
+    NOTIFICATION_READ(HttpStatus.OK,
+            "NOTIFICATION_200_007",
+            "알림을 읽음 처리했습니다."),
+
+    NOTIFICATION_ALL_READ(HttpStatus.OK,
+            "NOTIFICATION_200_008",
+            "모든 알림을 읽음 처리했습니다.");
+
+    private final HttpStatus httpStatus;
+    private final String code;
+    private final String message;
+
+    NotificationSuccessCode(HttpStatus httpStatus, String code, String message) {
+        this.httpStatus = httpStatus;
+        this.code = code;
+        this.message = message;
+    }
+
+    @Override
+    public SuccessReasonDTO getReason() {
+        return new SuccessReasonDTO(null, true, code, message);
+    }
+
+    @Override
+    public SuccessReasonDTO getReasonHttpStatus() {
+        return new SuccessReasonDTO(httpStatus, true, code, message);
+    }
+}

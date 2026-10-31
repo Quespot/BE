@@ -1,0 +1,84 @@
+package com.quespot.domain.notification.entity;
+
+import com.quespot.domain.notification.enums.DeviceType;
+import com.quespot.global.entity.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(
+        name = "fcm_tokens",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_fcm_tokens_token", columnNames = "token")
+        }
+)
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class FcmToken extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column(name = "token", nullable = false, length = 255)
+    private String token;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "device_type", nullable = false, length = 20)
+    private DeviceType deviceType;
+
+    @Column(name = "last_latitude", precision = 13, scale = 10)
+    private BigDecimal lastLatitude;
+
+    @Column(name = "last_longitude", precision = 13, scale = 10)
+    private BigDecimal lastLongitude;
+
+    @Column(name = "located_at")
+    private LocalDateTime locatedAt;
+
+    private FcmToken(Long userId, String token, DeviceType deviceType) {
+        this.userId = userId;
+        this.token = token;
+        this.deviceType = deviceType;
+    }
+
+    public static FcmToken register(Long userId, String token, DeviceType deviceType) {
+        return new FcmToken(userId, token, deviceType);
+    }
+
+    public void reassignTo(Long userId, DeviceType deviceType) {
+        this.userId = userId;
+        this.deviceType = deviceType;
+    }
+
+    // 위치는 스케줄러의 "주변 미션" 판정 기준. 없으면 이전 값을 유지한다(호출부가 결정).
+    public void updateLocation(BigDecimal latitude, BigDecimal longitude, LocalDateTime locatedAt) {
+        this.lastLatitude = latitude;
+        this.lastLongitude = longitude;
+        this.locatedAt = locatedAt;
+    }
+
+    // 소유자가 바뀌면 이전 소유자의 좌표가 새 소유자 추천에 쓰이면 안 되므로 지운다.
+    public void clearLocation() {
+        this.lastLatitude = null;
+        this.lastLongitude = null;
+        this.locatedAt = null;
+    }
+}

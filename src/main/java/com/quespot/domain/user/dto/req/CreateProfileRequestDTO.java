@@ -1,0 +1,51 @@
+package com.quespot.domain.user.dto.req;
+
+import com.quespot.domain.user.enums.Gender;
+import com.quespot.domain.user.enums.ResidenceRegion;
+import com.quespot.domain.user.enums.TravelCompanion;
+import com.quespot.domain.user.enums.TravelStyle;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import java.time.LocalDate;
+import java.util.Set;
+
+public record CreateProfileRequestDTO(
+        @Size(max = 1024, message = "프로필 이미지 객체 키는 1024자 이하여야 합니다.")
+        String profileImageObjectKey,
+
+        @NotBlank(message = "닉네임은 필수입니다.")
+        @Size(min = 2, max = 10, message = "닉네임은 2자 이상 10자 이하로 입력해주세요.")
+        @Pattern(
+                regexp = "^[가-힣A-Za-z0-9]+(?: [가-힣A-Za-z0-9]+)*$",
+                message = "닉네임은 한글, 영문, 숫자와 공백만 사용할 수 있습니다."
+        )
+        String nickname,
+
+        @NotNull(message = "성별 선택값은 필수입니다.")
+        Gender gender,
+
+        @NotNull(message = "생년월일은 필수입니다.")
+        @Past(message = "생년월일은 과거 날짜여야 합니다.")
+        LocalDate birthDate,
+
+        @NotNull(message = "거주 지역은 필수입니다.")
+        ResidenceRegion residenceRegion,
+
+        TravelCompanion travelCompanion,
+
+        @NotEmpty(message = "여행 스타일은 최소 1개 이상 선택해야 합니다.")
+        @Size(max = 6, message = "여행 스타일은 최대 6개까지 선택할 수 있습니다.")
+        Set<TravelStyle> travelStyles
+) {
+
+    public CreateProfileRequestDTO {
+        if (profileImageObjectKey != null) {
+            profileImageObjectKey = profileImageObjectKey.trim();
+        }
+    }
+}

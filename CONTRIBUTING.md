@@ -4,10 +4,10 @@
 
 Quespot은 간소화된 Git Flow를 사용합니다.
 
-- `main`: 최종 제출 및 배포용 브랜치입니다.
-- `develop`: 기능 통합 및 테스트용 브랜치입니다.
+- `main`: 운영 배포 브랜치입니다. `main`에 반영되면 GitHub Actions가 자동으로 배포합니다.
+- `develop`: 기능 통합 및 테스트용 브랜치입니다. `develop` 반영만으로는 배포되지 않습니다.
 - `feature/*`: 기능 개발 브랜치입니다.
-- 기본 흐름은 `feature/*` -> PR -> `develop` -> 데모/제출 전 PR -> `main`입니다.
+- 기본 흐름은 `feature/*` -> PR -> `develop` -> 배포 시 PR -> `main`입니다.
 
 ## 2. 브랜치 네이밍
 
@@ -70,7 +70,7 @@ git switch -c feature/#이슈번호-기능명
 
 - PR은 이슈 단위로 생성합니다.
 - PR 대상 브랜치는 기본적으로 `develop`입니다.
-- 데모 또는 제출 전 안정화가 끝난 변경만 `main`으로 PR을 생성합니다.
+- 안정화가 끝나 배포할 변경만 `develop`에서 `main`으로 PR을 생성합니다. `main` 병합은 merge commit 방식을 사용합니다.
 - 충돌 해결 책임자는 PR 작성자입니다.
 - PR에는 작업 내용, 변경 사항, 테스트 결과, 리뷰 포인트, 관련 이슈를 포함합니다.
 - API가 변경되면 Notion API 명세와 Swagger/OpenAPI 문서를 함께 업데이트합니다.
@@ -100,7 +100,6 @@ PR을 올리기 전에는 다음 항목을 확인합니다.
 - Entity를 API 응답으로 직접 반환하지 않고 DTO를 사용합니다.
 - API 응답 변환 로직이 반복되면 Converter를 둡니다.
 - 불필요한 전체 포맷 변경과 기능 변경을 한 PR에 섞지 않습니다.
-- Request DTO는 `*Request`, Response DTO는 `*Response` 형태로 이름을 맞춥니다.
 - 입력값 검증은 Bean Validation을 우선 사용합니다.
 - 비즈니스 로직은 Controller가 아니라 Service에 둡니다.
 - Repository는 데이터 접근 책임만 갖도록 유지합니다.
@@ -110,10 +109,16 @@ PR을 올리기 전에는 다음 항목을 확인합니다.
 
 API 응답은 공통 응답 형태로 통일합니다.
 
+- 공통 응답 클래스는 `ApiResponse`를 사용합니다.
+- 공통 성공 코드는 `GeneralSuccessCode`, 도메인별 성공 코드는 `*SuccessCode`에 정의합니다.
+- 공통 실패 코드는 `GeneralErrorCode`, 도메인별 실패 코드는 `*ErrorCode`에 정의합니다.
+- 성공 코드는 `BaseCode`와 `SuccessReasonDTO`를 사용합니다.
+- 실패 코드는 `BaseErrorCode`와 `ErrorReasonDTO`를 사용합니다.
+
 ```json
 {
   "isSuccess": true,
-  "code": "COMMON200",
+  "code": "COMMON_200",
   "message": "요청에 성공했습니다.",
   "result": {}
 }
@@ -124,16 +129,19 @@ API 응답은 공통 응답 형태로 통일합니다.
 ```json
 {
   "isSuccess": false,
-  "code": "USER404",
-  "message": "사용자를 찾을 수 없습니다.",
+  "code": "AUTH_401_001",
+  "message": "인증이 필요합니다.",
   "result": null,
   "errorDetail": {}
 }
 ```
 
+공통 성공 코드는 `COMMON_200`처럼 `COMMON_HTTP상태` 형식을 사용합니다. 도메인별 성공/실패 코드는 `AUTH_200_001`, `AUTH_401_001`처럼 `도메인_HTTP상태_세부번호` 형식을 사용합니다.
+
 ## 8. 예외 처리
 
-- 공통 예외 처리는 `BaseException`, `ErrorCode`, `GlobalExceptionHandler`, 도메인별 CustomException 구조로 통일합니다.
+- 공통 예외 처리는 `GeneralException`, `GeneralErrorCode`, `GeneralExceptionAdvice`, 도메인별 CustomException 구조로 통일합니다.
+- 서비스 로직에서는 필요한 경우 `GeneralException` 또는 도메인별 CustomException을 던집니다.
 - 컨트롤러에서 예외 응답을 직접 만들지 않고 전역 예외 처리로 위임합니다.
 - 인증, 권한, 유효성 검증, 외부 API 오류는 구분 가능한 에러 코드로 관리합니다.
 
@@ -148,6 +156,7 @@ API 응답은 공통 응답 형태로 통일합니다.
 
 작업 성격에 맞는 검증을 수행하고 PR에 결과를 남깁니다.
 
+- 테스트 코드는 필요한 경우 별도 이슈 또는 명시된 작업 범위 안에서 작성합니다.
 - 단위 테스트: Service, Converter, Validator처럼 순수 로직이 있는 코드
 - 통합 테스트: Repository, Security, Controller처럼 Spring Context가 필요한 코드
 - 직접 실행 확인: 애플리케이션 기동, 주요 API 호출, Swagger 확인
