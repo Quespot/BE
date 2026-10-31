@@ -59,7 +59,7 @@ Quespot은 관광지를 직접 방문해 미션을 수행하며 지역을 탐험
 ---
 
 ## 🏗 시스템 아키텍처
-<img width="1671" height="941" alt="인프라 아키텍처" src="https://github.com/user-attachments/assets/8a3a30a5-5a49-4451-a05d-a25078f1d15c" />
+<img width="1671" height="941" alt="인프라 아키텍처" src="https://github.com/user-attachments/assets/66e7fa0a-c21e-4b1b-a359-332dd2771035" />
 
 ---
 
