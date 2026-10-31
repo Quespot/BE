@@ -62,7 +62,8 @@ public interface MissionDiscoveryQueryRepository extends Repository<Mission, Lon
             @Param("limit") int limit
     );
 
-    // 반경 단계 조회: bounding box(ix_missions_status_lat_lng 범위 스캔)로 후보를 줄인 뒤 실제 거리로 다시 거른다
+    // 반경 단계 조회: bounding box를 공간 인덱스(sx_missions_location)로 찾아 후보를 줄인 뒤 실제 거리로 다시 거른다
+    // snapshot_location 컬럼과 인덱스는 MissionLocationIndexInitializer가 만든다
     @Query(value = """
             select
                 ranked.mission_id as missionId,
@@ -90,8 +91,10 @@ public interface MissionDiscoveryQueryRepository extends Repository<Mission, Lon
                     ) as sort_value
                 from missions m
                 where m.status = 'ACTIVE'
-                  and m.snapshot_latitude between :minLatitude and :maxLatitude
-                  and m.snapshot_longitude between :minLongitude and :maxLongitude
+                  and MBRContains(
+                      ST_MakeEnvelope(POINT(:minLongitude, :minLatitude), POINT(:maxLongitude, :maxLatitude)),
+                      m.snapshot_location
+                  )
                   and (:category is null or m.category = :category)
                   and (
                       :keyword is null

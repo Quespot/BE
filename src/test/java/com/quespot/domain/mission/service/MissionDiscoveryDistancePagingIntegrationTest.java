@@ -32,7 +32,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-// 반경 단계 확장 조회가 기존 전체 거리순 조회와 같은 순서로 모든 미션을 돌려주는지 검증
+// 반경 단계 확장 조회(공간 인덱스)가 기존 전체 거리순 조회와 같은 순서로 모든 미션을 돌려주는지 검증
 @SpringBootTest
 @Testcontainers
 class MissionDiscoveryDistancePagingIntegrationTest {
@@ -81,6 +81,26 @@ class MissionDiscoveryDistancePagingIntegrationTest {
             statement.execute("DELETE FROM missions");
             statement.execute("DELETE FROM mission_candidates");
             statement.execute("DELETE FROM spots");
+        }
+    }
+
+    @Test
+    void createsSpatialIndexOnGeneratedLocationColumn() throws SQLException {
+        try (var connection = dataSource.getConnection(); var statement = connection.createStatement()) {
+            var column = statement.executeQuery("""
+                    SELECT generation_expression, srs_id FROM information_schema.columns
+                     WHERE table_schema = DATABASE() AND table_name = 'missions' AND column_name = 'snapshot_location'
+                    """);
+            assertThat(column.next()).isTrue();
+            assertThat(column.getString("generation_expression")).contains("snapshot_longitude", "snapshot_latitude");
+            assertThat(column.getInt("srs_id")).isZero();
+
+            var index = statement.executeQuery("""
+                    SELECT index_type FROM information_schema.statistics
+                     WHERE table_schema = DATABASE() AND table_name = 'missions' AND index_name = 'sx_missions_location'
+                    """);
+            assertThat(index.next()).isTrue();
+            assertThat(index.getString("index_type")).isEqualTo("SPATIAL");
         }
     }
 

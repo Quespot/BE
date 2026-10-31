@@ -1,6 +1,7 @@
 // 거리순 미션 목록 API 부하 테스트 (GET /api/missions, 사용자당 최대 PAGES 페이지 조회)
 // 개선 전후 동일 부하 비교를 위해 고정 도착률(constant-arrival-rate) 사용
-// 환경변수: JWT_SECRET(필수), BASE_URL, RATE(초당 시나리오 수), DURATION, PAGES, USER_COUNT
+// 환경변수: JWT_SECRET(필수), BASE_URL, RATE(초당 시나리오 수), DURATION, PAGES, USER_COUNT,
+//          AREA(city: 도시 주변 사용자, rural: 미션이 드문 지역까지 전국 균등 분포 사용자)
 import http from 'k6/http';
 import { check } from 'k6';
 import crypto from 'k6/crypto';
@@ -10,6 +11,7 @@ import { Trend } from 'k6/metrics';
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const JWT_SECRET = __ENV.JWT_SECRET;
 const RATE = Number(__ENV.RATE || 20);
+const AREA = __ENV.AREA || 'city';
 const DURATION = __ENV.DURATION || '2m';
 const PAGES = Number(__ENV.PAGES || 3);
 const USER_COUNT = Number(__ENV.USER_COUNT || 1000);
@@ -53,7 +55,18 @@ const CITIES = [
 ];
 const WEIGHTED = CITIES.flatMap((c) => Array(c.weight).fill(c));
 
+// rural: 더미 데이터의 전국 균등 분포 범위(위도 34.3~38.3, 경도 126.2~129.4) 안의 임의 위치
+function randomRuralLocation() {
+  return {
+    latitude: (34.3 + Math.random() * 4.0).toFixed(6),
+    longitude: (126.2 + Math.random() * 3.2).toFixed(6),
+  };
+}
+
 function randomLocation() {
+  if (AREA === 'rural') {
+    return randomRuralLocation();
+  }
   const city = WEIGHTED[Math.floor(Math.random() * WEIGHTED.length)];
   const jitter = () => (Math.random() - 0.5) * 0.09;
   return {
