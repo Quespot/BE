@@ -166,8 +166,8 @@ OAuth2, Gmail, S3, Firebase, TourAPI 사용 시 필요한 값은 [`.env.example`
 
 ## 🔄 CI/CD
 
-- `develop` 대상 Pull Request: MySQL·Redis 환경에서 Gradle 테스트
-- `develop` 반영: AWS OIDC 인증 → Docker 이미지 빌드 → ECR Push
+- `develop`·`main` 대상 Pull Request: MySQL·Redis 환경에서 Gradle 테스트
+- `main` 반영: AWS OIDC 인증 → Docker 이미지 빌드 → ECR Push
 - AWS Systems Manager로 EC2에 배포
 - Health Check 실패 시 이전 이미지로 자동 롤백
 

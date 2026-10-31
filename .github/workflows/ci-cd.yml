@@ -4,9 +4,10 @@ on:
   pull_request:
     branches:
       - develop
+      - main
   push:
     branches:
-      - develop
+      - main
   workflow_dispatch:
 
 permissions:
@@ -74,7 +75,7 @@ jobs:
 
   deploy:
     name: Publish and deploy
-    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -82,7 +83,7 @@ jobs:
       contents: read
       id-token: write
     concurrency:
-      group: quespot-develop-deployment
+      group: quespot-main-deployment
       cancel-in-progress: false
     env:
       AWS_REGION: ap-northeast-2
