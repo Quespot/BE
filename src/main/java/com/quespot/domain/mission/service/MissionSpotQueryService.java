@@ -222,6 +222,7 @@ public class MissionSpotQueryService {
         MissionListCursor cursor = missionListCursorCodec.decode(cursorValue);
         if (cursor.sortMode() != sortMode
                 || (sortMode == MissionListCursor.SortMode.DISTANCE && cursor.seed() != 0)
+                || cursor.radiusStep() != 0
                 || !cursor.querySignature().equals(querySignature)) {
             throw new MissionException(MissionErrorCode.INVALID_CURSOR);
         }
@@ -239,6 +240,7 @@ public class MissionSpotQueryService {
                 seed,
                 lastMission.getSortValue(),
                 lastMission.getMissionId(),
+                0,
                 querySignature
         ));
     }

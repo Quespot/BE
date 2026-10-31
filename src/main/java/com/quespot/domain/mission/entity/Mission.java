@@ -34,7 +34,9 @@ import java.math.BigDecimal;
         indexes = {
                 @Index(name = "ix_missions_status_category", columnList = "status, category"),
                 @Index(name = "ix_missions_spot", columnList = "spot_id"),
-                @Index(name = "ix_missions_status_district", columnList = "status, snapshot_district_code, id")
+                @Index(name = "ix_missions_status_district", columnList = "status, snapshot_district_code, id"),
+                // 거리순 조회의 bounding box 범위 스캔용 (위도 범위 탐색 + 경도는 인덱스 조건으로 필터)
+                @Index(name = "ix_missions_status_lat_lng", columnList = "status, snapshot_latitude, snapshot_longitude")
         }
 )
 @Getter

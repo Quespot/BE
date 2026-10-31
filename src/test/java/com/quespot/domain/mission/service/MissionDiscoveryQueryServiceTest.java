@@ -3,6 +3,7 @@ package com.quespot.domain.mission.service;
 import com.quespot.domain.mission.cursor.MissionListCursor;
 import com.quespot.domain.mission.cursor.MissionListCursorCodec;
 import com.quespot.domain.mission.dto.res.MissionDetailResponseDTO;
+import com.quespot.domain.mission.dto.res.MissionListItemResponseDTO;
 import com.quespot.domain.mission.dto.res.MissionListResponseDTO;
 import com.quespot.domain.mission.entity.Mission;
 import com.quespot.domain.mission.enums.MissionCategory;
@@ -24,10 +25,13 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,14 +60,19 @@ class MissionDiscoveryQueryServiceTest {
     }
 
     @Test
-    void returnsDistanceOrderedMissionPageWithCursor() {
+    void returnsDistanceOrderedMissionPageWithinFirstRadius() {
         MissionListProjection first = projection(1L, MissionCategory.HISTORY, 1200.4);
         MissionListProjection second = projection(2L, MissionCategory.HISTORY, 2300.0);
-        when(missionDiscoveryQueryRepository.findMissionListByDistance(
+        when(missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
                 eq("HISTORY"),
                 eq("경복궁"),
                 any(BigDecimal.class),
                 any(BigDecimal.class),
+                anyDouble(),
+                anyDouble(),
+                anyDouble(),
+                anyDouble(),
+                eq(5_000),
                 isNull(),
                 isNull(),
                 eq(2)
@@ -85,6 +94,100 @@ class MissionDiscoveryQueryServiceTest {
         assertThat(response.missions().get(0).canStart()).isTrue();
         assertThat(response.hasNext()).isTrue();
         assertThat(response.nextCursor()).isNotBlank();
+        verify(missionDiscoveryQueryRepository, never()).findMissionListByDistance(
+                any(), any(), any(), any(), any(), any(), anyInt()
+        );
+    }
+
+    @Test
+    void expandsRadiusFromLastFoundMissionWhenPageIsNotFilled() {
+        MissionListProjection near = projection(1L, MissionCategory.FOOD, 3_000.0);
+        MissionListProjection middle = projection(2L, MissionCategory.FOOD, 15_000.0);
+        MissionListProjection far = projection(3L, MissionCategory.FOOD, 120_000.0);
+        when(missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
+                isNull(), isNull(), any(), any(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
+                eq(5_000), isNull(), isNull(), eq(3)
+        )).thenReturn(List.of(near));
+        when(missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
+                isNull(), isNull(), any(), any(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
+                eq(20_000), eq(3_000.0), eq(1L), eq(2)
+        )).thenReturn(List.of(middle));
+        when(missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
+                isNull(), isNull(), any(), any(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
+                eq(50_000), eq(15_000.0), eq(2L), eq(1)
+        )).thenReturn(List.of());
+        when(missionDiscoveryQueryRepository.findMissionListByDistance(
+                isNull(), isNull(), any(), any(), eq(15_000.0), eq(2L), eq(1)
+        )).thenReturn(List.of(far));
+
+        MissionListResponseDTO response = missionDiscoveryQueryService.getMissions(
+                10L,
+                null,
+                null,
+                new BigDecimal("37.5665"),
+                new BigDecimal("126.9780"),
+                null,
+                2
+        );
+
+        assertThat(response.missions()).extracting(MissionListItemResponseDTO::missionId)
+                .containsExactly(1L, 2L);
+        assertThat(response.hasNext()).isTrue();
+        MissionListCursor cursor = new MissionListCursorCodec(CURSOR_SECRET).decode(response.nextCursor());
+        assertThat(cursor.missionId()).isEqualTo(2L);
+        assertThat(cursor.radiusStep()).isEqualTo(MissionSearchRadius.unlimitedStep());
+    }
+
+    @Test
+    void continuesFromCursorRadiusStep() {
+        MissionListCursorCodec codec = new MissionListCursorCodec(CURSOR_SECRET);
+        BigDecimal latitude = new BigDecimal("37.5665");
+        BigDecimal longitude = new BigDecimal("126.9780");
+        String signature = codec.querySignature(10L, null, null, latitude, longitude);
+        String cursor = codec.encode(new MissionListCursor(
+                MissionListCursor.SortMode.DISTANCE,
+                0,
+                18_000.0,
+                7L,
+                1,
+                signature
+        ));
+        MissionListProjection next = projection(8L, MissionCategory.NATURE, 19_000.0);
+        MissionListProjection afterNext = projection(9L, MissionCategory.NATURE, 19_500.0);
+        when(missionDiscoveryQueryRepository.findMissionListByDistanceWithinRadius(
+                isNull(), isNull(), any(), any(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
+                eq(20_000), eq(18_000.0), eq(7L), eq(2)
+        )).thenReturn(List.of(next, afterNext));
+
+        MissionListResponseDTO response = missionDiscoveryQueryService.getMissions(
+                10L, null, null, latitude, longitude, cursor, 1
+        );
+
+        assertThat(response.missions()).extracting(MissionListItemResponseDTO::missionId).containsExactly(8L);
+        verify(missionDiscoveryQueryRepository, never()).findMissionListByDistanceWithinRadius(
+                any(), any(), any(), any(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
+                eq(5_000), any(), any(), anyInt()
+        );
+    }
+
+    @Test
+    void rejectsDistanceCursorWithUnknownRadiusStep() {
+        MissionListCursorCodec codec = new MissionListCursorCodec(CURSOR_SECRET);
+        BigDecimal latitude = new BigDecimal("37.5665");
+        BigDecimal longitude = new BigDecimal("126.9780");
+        String signature = codec.querySignature(10L, null, null, latitude, longitude);
+        String cursor = codec.encode(new MissionListCursor(
+                MissionListCursor.SortMode.DISTANCE,
+                0,
+                1_000.0,
+                1L,
+                MissionSearchRadius.unlimitedStep() + 1,
+                signature
+        ));
+
+        assertThatThrownBy(() -> missionDiscoveryQueryService.getMissions(
+                10L, null, null, latitude, longitude, cursor, 20
+        )).isInstanceOf(MissionException.class);
     }
 
     @Test
@@ -124,6 +227,7 @@ class MissionDiscoveryQueryServiceTest {
                 10L,
                 100,
                 1L,
+                0,
                 signature
         ));
 
@@ -147,6 +251,7 @@ class MissionDiscoveryQueryServiceTest {
                 10L,
                 100,
                 1L,
+                0,
                 signature
         ));
         String decoded = new String(

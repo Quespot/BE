@@ -20,7 +20,7 @@ public class MissionListCursorCodec {
 
     private static final String DELIMITER = "|";
     private static final String HMAC_ALGORITHM = "HmacSHA256";
-    private static final String HMAC_CONTEXT = "mission-cursor:v1|";
+    private static final String HMAC_CONTEXT = "mission-cursor:v2|";
 
     private final SecretKeySpec secretKey;
 
@@ -38,6 +38,7 @@ public class MissionListCursorCodec {
                 Long.toString(cursor.seed()),
                 Double.toString(cursor.sortValue()),
                 Long.toString(cursor.missionId()),
+                Integer.toString(cursor.radiusStep()),
                 cursor.querySignature()
         );
         String value = payload + DELIMITER + encodeMac(payload);
@@ -53,7 +54,7 @@ public class MissionListCursorCodec {
                     StandardCharsets.UTF_8
             );
             String[] parts = decoded.split("\\|", -1);
-            if (parts.length != 6) {
+            if (parts.length != 7) {
                 throw invalidCursor();
             }
 
@@ -63,9 +64,10 @@ public class MissionListCursorCodec {
                     parts[1],
                     parts[2],
                     parts[3],
-                    parts[4]
+                    parts[4],
+                    parts[5]
             );
-            byte[] providedMac = Base64.getUrlDecoder().decode(parts[5]);
+            byte[] providedMac = Base64.getUrlDecoder().decode(parts[6]);
             if (!MessageDigest.isEqual(createMac(payload), providedMac)) {
                 throw invalidCursor();
             }
@@ -75,11 +77,13 @@ public class MissionListCursorCodec {
                     Long.parseLong(parts[1]),
                     Double.parseDouble(parts[2]),
                     Long.parseLong(parts[3]),
-                    parts[4]
+                    Integer.parseInt(parts[4]),
+                    parts[5]
             );
             if (!Double.isFinite(cursor.sortValue())
                     || cursor.sortValue() < 0
-                    || cursor.missionId() <= 0) {
+                    || cursor.missionId() <= 0
+                    || cursor.radiusStep() < 0) {
                 throw invalidCursor();
             }
             return cursor;
