@@ -58,7 +58,7 @@ class MissionCandidateGeneratorTest {
         assertThat(result.eligibleSpotCount()).isEqualTo(1);
         assertThat(result.createdCount()).isEqualTo(1);
         assertThat(result.skippedDuplicateCount()).isZero();
-        verify(missionCandidateWriter).save(any(MissionCandidate.class));
+        verify(missionCandidateWriter).saveAll(argThat(candidates -> candidates.size() == 1));
     }
 
     @Test
@@ -110,9 +110,10 @@ class MissionCandidateGeneratorTest {
         MissionCandidateGenerationResponseDTO result = generator.generate(MissionCategory.ETC);
 
         assertThat(result.createdCount()).isEqualTo(2);
-        verify(missionCandidateWriter, times(2)).save(argThat(candidate ->
+        verify(missionCandidateWriter).saveAll(argThat(candidates -> candidates.size() == 2
+                && candidates.stream().allMatch(candidate ->
                 candidate.getSuggestedCategory() == MissionCategory.ETC
-                        && candidate.getTemplateCode() == MissionTemplate.ETC_LOCATION
+                        && candidate.getTemplateCode() == MissionTemplate.ETC_LOCATION)
         ));
         verify(spotRepository).findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
@@ -128,12 +129,33 @@ class MissionCandidateGeneratorTest {
                 .thenReturn(List.of(spot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
         doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(missionCandidateWriter).saveAll(anyList());
+        doThrow(new DataIntegrityViolationException("duplicate"))
                 .when(missionCandidateWriter).save(any(MissionCandidate.class));
 
         MissionCandidateGenerationResponseDTO result = generator.generate();
 
         assertThat(result.createdCount()).isZero();
         assertThat(result.skippedDuplicateCount()).isEqualTo(1);
+    }
+
+    @Test
+    void retriesFailedChunkOneByOneAndCountsOnlyFailedRowsAsDuplicates() {
+        Spot first = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/1.jpg");
+        Spot second = spot(2L, "창덕궁", AppCategory.HISTORY, "https://example.com/2.jpg");
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+                .thenReturn(List.of(first, second));
+        when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(missionCandidateWriter).saveAll(anyList());
+        doThrow(new DataIntegrityViolationException("duplicate"))
+                .when(missionCandidateWriter).save(argThat(candidate -> candidate.getSpot() == second));
+
+        MissionCandidateGenerationResponseDTO result = generator.generate();
+
+        assertThat(result.createdCount()).isEqualTo(1);
+        assertThat(result.skippedDuplicateCount()).isEqualTo(1);
+        verify(missionCandidateWriter, times(2)).save(any(MissionCandidate.class));
     }
 
     private Spot spot(Long id, String name, AppCategory category, String imageUrl) {

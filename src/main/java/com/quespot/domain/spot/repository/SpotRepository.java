@@ -7,12 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 public interface SpotRepository extends JpaRepository<Spot, Long> {
 
     Optional<Spot> findBySourceAndSourceContentId(SpotSource source, String sourceContentId);
+
+    List<Spot> findAllBySourceAndSourceContentIdIn(SpotSource source, Collection<String> sourceContentIds);
 
     @Query("""
             select s

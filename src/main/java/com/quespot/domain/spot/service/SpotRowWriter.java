@@ -13,8 +13,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 // SpotRefinementWriter.refineChunk()의 반복문 밖으로 건별 정제를 분리한
 // 이유는 RawContentRowWriter와 동일하다 — refineChunk 자체가 REQUIRES_NEW
@@ -52,12 +57,36 @@ public class SpotRowWriter {
         this.objectMapper = objectMapper;
     }
 
+    // 청크 전체를 하나의 트랜잭션으로 정제한다. 기존 spot은 IN 조회 한 번으로 가져온다.
+    // 한 건이라도 실패하면 청크 전체가 롤백되고, 호출 측(SpotRefinementWriter)이
+    // refineOne으로 건별 재시도해 실패한 건만 걸러낸다.
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public RefinementSummary refineAll(List<TourContentRaw> rawRows) throws JsonProcessingException {
+        Map<String, Spot> existingByContentId = spotRepository
+                .findAllBySourceAndSourceContentIdIn(
+                        SpotSource.TOUR_API,
+                        rawRows.stream().map(TourContentRaw::getContentId).toList()
+                )
+                .stream()
+                .collect(Collectors.toMap(Spot::getSourceContentId, Function.identity(), (first, second) -> first));
+
+        List<RefinementResult> results = new ArrayList<>(rawRows.size());
+        for (TourContentRaw raw : rawRows) {
+            results.add(refine(raw, Optional.ofNullable(existingByContentId.get(raw.getContentId()))));
+        }
+        return RefinementSummary.of(results, 0);
+    }
+
+    // 건별 정제. 청크 일괄 정제가 실패했을 때 실패한 건을 골라내는 용도로 쓴다.
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public RefinementResult refineOne(TourContentRaw raw) throws JsonProcessingException {
-        TourSyncItem item = objectMapper.readValue(raw.getPayload(), TourSyncItem.class);
-
         Optional<Spot> existingOpt =
                 spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, raw.getContentId());
+        return refine(raw, existingOpt);
+    }
+
+    private RefinementResult refine(TourContentRaw raw, Optional<Spot> existingOpt) throws JsonProcessingException {
+        TourSyncItem item = objectMapper.readValue(raw.getPayload(), TourSyncItem.class);
 
         if (existingOpt.isPresent()
                 && raw.getApiModifiedTime().equals(existingOpt.get().getSourceModifiedAt())

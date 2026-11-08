@@ -16,8 +16,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,8 +100,8 @@ class SpotRefinementWriterTest {
                 .build();
         TourContentRaw raw = rawOf("1", LocalDateTime.of(2026, 1, 1, 0, 0),
                 payload("1", "127.0", "37.5", "img.jpg", "1"));
-        when(spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, "1"))
-                .thenReturn(Optional.of(existing));
+        when(spotRepository.findAllBySourceAndSourceContentIdIn(eq(SpotSource.TOUR_API), anyCollection()))
+                .thenReturn(List.of(existing));
 
         RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(raw));
 
@@ -115,8 +119,8 @@ class SpotRefinementWriterTest {
                 .sourceModifiedAt(sameTime)
                 .build();
         TourContentRaw raw = rawOf("1", sameTime, payload("1", "127.0", "37.5", "img.jpg", "1"));
-        when(spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, "1"))
-                .thenReturn(Optional.of(existing));
+        when(spotRepository.findAllBySourceAndSourceContentIdIn(eq(SpotSource.TOUR_API), anyCollection()))
+                .thenReturn(List.of(existing));
 
         RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(raw));
 
@@ -138,8 +142,8 @@ class SpotRefinementWriterTest {
                 .build();
         when(categoryResolver.getCurrentVersion()).thenReturn(2);
         TourContentRaw raw = rawOf("1", sameTime, payload("1", "127.0", "37.5", "img.jpg", "1"));
-        when(spotRepository.findBySourceAndSourceContentId(SpotSource.TOUR_API, "1"))
-                .thenReturn(Optional.of(existing));
+        when(spotRepository.findAllBySourceAndSourceContentIdIn(eq(SpotSource.TOUR_API), anyCollection()))
+                .thenReturn(List.of(existing));
 
         RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(raw));
 
@@ -219,5 +223,19 @@ class SpotRefinementWriterTest {
         ArgumentCaptor<Spot> captor = ArgumentCaptor.forClass(Spot.class);
         verify(spotRepository).saveAndFlush(captor.capture());
         assertThat(captor.getValue().getShowFlag()).isFalse();
+    }
+
+    @Test
+    void looksUpExistingSpotsOnceForWholeChunk() {
+        TourContentRaw first = rawOf("1", LocalDateTime.of(2026, 1, 1, 0, 0),
+                payload("1", "127.0", "37.5", "img.jpg", "1"));
+        TourContentRaw second = rawOf("2", LocalDateTime.of(2026, 1, 1, 0, 0),
+                payload("2", "127.0", "37.5", "img.jpg", "1"));
+
+        RefinementSummary summary = spotRefinementWriter.refineChunk(List.of(first, second));
+
+        assertThat(summary).isEqualTo(new RefinementSummary(2, 0, 0, 0, 0));
+        verify(spotRepository, times(1)).findAllBySourceAndSourceContentIdIn(eq(SpotSource.TOUR_API), anyCollection());
+        verify(spotRepository, never()).findBySourceAndSourceContentId(any(), anyString());
     }
 }
