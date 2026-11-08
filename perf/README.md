@@ -8,10 +8,13 @@ perf/
 ├── perf.env                  # 로컬 더미 환경변수 (운영 값 아님)
 ├── seed/01_seed_missions.sql # 미션 10만 건 더미 데이터
 ├── seed/02_seed_sessions.sh  # k6 가상 사용자 로그인 세션(Redis) 등록
+├── seed/03_seed_tour_raw.sql # TourAPI 원본 더미 데이터 (파이프라인 측정용)
 ├── sql/explain_distance.sql  # 거리순 목록 쿼리 실행 계획 (개선 전)
 ├── sql/explain_distance_after.sql # 거리순 목록 쿼리 실행 계획 (1차 개선 후, 반경 단계 조회)
 ├── sql/explain_distance_after2.sql # 1차(B-tree) vs 2차(공간 인덱스) 실행 계획 비교
+├── sql/db_status.sql         # MySQL 누적 실행 횟수 스냅샷 (파이프라인 측정 전후 비교)
 ├── k6/mission-distance.js    # 거리순 목록 API 부하 테스트 (AREA=city|rural)
+├── k6/tour-sync.js           # TourAPI 동기화 1회 실행 시간 측정
 └── results/                  # 측정 결과 저장
 ```
 
@@ -141,6 +144,48 @@ k6 run -e JWT_SECRET=$JWT_SECRET -e RATE=20 -e DURATION=2m \
 - 2차(공간 인덱스, R-tree)는 위도·경도를 함께 좁혀 반경이 커져도 반경 안의 미션만 읽습니다.
 - 미션이 밀집한 도심 5km에서는 두 방식이 비슷합니다 (B-tree는 커버링 인덱스로 읽는 반면 공간 인덱스는 행 조회가 필요).
 - 50km 단계의 깊은 페이지는 반경 안의 미션(약 3만 건)을 모두 정렬하므로 여전히 100ms대입니다.
+
+## 7. TourAPI 파이프라인 (정제·미션 후보 생성)
+
+수집 단계는 `TOUR_API_DAILY_LIMIT=0`으로 건너뛰고(호출 한도 0이면 API를 호출하지 않고 중단), 미리 넣어 둔 원본으로 정제와 미션 후보 생성만 측정합니다. 콘텐츠마다 수정 이력 2건(이전·최신 버전)이 있습니다.
+
+```bash
+# 앱 실행 (터미널 1)
+set -a; source perf/perf.env; set +a
+export TOUR_API_DAILY_LIMIT=0
+java -Xms120m -Xmx360m -jar build/libs/quespot-0.0.1-SNAPSHOT.jar 2>&1 | tee perf/results/pipeline-app.log
+
+# 원본 넣기 (터미널 2, 기본 8,000건 / 40,000건은 변수를 앞에 붙여 실행)
+docker exec -i quespot-perf-mysql mysql -uquespot -pquespot_perf quespot_perf < perf/seed/03_seed_tour_raw.sql
+(echo "SET @content_count := 40000;"; cat perf/seed/03_seed_tour_raw.sql) \
+  | docker exec -i quespot-perf-mysql mysql -uquespot -pquespot_perf quespot_perf
+
+# 동기화 전후 스냅샷 + 1회 실행 (같은 명령을 두 번: 최초 적재 → 변경 없는 재동기화)
+docker exec -i quespot-perf-mysql mysql -uquespot -pquespot_perf quespot_perf < perf/sql/db_status.sql
+k6 run -e JWT_SECRET=$JWT_SECRET perf/k6/tour-sync.js
+docker exec -i quespot-perf-mysql mysql -uquespot -pquespot_perf quespot_perf < perf/sql/db_status.sql
+
+# 단계별 시간
+grep -E "전체 동기화 시작|정제 완료|전체 동기화 완료" perf/results/pipeline-app.log
+```
+
+### 결과
+
+| 시나리오 | 지표 | Before | After |
+| --- | --- | --- | --- |
+| 8,000건 최초 적재 | 소요 시간 (정제 / 후보 생성) | 38.6s (26.3s / 12.3s) | 13.0s (8.1s / 2.7s) |
+| 8,000건 최초 적재 | 커밋 / SELECT | 14,791 / 8,015 | 131 / 96 |
+| 8,000건 재동기화 (변경 없음) | 소요 시간 | 7.4s | 0.35s |
+| 8,000건 재동기화 (변경 없음) | 커밋 / SELECT | 8,016 / 8,015 | 16 / 15 |
+| 40,000건 최초 적재 | 소요 시간 (정제 / 후보 생성) | 150.0s (90.8s / 59.2s) | 30.0s (21.3s / 8.7s) |
+| 40,000건 최초 적재 | 커밋 / SELECT | 73,911 / 40,019 | 586 / 416 |
+| 40,000건 재동기화 (변경 없음) | 소요 시간 | 36.2s | 0.92s |
+| 40,000건 재동기화 (변경 없음) | 커밋 / SELECT / 전체 쿼리 | 40,016 / 40,015 / 160,091 | 16 / 15 / 83 |
+
+- Before: 정제가 원본 전체(JSON 포함)를 읽은 뒤 건마다 새 트랜잭션·spot 단건 조회·저장, 후보 생성도 건마다 새 트랜잭션. 변경이 없어도 전 건을 같은 방식으로 순회해 시간과 커밋 수가 데이터 양에 정비례
+- After: content_id별 최신 원본 중 spot과 수정 시각·분류 버전이 다른 것만 SQL로 선별하고 원본은 청크 단위로 읽음. 200건 청크 트랜잭션 + 청크별 spot IN 조회, 청크 실패 시 그 청크만 건별 트랜잭션으로 재처리해 실패 격리 유지
+- 최초 적재의 INSERT 수(spot·후보 1건당 1개)는 그대로입니다. ID 전략이 IDENTITY라 Hibernate 배치 INSERT가 적용되지 않으며, 남은 최초 적재 시간의 대부분이 이 INSERT입니다
+- 시드의 이미지 유무가 무작위라 후보 생성 대상 수는 실행마다 조금 다릅니다 (8,000건 기준 6,775 / 6,851)
 
 ## 정리
 

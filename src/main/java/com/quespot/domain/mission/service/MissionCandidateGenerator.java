@@ -15,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class MissionCandidateGenerator {
 
     public static final int GENERATOR_VERSION = 1;
+    private static final int CHUNK_SIZE = 200;
 
     private static final String SEOUL_REGION_CODE = "11";
     private static final List<AppCategory> ELIGIBLE_CATEGORIES = List.copyOf(EnumSet.of(
@@ -62,31 +64,44 @@ public class MissionCandidateGenerator {
                 SEOUL_REGION_CODE,
                 spotCategories
         ).stream().filter(this::isUsable).toList();
-        Set<GenerationKey> existingKeys = missionCandidateRepository
+        Set<ExistingKey> existingKeys = missionCandidateRepository
                 .findGenerationKeys(GENERATOR_VERSION)
                 .stream()
-                .map(GenerationKey::from)
+                .map(ExistingKey::from)
                 .collect(Collectors.toSet());
 
-        int createdCount = 0;
         int skippedDuplicateCount = 0;
-
+        List<GenerationKey> targets = new ArrayList<>();
         for (Spot spot : spots) {
             MissionTemplate template = MissionTemplate.fromSpotCategory(spot.getAppCategory()).orElse(null);
             if (template == null) {
                 continue;
             }
-
-            if (existingKeys.contains(new GenerationKey(spot.getId(), template))) {
+            GenerationKey key = new GenerationKey(spot, template);
+            if (existingKeys.contains(key.toExistingKey())) {
                 skippedDuplicateCount++;
                 continue;
             }
+            targets.add(key);
+        }
 
+        int createdCount = 0;
+        for (int i = 0; i < targets.size(); i += CHUNK_SIZE) {
+            List<GenerationKey> chunk = targets.subList(i, Math.min(i + CHUNK_SIZE, targets.size()));
             try {
-                missionCandidateWriter.save(MissionCandidate.generate(spot, template, GENERATOR_VERSION));
-                createdCount++;
-            } catch (DataIntegrityViolationException exception) {
-                skippedDuplicateCount++;
+                missionCandidateWriter.saveAll(chunk.stream().map(GenerationKey::toCandidate).toList());
+                createdCount += chunk.size();
+            } catch (RuntimeException chunkFailure) {
+                // 청크 안에 동시 생성된 중복 등이 있으면 청크 전체가 롤백된다.
+                // 건별 트랜잭션으로 다시 저장해 실패한 건만 중복으로 센다.
+                for (GenerationKey key : chunk) {
+                    try {
+                        missionCandidateWriter.save(key.toCandidate());
+                        createdCount++;
+                    } catch (DataIntegrityViolationException exception) {
+                        skippedDuplicateCount++;
+                    }
+                }
             }
         }
 
@@ -106,10 +121,20 @@ public class MissionCandidateGenerator {
         return value != null && !value.isBlank();
     }
 
-    private record GenerationKey(Long spotId, MissionTemplate templateCode) {
+    private record ExistingKey(Long spotId, MissionTemplate templateCode) {
+        private static ExistingKey from(MissionCandidateGenerationKeyDTO key) {
+            return new ExistingKey(key.spotId(), key.templateCode());
+        }
+    }
 
-        private static GenerationKey from(MissionCandidateGenerationKeyDTO key) {
-            return new GenerationKey(key.spotId(), key.templateCode());
+    private record GenerationKey(Spot spot, MissionTemplate template) {
+        private ExistingKey toExistingKey() {
+            return new ExistingKey(spot.getId(), template);
+        }
+
+        // 청크가 롤백되면 저장 시도한 엔티티에 ID가 남을 수 있어, 저장할 때마다 새로 만든다.
+        private MissionCandidate toCandidate() {
+            return MissionCandidate.generate(spot, template, GENERATOR_VERSION);
         }
     }
 }
