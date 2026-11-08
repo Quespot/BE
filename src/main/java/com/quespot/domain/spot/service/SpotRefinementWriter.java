@@ -4,6 +4,7 @@ import com.quespot.domain.tour.entity.TourContentRaw;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
@@ -16,31 +17,29 @@ public class SpotRefinementWriter {
         this.spotRowWriter = spotRowWriter;
     }
 
-    // 청크(페이지) 단위로 묶어 처리하되, 건별로 별도 물리 트랜잭션
-    // (SpotRowWriter.refineOne)에 커밋한다 — 한 건이 실패해도 그 건의
-    // 트랜잭션만 롤백되고 나머지 건은 영향받지 않는다.
+    // 청크를 하나의 트랜잭션(SpotRowWriter.refineAll)으로 먼저 정제한다. 청크 안에서
+    // 한 건이라도 실패하면 그 청크만 롤백하고, 건별 트랜잭션(SpotRowWriter.refineOne)으로
+    // 다시 처리해 실패한 건만 걸러낸다 — 한 건의 실패가 나머지 건에 전염되지 않는다.
     public RefinementSummary refineChunk(List<TourContentRaw> rawRows) {
-        int created = 0;
-        int updated = 0;
-        int skippedInvalidCoordinates = 0;
-        int skippedUnchanged = 0;
-        int failed = 0;
+        try {
+            return spotRowWriter.refineAll(rawRows);
+        } catch (Exception e) {
+            log.warn("청크 일괄 정제 실패, 건별 정제로 재시도: size={}, cause={}", rawRows.size(), e.toString());
+            return refineEach(rawRows);
+        }
+    }
 
+    private RefinementSummary refineEach(List<TourContentRaw> rawRows) {
+        List<RefinementResult> results = new ArrayList<>(rawRows.size());
+        int failed = 0;
         for (TourContentRaw raw : rawRows) {
             try {
-                RefinementResult result = spotRowWriter.refineOne(raw);
-                switch (result) {
-                    case CREATED -> created++;
-                    case UPDATED -> updated++;
-                    case SKIPPED_INVALID_COORDINATES -> skippedInvalidCoordinates++;
-                    case SKIPPED_UNCHANGED -> skippedUnchanged++;
-                }
+                results.add(spotRowWriter.refineOne(raw));
             } catch (Exception e) {
                 failed++;
                 log.error("정제 실패: contentId={}", raw.getContentId(), e);
             }
         }
-
-        return new RefinementSummary(created, updated, skippedInvalidCoordinates, skippedUnchanged, failed);
+        return RefinementSummary.of(results, failed);
     }
 }
