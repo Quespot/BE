@@ -60,7 +60,8 @@ public class SpotRowWriter {
     // 청크 전체를 하나의 트랜잭션으로 정제한다. 기존 spot은 IN 조회 한 번으로 가져온다.
     // 한 건이라도 실패하면 청크 전체가 롤백되고, 호출 측(SpotRefinementWriter)이
     // refineOne으로 건별 재시도해 실패한 건만 걸러낸다.
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    // JsonProcessingException은 체크 예외라 기본 설정으로는 롤백되지 않으므로 rollbackFor를 지정한다.
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public RefinementSummary refineAll(List<TourContentRaw> rawRows) throws JsonProcessingException {
         Map<String, Spot> existingByContentId = spotRepository
                 .findAllBySourceAndSourceContentIdIn(

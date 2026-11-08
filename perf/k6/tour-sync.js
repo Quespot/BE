@@ -53,11 +53,23 @@ export default function () {
     timeout: '60m',
   });
 
+  // 오류 응답이 JSON이 아니어도 반복이 중단되지 않도록 본문 파싱 실패를 null로 처리
+  let body = null;
+  try {
+    body = res.json();
+  } catch (e) {
+    body = null;
+  }
+
   check(res, {
     'status 200': (r) => r.status === 200,
-    'isSuccess true': (r) => r.json('isSuccess') === true,
+    'isSuccess true': () => body !== null && body.isSuccess === true,
   });
 
   console.log(`tour-sync duration: ${(res.timings.duration / 1000).toFixed(2)}s, status: ${res.status}`);
-  console.log(`result: ${JSON.stringify(res.json('result'))}`);
+  if (body !== null) {
+    console.log(`result: ${JSON.stringify(body.result)}`);
+  } else {
+    console.log(`body: ${String(res.body).slice(0, 500)}`);
+  }
 }
