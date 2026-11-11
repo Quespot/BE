@@ -22,14 +22,14 @@ public interface SpotRepository extends JpaRepository<Spot, Long> {
             from Spot s
             where s.source = :source
               and s.showFlag = true
-              and s.ldongRegnCd = :regionCode
+              and s.ldongRegnCd in :regionCodes
               and s.appCategory in :categories
               and (s.imageUrl is not null or s.thumbnailUrl is not null)
             order by s.id
             """)
     List<Spot> findMissionCandidateEligibleSpots(
             @Param("source") SpotSource source,
-            @Param("regionCode") String regionCode,
+            @Param("regionCodes") List<String> regionCodes,
             @Param("categories") List<AppCategory> categories
     );
 }

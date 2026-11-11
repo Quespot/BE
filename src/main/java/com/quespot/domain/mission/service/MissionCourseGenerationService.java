@@ -93,7 +93,7 @@ public class MissionCourseGenerationService {
         String name = cleanedAnchor + " 주변 코스";
         String description = "%s에서 시작해 %s, %s을 걷는 코스예요.\n약 %d분, 완주하면 %dP를 더 받아요."
                 .formatted(cleanedAnchor, cleanedM2, cleanedM3, estimatedMinutes, bonusPoint);
-        String regionCode = anchor.getSpot().getLdongSignguCd();
+        String regionCode = anchor.getSpot().getLdongRegnCd();
 
         MissionCourse course = missionCourseRepository.save(MissionCourse.generate(
                 anchor, userId, 3, name, description, anchor.getSnapshotImageUrl(), regionCode,

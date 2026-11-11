@@ -16,12 +16,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 // 앱 기동 시 배지·스탬프 마스터 데이터를 시드한다.
 // 배지: 코드 기준으로 없으면 추가, 있으면 정의(condition_json 등)가 다를 때 갱신,
 //       목록에서 빠진 활성 배지는 비활성화(#50). 참고 SQL: docs/seed_badges_stamps.sql
-// 스탬프: 없는 것만 추가(8개, 서울만 활성).
+// 스탬프: 없는 것은 추가하고, 활성으로 정의된 스탬프가 비활성이면 활성화(서울·인천·경기 활성).
 @Component
 @RequiredArgsConstructor
 public class RewardMasterDataSeeder implements CommandLineRunner {
@@ -95,18 +94,28 @@ public class RewardMasterDataSeeder implements CommandLineRunner {
     }
 
     private void seedStamps() {
-        List<Stamp> missing = Stream.of(
-                        Stamp.seed("SEOUL", "서울", "11", 1, true),
-                        Stamp.seed("BUSAN", "부산", "26", 2, false),
-                        Stamp.seed("JEJU", "제주", "50", 3, false),
-                        Stamp.seed("GYEONGJU", "경주", "47", 4, false),
-                        Stamp.seed("YEOSU", "여수", "46", 5, false),
-                        Stamp.seed("GANGNEUNG", "강릉", "42", 6, false),
-                        Stamp.seed("JEONJU", "전주", "45", 7, false),
-                        Stamp.seed("INCHEON", "인천", "28", 8, false)
-                )
-                .filter(stamp -> !stampRepository.existsByCode(stamp.getCode()))
-                .toList();
+        List<Stamp> definitions = List.of(
+                Stamp.seed("SEOUL", "서울", "11", 1, true),
+                Stamp.seed("BUSAN", "부산", "26", 2, false),
+                Stamp.seed("JEJU", "제주", "50", 3, false),
+                Stamp.seed("GYEONGJU", "경주", "47", 4, false),
+                Stamp.seed("YEOSU", "여수", "46", 5, false),
+                Stamp.seed("GANGNEUNG", "강릉", "42", 6, false),
+                Stamp.seed("JEONJU", "전주", "45", 7, false),
+                Stamp.seed("INCHEON", "인천", "28", 8, true),
+                Stamp.seed("GYEONGGI", "경기", "41", 9, true)
+        );
+        List<Stamp> missing = new ArrayList<>();
+        for (Stamp definition : definitions) {
+            stampRepository.findByCode(definition.getCode()).ifPresentOrElse(
+                    existing -> {
+                        if (definition.getIsActive() && !existing.getIsActive()) {
+                            existing.activate();
+                        }
+                    },
+                    () -> missing.add(definition)
+            );
+        }
         if (!missing.isEmpty()) {
             stampRepository.saveAll(missing);
         }

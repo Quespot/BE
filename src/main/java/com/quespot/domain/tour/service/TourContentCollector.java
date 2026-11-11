@@ -5,6 +5,7 @@ import com.quespot.domain.tour.client.TourApiClient;
 import com.quespot.domain.tour.client.TourApiException;
 import com.quespot.domain.tour.client.dto.TourApiResponse;
 import com.quespot.domain.tour.entity.SyncCheckpoint;
+import com.quespot.domain.spot.enums.ServiceRegion;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -21,8 +22,7 @@ public class TourContentCollector {
 
     private static final String OPERATION = "areaBasedSyncList2";
 
-    // 서울. 확장 시 여기에 추가.
-    private static final List<String> TARGET_REGIONS = List.of("11");
+    private static final List<String> TARGET_REGIONS = ServiceRegion.regionCodes();
 
     // 12 관광지 / 14 문화시설 / 28 레포츠 / 38 쇼핑 / 39 음식점.
     // 15(축제)는 기간 만료 처리가 별도로 필요해 제외.
