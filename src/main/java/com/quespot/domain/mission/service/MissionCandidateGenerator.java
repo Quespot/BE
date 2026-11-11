@@ -8,6 +8,7 @@ import com.quespot.domain.mission.enums.MissionTemplate;
 import com.quespot.domain.mission.repository.MissionCandidateRepository;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
+import com.quespot.domain.spot.enums.ServiceRegion;
 import com.quespot.domain.spot.enums.SpotSource;
 import com.quespot.domain.spot.repository.SpotRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,6 @@ public class MissionCandidateGenerator {
     public static final int GENERATOR_VERSION = 1;
     private static final int CHUNK_SIZE = 200;
 
-    private static final String SEOUL_REGION_CODE = "11";
     private static final List<AppCategory> ELIGIBLE_CATEGORIES = List.copyOf(EnumSet.of(
             AppCategory.HISTORY,
             AppCategory.CULTURE,
@@ -61,7 +61,7 @@ public class MissionCandidateGenerator {
     private MissionCandidateGenerationResponseDTO generateForSpotCategories(List<AppCategory> spotCategories) {
         List<Spot> spots = spotRepository.findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
-                SEOUL_REGION_CODE,
+                ServiceRegion.regionCodes(),
                 spotCategories
         ).stream().filter(this::isUsable).toList();
         Set<ExistingKey> existingKeys = missionCandidateRepository

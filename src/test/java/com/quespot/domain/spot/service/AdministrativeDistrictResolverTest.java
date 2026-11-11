@@ -47,4 +47,47 @@ class AdministrativeDistrictResolverTest {
     void exposesAllTwentyFiveDistrictsForSeoul() {
         assertThat(resolver.findByRegionCode("11")).hasSize(25);
     }
+
+    @Test
+    void exposesDistrictsForIncheonAndGyeonggi() {
+        assertThat(resolver.findByRegionCode("28")).hasSize(11);
+        assertThat(resolver.findByRegionCode("41")).hasSize(31);
+    }
+
+    @Test
+    void resolvesGyeonggiCoordinateToCityLevelDistrict() {
+        var district = resolver.resolve(
+                new BigDecimal("37.263573"),
+                new BigDecimal("127.028601"),
+                null
+        );
+
+        assertThat(district).isPresent();
+        assertThat(district.orElseThrow().regionCode()).isEqualTo("41");
+        assertThat(district.orElseThrow().districtName()).isEqualTo("수원시");
+    }
+
+    @Test
+    void resolvesIncheonCoordinate() {
+        var district = resolver.resolve(
+                new BigDecimal("37.507031"),
+                new BigDecimal("126.721804"),
+                null
+        );
+
+        assertThat(district).isPresent();
+        assertThat(district.orElseThrow().regionCode()).isEqualTo("28");
+        assertThat(district.orElseThrow().districtName()).isEqualTo("부평구");
+    }
+
+    @Test
+    void addressFallbackDoesNotMatchSameNamedDistrictInOtherRegion() {
+        var district = resolver.resolve(
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                "인천광역시 중구 공항로"
+        );
+
+        assertThat(district).isEmpty();
+    }
 }

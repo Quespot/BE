@@ -8,6 +8,7 @@ import com.quespot.domain.mission.enums.MissionTemplate;
 import com.quespot.domain.mission.repository.MissionCandidateRepository;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
+import com.quespot.domain.spot.enums.ServiceRegion;
 import com.quespot.domain.spot.enums.SpotSource;
 import com.quespot.domain.spot.repository.SpotRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ class MissionCandidateGeneratorTest {
     @Test
     void generatesCandidateForEligibleSpot() {
         Spot spot = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/image.jpg");
-        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq(ServiceRegion.regionCodes()), anyList()))
                 .thenReturn(List.of(spot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
 
@@ -66,7 +67,7 @@ class MissionCandidateGeneratorTest {
         Spot spot = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/image.jpg");
         when(spotRepository.findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
-                "11",
+                ServiceRegion.regionCodes(),
                 List.of(AppCategory.HISTORY)
         )).thenReturn(List.of(spot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
@@ -76,7 +77,7 @@ class MissionCandidateGeneratorTest {
         assertThat(result.createdCount()).isEqualTo(1);
         verify(spotRepository).findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
-                "11",
+                ServiceRegion.regionCodes(),
                 List.of(AppCategory.HISTORY)
         );
     }
@@ -84,7 +85,7 @@ class MissionCandidateGeneratorTest {
     @Test
     void skipsCandidateAlreadyGeneratedBySameVersion() {
         Spot spot = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/image.jpg");
-        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq(ServiceRegion.regionCodes()), anyList()))
                 .thenReturn(List.of(spot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of(
                 new MissionCandidateGenerationKeyDTO(
@@ -103,7 +104,7 @@ class MissionCandidateGeneratorTest {
     void generatesEtcCandidatesForUnmappedAndExcludedSpots() {
         Spot unmappedSpot = spot(1L, "기타 관광지", AppCategory.UNMAPPED, "https://example.com/1.jpg");
         Spot excludedSpot = spot(2L, "기타 장소", AppCategory.EXCLUDED, "https://example.com/2.jpg");
-        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq(ServiceRegion.regionCodes()), anyList()))
                 .thenReturn(List.of(unmappedSpot, excludedSpot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
 
@@ -117,7 +118,7 @@ class MissionCandidateGeneratorTest {
         ));
         verify(spotRepository).findMissionCandidateEligibleSpots(
                 SpotSource.TOUR_API,
-                "11",
+                ServiceRegion.regionCodes(),
                 List.of(AppCategory.UNMAPPED, AppCategory.EXCLUDED)
         );
     }
@@ -125,7 +126,7 @@ class MissionCandidateGeneratorTest {
     @Test
     void treatsConcurrentDuplicateInsertAsSkippedDuplicate() {
         Spot spot = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/image.jpg");
-        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq(ServiceRegion.regionCodes()), anyList()))
                 .thenReturn(List.of(spot));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
         doThrow(new DataIntegrityViolationException("duplicate"))
@@ -143,7 +144,7 @@ class MissionCandidateGeneratorTest {
     void retriesFailedChunkOneByOneAndCountsOnlyFailedRowsAsDuplicates() {
         Spot first = spot(1L, "경복궁", AppCategory.HISTORY, "https://example.com/1.jpg");
         Spot second = spot(2L, "창덕궁", AppCategory.HISTORY, "https://example.com/2.jpg");
-        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq("11"), anyList()))
+        when(spotRepository.findMissionCandidateEligibleSpots(eq(SpotSource.TOUR_API), eq(ServiceRegion.regionCodes()), anyList()))
                 .thenReturn(List.of(first, second));
         when(missionCandidateRepository.findGenerationKeys(1)).thenReturn(List.of());
         doThrow(new DataIntegrityViolationException("duplicate"))

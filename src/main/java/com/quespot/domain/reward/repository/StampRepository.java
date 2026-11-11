@@ -10,6 +10,8 @@ public interface StampRepository extends JpaRepository<Stamp, Long> {
 
     boolean existsByCode(String code);
 
+    Optional<Stamp> findByCode(String code);
+
     List<Stamp> findAllByOrderBySortOrderAsc();
 
     Optional<Stamp> findByRegionCode(String regionCode);

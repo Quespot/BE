@@ -2,6 +2,7 @@ package com.quespot.domain.tour.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quespot.domain.spot.enums.ServiceRegion;
 import com.quespot.domain.tour.client.TourApiClient;
 import com.quespot.domain.tour.client.TourApiException;
 import com.quespot.domain.tour.client.dto.TourApiResponse;
@@ -24,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 class TourContentCollectorTest {
 
-    private static final int TARGET_CONTENT_TYPE_COUNT = 5;
+    private static final int TARGET_CONTENT_TYPE_COUNT = 5 * ServiceRegion.values().length;
 
     private TourApiClient tourApiClient;
     private QuotaGuard quotaGuard;
@@ -104,7 +105,9 @@ class TourContentCollectorTest {
 
         verify(rawPersister, never()).saveAll(anyString(), any());
         verify(checkpointWriter, times(TARGET_CONTENT_TYPE_COUNT)).complete(anyString(), anyInt());
-        verify(tourApiClient).fetchSyncList(anyString(), eq(28), eq(1), anyInt(), any());
+        for (String regionCode : ServiceRegion.regionCodes()) {
+            verify(tourApiClient).fetchSyncList(eq(regionCode), eq(28), eq(1), anyInt(), any());
+        }
     }
 
     @Test

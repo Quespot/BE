@@ -42,7 +42,7 @@ public class Stamp {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder;
 
-    // 수집 가능 여부. 현재는 서울만 true이고, 나머지 시도는 미션이 아직 없어 잠금으로 노출한다.
+    // 수집 가능 여부. 미션이 아직 없는 시도는 잠금으로 노출한다.
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
 
@@ -68,5 +68,9 @@ public class Stamp {
             boolean isActive
     ) {
         return new Stamp(code, name, regionCode, sortOrder, isActive);
+    }
+
+    public void activate() {
+        this.isActive = true;
     }
 }
