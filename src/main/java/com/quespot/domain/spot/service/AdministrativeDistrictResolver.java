@@ -2,6 +2,7 @@ package com.quespot.domain.spot.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.quespot.domain.spot.enums.ServiceRegion;
 import com.quespot.domain.spot.model.AdministrativeDistrict;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -20,15 +21,6 @@ import java.util.Optional;
 @Component
 public class AdministrativeDistrictResolver {
 
-    private static final List<BoundarySource> BOUNDARY_SOURCES = List.of(
-            new BoundarySource(
-                    "geodata/seoul-municipalities.geojson",
-                    "11",
-                    "서울특별시",
-                    25
-            )
-    );
-
     private final ObjectMapper objectMapper;
     private final Map<String, DistrictBoundary> boundaries = new LinkedHashMap<>();
 
@@ -38,8 +30,8 @@ public class AdministrativeDistrictResolver {
 
     @PostConstruct
     void loadBoundaries() {
-        for (BoundarySource source : BOUNDARY_SOURCES) {
-            loadBoundarySource(source);
+        for (ServiceRegion region : ServiceRegion.values()) {
+            loadBoundarySource(region);
         }
     }
 
@@ -100,28 +92,29 @@ public class AdministrativeDistrictResolver {
             return Optional.empty();
         }
         return boundaries.values().stream()
+                .filter(boundary -> address.contains(boundary.region().getShortName()))
                 .map(DistrictBoundary::district)
                 .filter(district -> address.contains(district.districtName()))
                 .findFirst();
     }
 
-    private void loadBoundarySource(BoundarySource source) {
+    private void loadBoundarySource(ServiceRegion region) {
         int beforeCount = boundaries.size();
-        try (var inputStream = new ClassPathResource(source.resourcePath()).getInputStream()) {
+        try (var inputStream = new ClassPathResource(region.getBoundaryResourcePath()).getInputStream()) {
             JsonNode features = objectMapper.readTree(inputStream).path("features");
             for (JsonNode feature : features) {
-                DistrictBoundary boundary = toBoundary(feature, source);
+                DistrictBoundary boundary = toBoundary(feature, region);
                 boundaries.put(boundary.district().districtCode(), boundary);
             }
         } catch (IOException exception) {
             throw new IllegalStateException("행정구역 경계 데이터를 읽을 수 없습니다.", exception);
         }
-        if (boundaries.size() - beforeCount != source.expectedDistrictCount()) {
-            throw new IllegalStateException(source.regionName() + " 행정구역 경계 개수가 올바르지 않습니다.");
+        if (boundaries.size() - beforeCount != region.getDistrictCount()) {
+            throw new IllegalStateException(region.getRegionName() + " 행정구역 경계 개수가 올바르지 않습니다.");
         }
     }
 
-    private DistrictBoundary toBoundary(JsonNode feature, BoundarySource source) {
+    private DistrictBoundary toBoundary(JsonNode feature, ServiceRegion region) {
         JsonNode properties = feature.path("properties");
         String districtCode = properties.path("SIG_CD").asText();
         String districtName = properties.path("SIG_KOR_NM").asText();
@@ -130,14 +123,14 @@ public class AdministrativeDistrictResolver {
         Coordinate center = calculateCenter(polygons);
 
         AdministrativeDistrict district = new AdministrativeDistrict(
-                source.regionCode(),
-                source.regionName(),
+                region.getRegionCode(),
+                region.getRegionName(),
                 districtCode,
                 districtName,
                 BigDecimal.valueOf(center.latitude()),
                 BigDecimal.valueOf(center.longitude())
         );
-        return new DistrictBoundary(district, polygons);
+        return new DistrictBoundary(region, district, polygons);
     }
 
     private List<PolygonBoundary> parsePolygons(JsonNode geometry) {
@@ -173,13 +166,24 @@ public class AdministrativeDistrictResolver {
     }
 
     private Coordinate calculateCenter(List<PolygonBoundary> polygons) {
-        PolygonBoundary largest = polygons.stream()
-                .max((left, right) -> Double.compare(left.absoluteArea(), right.absoluteArea()))
-                .orElseThrow();
-        return largest.centroid();
+        double totalArea = 0;
+        double longitudeSum = 0;
+        double latitudeSum = 0;
+        for (PolygonBoundary polygon : polygons) {
+            double area = polygon.absoluteArea();
+            Coordinate centroid = polygon.centroid();
+            totalArea += area;
+            longitudeSum += centroid.longitude() * area;
+            latitudeSum += centroid.latitude() * area;
+        }
+        if (totalArea < 1e-12) {
+            return polygons.get(0).centroid();
+        }
+        return new Coordinate(longitudeSum / totalArea, latitudeSum / totalArea);
     }
 
     private record DistrictBoundary(
+            ServiceRegion region,
             AdministrativeDistrict district,
             List<PolygonBoundary> polygons
     ) {
@@ -190,9 +194,28 @@ public class AdministrativeDistrictResolver {
 
     private record PolygonBoundary(
             List<Coordinate> outerRing,
-            List<List<Coordinate>> holes
+            List<List<Coordinate>> holes,
+            double minLongitude,
+            double maxLongitude,
+            double minLatitude,
+            double maxLatitude
     ) {
+        PolygonBoundary(List<Coordinate> outerRing, List<List<Coordinate>> holes) {
+            this(
+                    outerRing,
+                    holes,
+                    outerRing.stream().mapToDouble(Coordinate::longitude).min().orElse(0),
+                    outerRing.stream().mapToDouble(Coordinate::longitude).max().orElse(0),
+                    outerRing.stream().mapToDouble(Coordinate::latitude).min().orElse(0),
+                    outerRing.stream().mapToDouble(Coordinate::latitude).max().orElse(0)
+            );
+        }
+
         boolean contains(double longitude, double latitude) {
+            if (longitude < minLongitude || longitude > maxLongitude
+                    || latitude < minLatitude || latitude > maxLatitude) {
+                return false;
+            }
             if (!isInsideRing(outerRing, longitude, latitude)) {
                 return false;
             }
@@ -254,13 +277,5 @@ public class AdministrativeDistrictResolver {
     }
 
     private record Coordinate(double longitude, double latitude) {
-    }
-
-    private record BoundarySource(
-            String resourcePath,
-            String regionCode,
-            String regionName,
-            int expectedDistrictCount
-    ) {
     }
 }

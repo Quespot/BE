@@ -103,9 +103,9 @@ class AchievementIntegrationTest {
     }
 
     @Test
-    void seederLeavesFiveActiveBadgesAndEightStamps() throws Exception {
+    void seederLeavesFiveActiveBadgesAndNineStamps() throws Exception {
         assertThat(badgeRepository.countByIsActiveTrue()).isEqualTo(5);
-        assertThat(stampRepository.count()).isEqualTo(8);
+        assertThat(stampRepository.count()).isEqualTo(9);
         // MySQL JSON 컬럼은 저장값을 정규화해(키 순서·공백) 돌려주므로 문자열이 아니라
         // 의미로 비교한다 — 시더의 needsUpdate가 같은 기준을 쓴다.
         String stored = badgeRepository.findByCode("EXPLORER").orElseThrow().getConditionJson();

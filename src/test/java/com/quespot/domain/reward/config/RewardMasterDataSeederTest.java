@@ -2,6 +2,7 @@ package com.quespot.domain.reward.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quespot.domain.reward.entity.Badge;
+import com.quespot.domain.reward.entity.Stamp;
 import com.quespot.domain.reward.repository.BadgeRepository;
 import com.quespot.domain.reward.repository.StampRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +41,8 @@ class RewardMasterDataSeederTest {
         when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
         when(badgeRepository.findByCode("EXPLORER")).thenReturn(Optional.of(stored));
         when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of(stored));
-        when(stampRepository.existsByCode(anyString())).thenReturn(true);
+        when(stampRepository.findByCode(anyString()))
+                .thenAnswer(invocation -> Optional.of(Stamp.seed(invocation.getArgument(0), "스탬프", "00", 1, true)));
 
         seeder.run();
 
@@ -49,10 +51,10 @@ class RewardMasterDataSeederTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    void seedsFiveBadgesAndEightStampsWhenEmpty() throws Exception {
+    void seedsFiveBadgesAndNineStampsWhenEmpty() throws Exception {
         when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
         when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of());
-        when(stampRepository.existsByCode(anyString())).thenReturn(false);
+        when(stampRepository.findByCode(anyString())).thenReturn(Optional.empty());
 
         seeder.run();
 
@@ -62,7 +64,7 @@ class RewardMasterDataSeederTest {
                 .containsExactly("FIRST_MISSION", "EXPLORER", "PHOTOGRAPHER", "SEOUL_MASTER", "QUEST_KING");
         assertThat(badges.getValue()).extracting(Badge::getConditionJson)
                 .allMatch(json -> json.contains("\"metric\"") && json.contains("\"threshold\""));
-        verify(stampRepository).saveAll(argThat(list -> ((List<?>) list).size() == 8));
+        verify(stampRepository).saveAll(argThat(list -> ((List<?>) list).size() == 9));
     }
 
     @Test
@@ -72,7 +74,8 @@ class RewardMasterDataSeederTest {
         when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
         when(badgeRepository.findByCode("FIRST_MISSION")).thenReturn(Optional.of(stale));
         when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of(stale));
-        when(stampRepository.existsByCode(anyString())).thenReturn(true);
+        when(stampRepository.findByCode(anyString()))
+                .thenAnswer(invocation -> Optional.of(Stamp.seed(invocation.getArgument(0), "스탬프", "00", 1, true)));
 
         seeder.run();
 
@@ -85,7 +88,8 @@ class RewardMasterDataSeederTest {
         Badge busan = Badge.seed("BUSAN_EXPLORER", "부산 탐험", "설명", "{}", 5);
         when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
         when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of(busan));
-        when(stampRepository.existsByCode(anyString())).thenReturn(true);
+        when(stampRepository.findByCode(anyString()))
+                .thenAnswer(invocation -> Optional.of(Stamp.seed(invocation.getArgument(0), "스탬프", "00", 1, true)));
 
         seeder.run();
 
@@ -99,12 +103,29 @@ class RewardMasterDataSeederTest {
         when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
         when(badgeRepository.findByCode("QUEST_KING")).thenReturn(Optional.of(current));
         when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of(current));
-        when(stampRepository.existsByCode(anyString())).thenReturn(true);
+        when(stampRepository.findByCode(anyString()))
+                .thenAnswer(invocation -> Optional.of(Stamp.seed(invocation.getArgument(0), "스탬프", "00", 1, true)));
 
         seeder.run();
 
         verify(badgeRepository).saveAll(any());  // 나머지 4개 신규 저장
         assertThat(current.getConditionJson()).isEqualTo("{\"metric\":\"COURSE_COMPLETED\",\"threshold\":5}");
         assertThat(current.getIsActive()).isTrue();
+    }
+
+    @Test
+    void activatesExistingStampOnlyWhenDefinedAsActive() throws Exception {
+        Stamp incheon = Stamp.seed("INCHEON", "인천", "28", 8, false);
+        Stamp busan = Stamp.seed("BUSAN", "부산", "26", 2, false);
+        when(badgeRepository.findByCode(anyString())).thenReturn(Optional.empty());
+        when(badgeRepository.findByIsActiveTrue()).thenReturn(List.of());
+        when(stampRepository.findByCode(anyString())).thenReturn(Optional.empty());
+        when(stampRepository.findByCode("INCHEON")).thenReturn(Optional.of(incheon));
+        when(stampRepository.findByCode("BUSAN")).thenReturn(Optional.of(busan));
+
+        seeder.run();
+
+        assertThat(incheon.getIsActive()).isTrue();
+        assertThat(busan.getIsActive()).isFalse();
     }
 }
