@@ -35,7 +35,7 @@ public enum MissionTemplate {
     ),
     NIGHT_VIEW_LOCATION(
             MissionCategory.NIGHT_VIEW,
-            "%s 야경 감상하기",
+            "%s 전망 감상하기",
             "%s에 도착해 위치 인증을 완료해 주세요. 기억하고 싶은 순간은 사진으로 자유롭게 남길 수 있어요.",
             120,
             30

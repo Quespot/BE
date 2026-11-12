@@ -47,7 +47,7 @@ INSERT INTO category_mappings (lcls_code, content_type_id, app_category, priorit
 -- 소분류 예외 (priority 30)
 -- -------------------------------------------------------------
 INSERT INTO category_mappings (lcls_code, content_type_id, app_category, priority, version, created_at) VALUES
-    -- 야경 미션의 유일한 소스
+    -- 전망(타워·전망대) 미션의 유일한 소스
     ('VE010200', NULL, 'NIGHT_VIEW', 30, 1, NOW()),  -- 타워 / 전망대
 
     -- VE 안의 자연물
