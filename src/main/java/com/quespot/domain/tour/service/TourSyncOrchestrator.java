@@ -39,7 +39,11 @@ public class TourSyncOrchestrator {
             log.info("TourAPI 전체 동기화 시작");
             tourContentCollector.collect();
             RefinementSummary refinement = spotRefiner.refine();
+            serviceMetrics.tourSyncItems("spot_created", refinement.created());
+            serviceMetrics.tourSyncItems("spot_updated", refinement.updated());
+            serviceMetrics.tourSyncItems("spot_failed", refinement.failed());
             MissionCandidateGenerationResponseDTO candidateGeneration = missionCandidateGenerator.generate();
+            serviceMetrics.tourSyncItems("candidate_created", candidateGeneration.createdCount());
 
             log.info(
                     "TourAPI 전체 동기화 완료: spotCreated={}, spotUpdated={}, candidateCreated={}",
@@ -47,15 +51,16 @@ public class TourSyncOrchestrator {
                     refinement.updated(),
                     candidateGeneration.createdCount()
             );
-            serviceMetrics.tourSyncItems("spot_created", refinement.created());
-            serviceMetrics.tourSyncItems("spot_updated", refinement.updated());
-            serviceMetrics.tourSyncItems("spot_failed", refinement.failed());
-            serviceMetrics.tourSyncItems("candidate_created", candidateGeneration.createdCount());
             success = true;
             return new TourSyncResponseDTO(refinement, candidateGeneration);
         } finally {
-            serviceMetrics.tourSyncFinished(success, Duration.ofNanos(System.nanoTime() - startedAt));
-            running.set(false);
+            try {
+                serviceMetrics.tourSyncFinished(success, Duration.ofNanos(System.nanoTime() - startedAt));
+            } catch (RuntimeException exception) {
+                log.warn("TourAPI 동기화 지표 기록 실패", exception);
+            } finally {
+                running.set(false);
+            }
         }
     }
 }
