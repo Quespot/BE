@@ -1,6 +1,8 @@
 package com.quespot.domain.tour.service;
 
 import com.quespot.domain.tour.repository.ApiQuotaUsageRepository;
+import com.quespot.global.monitoring.ServiceMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,7 +23,7 @@ class QuotaGuardTest {
     @BeforeEach
     void setUp() {
         apiQuotaUsageRepository = mock(ApiQuotaUsageRepository.class);
-        quotaGuard = new QuotaGuard(apiQuotaUsageRepository, 1000);
+        quotaGuard = new QuotaGuard(apiQuotaUsageRepository, 1000, new ServiceMetrics(new SimpleMeterRegistry()));
     }
 
     @Test

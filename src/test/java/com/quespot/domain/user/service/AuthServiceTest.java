@@ -8,6 +8,7 @@ import com.quespot.domain.user.enums.LoginProvider;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
+import com.quespot.global.monitoring.ServiceMetrics;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,9 @@ class AuthServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ServiceMetrics serviceMetrics;
 
     @InjectMocks
     private AuthService authService;

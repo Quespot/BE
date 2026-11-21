@@ -14,6 +14,8 @@ import com.quespot.domain.reward.service.PointService;
 import com.quespot.domain.spot.entity.Spot;
 import com.quespot.domain.spot.enums.AppCategory;
 import com.quespot.domain.spot.enums.SpotSource;
+import com.quespot.global.monitoring.ServiceMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -49,7 +51,7 @@ class MissionArrivalServiceTest {
         courseAttemptService = mock(CourseAttemptService.class);
         achievementService = mock(AchievementService.class);
         missionArrivalService = new MissionArrivalService(
-                missionAttemptRepository, pointService, new GeoDistanceCalculator(), courseAttemptService, achievementService
+                missionAttemptRepository, pointService, new GeoDistanceCalculator(), courseAttemptService, achievementService, new ServiceMetrics(new SimpleMeterRegistry())
         );
     }
 
@@ -169,7 +171,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService, new ServiceMetrics(new SimpleMeterRegistry()));
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));
@@ -185,7 +187,7 @@ class MissionArrivalServiceTest {
         GeoDistanceCalculator stubCalculator = mock(GeoDistanceCalculator.class);
         when(stubCalculator.distanceMeters(any(), any(), any(), any()))
                 .thenReturn((long) MissionArrivalService.RADIUS_METERS + 1);
-        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService);
+        MissionArrivalService service = new MissionArrivalService(missionAttemptRepository, pointService, stubCalculator, courseAttemptService, achievementService, new ServiceMetrics(new SimpleMeterRegistry()));
         Mission mission = missionAt("37.5665", "126.9780");
         MissionAttempt attempt = attemptOwnedBy(1L, mission);
         when(missionAttemptRepository.findById(100L)).thenReturn(Optional.of(attempt));

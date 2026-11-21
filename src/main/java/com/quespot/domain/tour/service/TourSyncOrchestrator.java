@@ -7,10 +7,12 @@ import com.quespot.domain.spot.service.SpotRefiner;
 import com.quespot.domain.tour.dto.res.TourSyncResponseDTO;
 import com.quespot.domain.tour.exception.TourSyncException;
 import com.quespot.domain.tour.exception.code.TourSyncErrorCode;
+import com.quespot.global.monitoring.ServiceMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -23,6 +25,7 @@ public class TourSyncOrchestrator {
     private final TourContentCollector tourContentCollector;
     private final SpotRefiner spotRefiner;
     private final MissionCandidateGenerator missionCandidateGenerator;
+    private final ServiceMetrics serviceMetrics;
 
     // TourAPI 동기화 로직
     public TourSyncResponseDTO synchronize() {
@@ -30,6 +33,8 @@ public class TourSyncOrchestrator {
             throw new TourSyncException(TourSyncErrorCode.SYNC_ALREADY_RUNNING);
         }
 
+        long startedAt = System.nanoTime();
+        boolean success = false;
         try {
             log.info("TourAPI 전체 동기화 시작");
             tourContentCollector.collect();
@@ -42,8 +47,14 @@ public class TourSyncOrchestrator {
                     refinement.updated(),
                     candidateGeneration.createdCount()
             );
+            serviceMetrics.tourSyncItems("spot_created", refinement.created());
+            serviceMetrics.tourSyncItems("spot_updated", refinement.updated());
+            serviceMetrics.tourSyncItems("spot_failed", refinement.failed());
+            serviceMetrics.tourSyncItems("candidate_created", candidateGeneration.createdCount());
+            success = true;
             return new TourSyncResponseDTO(refinement, candidateGeneration);
         } finally {
+            serviceMetrics.tourSyncFinished(success, Duration.ofNanos(System.nanoTime() - startedAt));
             running.set(false);
         }
     }

@@ -8,6 +8,7 @@ import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
+import com.quespot.global.monitoring.ServiceMetrics;
 import com.quespot.global.security.provider.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -63,6 +64,9 @@ class OAuth2LoginServiceTest {
 
     @Mock
     private RefreshTokenService refreshTokenService;
+
+    @Mock
+    private ServiceMetrics serviceMetrics;
 
     @InjectMocks
     private OAuth2LoginService oAuth2LoginService;

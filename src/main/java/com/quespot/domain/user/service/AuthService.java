@@ -16,6 +16,7 @@ import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
+import com.quespot.global.monitoring.ServiceMetrics;
 import com.quespot.global.security.principal.AuthenticatedUser;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
@@ -40,6 +41,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
     private final PasswordEncoder passwordEncoder;
+    private final ServiceMetrics serviceMetrics;
 
     // 회원가입 로직
     @Transactional
@@ -64,7 +66,9 @@ public class AuthService {
         );
 
         try {
-            return AuthConverter.toSignUpResponseDTO(userRepository.saveAndFlush(user));
+            SignUpResponseDTO response = AuthConverter.toSignUpResponseDTO(userRepository.saveAndFlush(user));
+            serviceMetrics.userSignedUp(LoginProvider.EMAIL.name());
+            return response;
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(AuthErrorCode.DUPLICATE_EMAIL);
         }

@@ -8,6 +8,7 @@ import com.quespot.domain.mission.exception.code.MissionErrorCode;
 import com.quespot.domain.mission.repository.MissionAttemptRepository;
 import com.quespot.domain.reward.service.AchievementService;
 import com.quespot.domain.reward.service.PointService;
+import com.quespot.global.monitoring.ServiceMetrics;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class MissionArrivalService {
     private final GeoDistanceCalculator geoDistanceCalculator;
     private final CourseAttemptService courseAttemptService;
     private final AchievementService achievementService;
+    private final ServiceMetrics serviceMetrics;
 
     // 완료 처리와 포인트 지급을 하나의 트랜잭션(기본 REQUIRED)으로 묶는다.
     // REQUIRES_NEW를 쓰면 안 된다 — "완료됐는데 포인트 없음"이나 "포인트는
@@ -55,6 +57,7 @@ public class MissionArrivalService {
         );
 
         if (distanceMeters > RADIUS_METERS) {
+            serviceMetrics.missionArrivalRejected();
             return new ArrivalResultDTO(false, distanceMeters, RADIUS_METERS, attempt.getStatus(), null);
         }
 
@@ -75,6 +78,7 @@ public class MissionArrivalService {
         }
 
         achievementService.onMissionCompleted(userId, regionCode);
+        serviceMetrics.missionCompleted(regionCode);
 
         return successResult(attempt, distanceMeters);
     }
