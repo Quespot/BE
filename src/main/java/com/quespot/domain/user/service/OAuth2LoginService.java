@@ -11,6 +11,7 @@ import com.quespot.domain.user.exception.code.AuthErrorCode;
 import com.quespot.domain.user.repository.UserProfileRepository;
 import com.quespot.domain.user.repository.UserRepository;
 import com.quespot.domain.user.repository.UserSocialAccountRepository;
+import com.quespot.global.monitoring.ServiceMetrics;
 import com.quespot.global.security.provider.JwtTokenPair;
 import com.quespot.global.security.provider.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,7 @@ public class OAuth2LoginService {
     private final OAuth2UnlinkTaskStateService oAuth2UnlinkTaskStateService;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenService refreshTokenService;
+    private final ServiceMetrics serviceMetrics;
 
     // 소셜 로그인 사용자 확인 및 일회용 코드 발급 로직
     @Transactional
@@ -155,6 +157,7 @@ public class OAuth2LoginService {
                     )
             );
             prepareForRelink(provider, userInfo.providerUserId());
+            serviceMetrics.userSignedUp(provider.name());
             return user;
         } catch (DataIntegrityViolationException exception) {
             throw new AuthException(AuthErrorCode.OAUTH2_LOGIN_FAILED);

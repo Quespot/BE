@@ -5,6 +5,8 @@ import com.quespot.domain.mission.service.MissionCandidateGenerator;
 import com.quespot.domain.spot.service.RefinementSummary;
 import com.quespot.domain.spot.service.SpotRefiner;
 import com.quespot.domain.tour.dto.res.TourSyncResponseDTO;
+import com.quespot.global.monitoring.ServiceMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
@@ -20,7 +22,7 @@ class TourSyncOrchestratorTest {
         TourContentCollector collector = mock(TourContentCollector.class);
         SpotRefiner refiner = mock(SpotRefiner.class);
         MissionCandidateGenerator generator = mock(MissionCandidateGenerator.class);
-        TourSyncOrchestrator orchestrator = new TourSyncOrchestrator(collector, refiner, generator);
+        TourSyncOrchestrator orchestrator = new TourSyncOrchestrator(collector, refiner, generator, new ServiceMetrics(new SimpleMeterRegistry()));
         RefinementSummary refinement = new RefinementSummary(3, 2, 0, 1, 0);
         MissionCandidateGenerationResponseDTO generation =
                 new MissionCandidateGenerationResponseDTO(5, 3, 2);
